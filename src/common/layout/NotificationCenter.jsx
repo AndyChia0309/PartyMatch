@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuRadioSection, DropdownMenuFilterTrigger,
 } from '../../components/ui/dropdown-menu'
-import { handleNotificationClick } from './notificationClickHandlers'
+import { getMeta, handleNotificationClick } from './notificationClickHandlers'
 
 function getMergedNotifications(userId) {
   const notifStore = useNotificationStore.getState()
@@ -281,6 +281,7 @@ export default function NotificationCenter() {
           ) : (
             <div key={`${activeTab}-${sortOrder}-${effectiveCategory}`} className="animate-fade-in-up divide-y divide-line-subtle">
               {filtered.map(n => {
+                const { icon: Icon, iconColor } = getMeta(n.type)
                 const isUnread = loggedIn && !n.isRead
 
                 return (
@@ -291,6 +292,9 @@ export default function NotificationCenter() {
                       isUnread ? 'bg-brand-subtle/30' : ''
                     }`}
                   >
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-raised">
+                      <Icon size={16} strokeWidth={1.5} className={iconColor} />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm font-semibold text-ink">{n.title}</p>
                       <p className="mt-0.5 text-xs text-ink-3">{n.message}</p>
