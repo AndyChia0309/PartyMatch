@@ -34,7 +34,7 @@ export default function ScrollCue() {
 
   return (
     <div
-      className={`pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center transition-opacity duration-500 can-hover:lg:ml-20 can-hover:lg:mr-24 ${
+      className={`pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center transition-opacity duration-500 can-hover:lg:ml-[6.5rem] can-hover:lg:mr-24 ${
         idle && !nearEnd ? 'opacity-100' : 'opacity-0'
       }`}
     >

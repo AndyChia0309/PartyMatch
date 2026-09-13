@@ -33,7 +33,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col bg-canvas text-ink can-hover:lg:ml-20 can-hover:lg:mr-24">
+    <div className="flex min-h-screen flex-col bg-canvas text-ink can-hover:lg:ml-[6.5rem] can-hover:lg:mr-24">
       <AppNav />
       <Suspense fallback={null}>
         <MessagesModal />

@@ -458,13 +458,16 @@
   }
 }
 
-/* 真桌機時 DesktopSidebar 佔走左側 ml-20(5rem)／右側留白 mr-24(6rem)，
-   可視內容中心比整個視窗中心偏左 0.5rem，top-center 的 Toaster 要跟著補償，
-   才會跟下方置中的 Modal 對齊在同一個視覺中心（同一套模式見 ScrollCue.jsx）。 */
+/* 真桌機時 DesktopSidebar 收合時的實際佔用寬度是 left-4(1rem)+w-16(4rem)=5rem，
+   浮動按鈕群的實際佔用寬度是 right-6(1.5rem)+lg:w-12(3rem)=4.5rem；ml-[6.5rem]／
+   mr-24(6rem) 刻意都多留 1.5rem 的呼吸空間，讓內容跟左右兩側「看得到的元素邊緣」
+   間距一致（左側原本用 ml-20 直接等於 5rem，跟側邊欄零間距，會讓畫面視覺上偏左），
+   可視內容中心因此變成比整個視窗中心偏右 0.25rem，top-center 的 Toaster 要跟著
+   補償，才會跟下方置中的 Modal 對齊在同一個視覺中心（同一套模式見 ScrollCue.jsx）。 */
 @media (hover: hover) and (pointer: fine) and (min-width: 1024px) {
   [data-sonner-toaster][data-x-position="center"] {
     /* sonner 套件本身的樣式是掛載時才用 JS 插入 <style>，一定排在這份 index.css 之後，
        同樣的 specificity 會讓它蓋掉這裡的覆寫，必須加 !important 才能真的生效 */
-    left: calc(50% - 0.5rem) !important;
+    left: calc(50% + 0.25rem) !important;
   }
 }
