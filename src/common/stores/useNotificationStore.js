@@ -16,6 +16,7 @@ let _stopPolling = null
 let _notifUserId = null;
 
 let _awaySinceLastPoll = false;
+let _awayMissedCount = 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('offline', () => { _awaySinceLastPoll = true })
   window.addEventListener('blur', () => { _awaySinceLastPoll = true })
@@ -130,11 +131,13 @@ export const useNotificationStore = create((set, get) => ({
     _stopPolling = startPolling(async (isActive) => {
       if (!_notifUserId) return
       const polledForUserId = _notifUserId
-      const isCatchUp = _awaySinceLastPoll || hadRecentError || isAway()
+      const wasAway = _awaySinceLastPoll
+      const currentlyAway = isAway()
+      const isCatchUp = wasAway || hadRecentError || currentlyAway
       try {
         const latest = await readAllNotifications()
         hadRecentError = false;
-        if (!isAway())
+        if (!currentlyAway)
           _awaySinceLastPoll = false;
         if (!isActive() || _notifUserId !== polledForUserId)
           return;
@@ -165,10 +168,12 @@ export const useNotificationStore = create((set, get) => ({
           }))
         });
         if (isCatchUp) {
-          const catchUpCount = newNotifs.filter(n => !isSilent(n)).length
-          if (catchUpCount > 0) {
-            window.dispatchEvent(new CustomEvent('pm:catchup-toast', { detail: { count: catchUpCount } }))
-          }
+          _awayMissedCount += newNotifs.filter(n => !isSilent(n)).length
+        }
+        const justReturned = wasAway && !currentlyAway
+        if (justReturned && _awayMissedCount > 0) {
+          window.dispatchEvent(new CustomEvent('pm:catchup-toast', { detail: { count: _awayMissedCount } }))
+          _awayMissedCount = 0
         }
         const BALANCE_AFFECTING_TYPES = new Set(['member_removed', 'application_rejected', 'escrow_released', 'dispute_resolved', 'group_cancelled']);
         if (newNotifs.some(n => BALANCE_AFFECTING_TYPES.has(n.type))) {
