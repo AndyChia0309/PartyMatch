@@ -17,14 +17,18 @@ let _awaySinceLastPoll = false;
 let _awayMissedCount = 0;
 if (typeof window !== 'undefined') {
   window.addEventListener('offline', () => { _awaySinceLastPoll = true })
-  window.addEventListener('blur', () => { _awaySinceLastPoll = true })
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) _awaySinceLastPoll = true
   })
 }
 
+// 只看分頁是否真的被切到背景（document.hidden），不看視窗焦點（hasFocus）。
+// 焦點很容易因為次要操作而暫時飄走（例如點開瀏覽器自己的網址列、切到
+// devtools、觸發原生的檔案選擇視窗），使用者其實還在同一個分頁上盯著畫面，
+// 不該被當成「離開」而把當下該顯示的個別通知 toast 靜音、只留下之後才會
+// 出現的彙總訊息。
 function isAway() {
-  return document.hidden || !document.hasFocus()
+  return document.hidden
 }
 
 const SYSTEM_NOTIFICATION_TYPES = new Set(['system']);
