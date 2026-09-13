@@ -242,14 +242,14 @@ export default function GroupDetailModal() {
   }, [picks]);
 
   const viewerBlocked = useMemo(() => {
-    if (!isOpen || !group || groupDataPending || group.status === 'recruiting') return false
+    if (!isOpen || !group || groupDataPending || membershipRefreshing || group.status === 'recruiting') return false
     const viewerIsHost = group.hostId === activeUserId
     const viewerIsMember = activeUserId ? members.some(m => m.userId === activeUserId && m.groupId === group.id) : false
     const viewerApp = activeUserId ? useApplicationStore.getState().getByUserAndGroup(activeUserId, group.id) : null
     const viewerAppStatus = viewerApp?.status
     const viewerHasActiveApp = !!viewerApp && viewerAppStatus !== 'rejected' && viewerAppStatus !== 'removed' && viewerAppStatus !== 'left' && viewerAppStatus !== 'cancelled' && !(viewerAppStatus === 'approved' && !viewerIsMember)
     return !(viewerIsHost || viewerIsMember || viewerHasActiveApp)
-  }, [isOpen, group, groupDataPending, activeUserId, members])
+  }, [isOpen, group, groupDataPending, membershipRefreshing, activeUserId, members])
 
   useEffect(() => {
     if (!viewerBlocked || !group) return
