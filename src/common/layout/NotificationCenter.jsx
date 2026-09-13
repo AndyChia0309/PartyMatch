@@ -168,8 +168,14 @@ export default function NotificationCenter() {
   }, [activeTab, notifications, visibleTabs, sortOrder, effectiveCategory])
 
   function handleMarkAllRead() {
-    if (!userId) return
-    useNotificationStore.getState().markAllRead(userId)
+    if (!userId || !effectiveCategory) return
+    if (effectiveCategory === 'system') {
+      notifications
+        .filter(n => !n.meta?.groupId && !n.isRead)
+        .forEach(n => useNotificationStore.getState().markRead(n.id))
+    } else {
+      useNotificationStore.getState().markReadForGroup(userId, effectiveCategory)
+    }
   }
 
   return (
@@ -191,15 +197,6 @@ export default function NotificationCenter() {
               </span>
             )}
           </div>
-          <button
-            type="button"
-            onClick={handleMarkAllRead}
-            disabled={unreadCount === 0}
-            className="flex h-9 shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 text-xs font-bold text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
-          >
-            <CheckCheck size={16} strokeWidth={1.5} />
-            全部已讀
-          </button>
         </DrawerHeader>
         <DrawerDescription className="sr-only">通知中心</DrawerDescription>
 
@@ -235,6 +232,18 @@ export default function NotificationCenter() {
                   )}
                 />
               </div>
+            )}
+            {categories.length > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={!selectedCategory?.hasUnread}
+                aria-label="將此分類全部標記已讀"
+                title="將此分類全部標記已讀"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
+              >
+                <CheckCheck size={18} strokeWidth={1.5} />
+              </button>
             )}
             {visibleTabs.length > 1 && (
               <DropdownMenu

@@ -19,16 +19,6 @@ router.get('/', optionalAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 });
 
-router.patch('/read-all', requireAuth, async (req, res, next) => {
-  try {
-    await prisma.notification.updateMany({
-      where: { userId: req.user.id, isRead: false },
-      data:  { isRead: true },
-    })
-    res.json({ success: true })
-  } catch (err) { next(err) }
-});
-
 router.patch('/:id/read', requireAuth, async (req, res, next) => {
   try {
     const notif = await prisma.notification.findUnique({ where: { id: req.params.id } })

@@ -7,7 +7,3 @@ export async function readAllNotifications() {
 export async function patchNotification(id) {
   return client.patch(`/notifications/${id}/read`)
 }
-
-export async function markAllNotificationsRead() {
-  return client.patch('/notifications/read-all')
-}

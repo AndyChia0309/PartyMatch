@@ -2,13 +2,11 @@ import { create } from 'zustand'
 import {
   readAllNotifications,
   patchNotification,
-  markAllNotificationsRead,
 } from '../api/notificationsApi'
 import { useAuthStore } from './useAuthStore'
 import { todayISO, byNewest } from '../utils/date'
 import { startPolling } from '../utils/poller'
-import { notifyError, dismissToast } from '../utils/toast'
-import { getNotificationToastId } from '../utils/notificationToast'
+import { notifyError } from '../utils/toast'
 
 const POLL_INTERVAL_MS = 5000
 
@@ -243,24 +241,6 @@ export const useNotificationStore = create((set, get) => ({
     patchNotification(id).catch(err => {
       if (prior) set(s => ({ notifications: s.notifications.map(n => n.id === id ? prior : n) }))
       notifyError(err, '標記已讀失敗，請稍後再試')
-    })
-  },
-
-  markAllRead: (userId) => {
-    const priors = get().notifications.filter(n => n.userId === userId)
-    set(s => ({
-      notifications: s.notifications.map(n => n.userId === userId ? { ...n, isRead: true } : n),
-    }));
-    priors.forEach(n => {
-      const toastId = getNotificationToastId(n)
-      if (toastId) dismissToast(toastId)
-    });
-    dismissToast('pm-batch-update')
-    markAllNotificationsRead().catch(err => {
-      set(s => ({
-        notifications: s.notifications.map(n => priors.find(p => p.id === n.id) ?? n),
-      }))
-      notifyError(err, '全部標記已讀失敗，請稍後再試')
     })
   },
 }))
