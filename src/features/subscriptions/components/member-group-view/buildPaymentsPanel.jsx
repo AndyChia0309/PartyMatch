@@ -37,18 +37,17 @@ export function buildPaymentsPanel({ group, member, transactions, transactionsLo
               tone="success"
               icon={ArrowUpCircle}
               title="本期費用已撥款給團主"
-              subtitle={`${formatDateTime(escrowTime)} 平台代管`}
+              subtitle={formatDateTime(escrowTime)}
               amount={Math.abs(latestEscrow.amount)}
             />
           ) : (
             <EscrowStatusCard
               tone="info"
-              icon={Banknote}
               title="本期費用由平台代管中"
               subtitle={
                 member?.confirmedAt
                   ? '你已確認服務，等待其他成員確認後才會撥款給團主'
-                  : `${formatDateTime(escrowTime)} 平台代管`
+                  : formatDateTime(escrowTime)
               }
               amount={Math.abs(latestEscrow.amount)}
             />
