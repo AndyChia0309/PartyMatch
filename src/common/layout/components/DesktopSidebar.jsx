@@ -209,6 +209,9 @@ export default function DesktopSidebar({
       <div className="fixed right-6 z-50 hidden flex-col gap-3 can-hover:lg:flex" style={{ bottom: '2.25rem' }}>
         {renderMessageButton()}
       </div>
+      <div className="fixed bottom-9 right-6 z-50 flex flex-col gap-3 can-hover:lg:hidden">
+        {renderMessageButton()}
+      </div>
 
       <div ref={dockRef} className="fixed right-6 top-6 z-50 flex flex-col items-center gap-3 can-hover:lg:hidden">
         <button
@@ -218,7 +221,7 @@ export default function DesktopSidebar({
           aria-expanded={dockOpen}
         >
           {dockOpen ? <X className="size-6 lg:size-5" strokeWidth={1.5} /> : <Menu className="size-6 lg:size-5" strokeWidth={1.5} />}
-          {!dockOpen && (unreadNotifs > 0 || unreadMsgs > 0) && (
+          {!dockOpen && unreadNotifs > 0 && (
             <span className="absolute right-0 top-0 size-3 rounded-full border-2 border-surface bg-danger" />
           )}
         </button>
@@ -226,7 +229,6 @@ export default function DesktopSidebar({
           <>
             {renderNotifyButton()}
             {renderTopupButton()}
-            {renderMessageButton()}
             <button
               onClick={() => { toggleTheme(); setDockOpen(false) }}
               className={FLOATING_ICON_BUTTON_CLASS}
