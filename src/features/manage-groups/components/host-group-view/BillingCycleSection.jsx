@@ -25,13 +25,13 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
     : releasedTotal > 0
       ? '已撥款'
       : outstanding > 0
-        ? '代管中'
+        ? '平台代管中'
         : null
   const memberRows = buildMemberRows(transactions, isCancelled)
   const memberRowsTotal = memberRows.reduce((sum, tx) => sum + Math.abs(tx.amount), 0)
   const showHeaderAmount = isCancelled
     ? memberRowsTotal > 0
-    : statusLabel === '代管中' && memberRowsTotal > 0
+    : statusLabel === '平台代管中' && memberRowsTotal > 0
 
   return (
     <div className="overflow-hidden rounded-lg border border-line">
@@ -39,7 +39,7 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
         <CollapsibleTrigger asChild>
           <button type="button" className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left">
             <span className="flex items-center gap-2 text-sm font-bold text-ink">
-              {isCurrentCycle ? '本期代管費用' : `第 ${cycle} 期`}
+              {isCurrentCycle ? '本期費用' : `第 ${cycle} 期`}
             </span>
             <span className="flex shrink-0 items-center gap-1.5">
               {statusLabel && (
@@ -72,7 +72,7 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink">{tx.user?.name ?? '成員'}</p>
-                    <p className="text-xs text-ink-3">{formatDateTime(tx.createdAt)} {isCancelled ? '已退回' : '平台代管'}</p>
+                    <p className="text-xs text-ink-3">{formatDateTime(tx.createdAt)}{isCancelled ? ' 已退回' : ''}</p>
                   </div>
                   <span className={`shrink-0 text-sm font-bold ${isCancelled ? 'text-success-text' : 'text-info'}`}>
                     <TokenAmount amount={Math.abs(tx.amount)} />
