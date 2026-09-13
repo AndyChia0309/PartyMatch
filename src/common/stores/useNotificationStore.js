@@ -52,7 +52,7 @@ const NOTIFICATION_REFRESH_PAGE = {
   group_activation_expired: '/manage-groups',
 };
 
-const SILENT_REFRESH_TYPES = new Set(['application_sent']);
+const SILENT_REFRESH_TYPES = new Set(['application_sent', 'billing_date_confirmed']);
 
 function dedupeById(list) {
   const seen = new Set()
