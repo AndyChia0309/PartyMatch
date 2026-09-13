@@ -204,9 +204,9 @@ export default function DesktopSidebar({
       <div className="fixed right-6 top-6 z-50 hidden flex-col gap-3 can-hover:lg:flex lg:top-8">
         {renderNotifyButton()}
         {renderTopupButton()}
+        {renderThemeButton()}
       </div>
       <div className="fixed right-6 z-50 hidden flex-col gap-3 can-hover:lg:flex" style={{ bottom: '2.25rem' }}>
-        {renderThemeButton()}
         {renderMessageButton()}
       </div>
 
