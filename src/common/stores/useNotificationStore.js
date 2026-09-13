@@ -130,8 +130,9 @@ export const useNotificationStore = create((set, get) => ({
       if (!_notifUserId) return
       const polledForUserId = _notifUserId
       const wasAway = _awaySinceLastPoll
+      const hadErrorBefore = hadRecentError
       const currentlyAway = isAway()
-      const isCatchUp = wasAway || hadRecentError || currentlyAway
+      const isCatchUp = wasAway || hadErrorBefore || currentlyAway
       try {
         const latest = await readAllNotifications()
         hadRecentError = false;
@@ -168,7 +169,7 @@ export const useNotificationStore = create((set, get) => ({
         if (isCatchUp) {
           _awayMissedCount += newNotifs.filter(n => !isSilent(n)).length
         }
-        const justReturned = wasAway && !currentlyAway
+        const justReturned = (wasAway && !currentlyAway) || hadErrorBefore
         if (justReturned && _awayMissedCount > 0) {
           window.dispatchEvent(new CustomEvent('pm:catchup-toast', { detail: { count: _awayMissedCount } }))
           _awayMissedCount = 0
