@@ -63,7 +63,7 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
             )}
             <div className="overflow-hidden rounded-lg border border-line">
               {memberRows.length === 0 ? (
-                <p className="px-4 py-3 text-center text-sm text-ink-3">尚無代管紀錄</p>
+                <p className="px-4 py-3 text-center text-sm text-ink-3">目前尚無代管紀錄</p>
               ) : memberRows.map((tx, i) => (
                 <div key={tx.userId} className={`flex items-center gap-3 py-3 pl-4 ${showHeaderAmount ? 'pr-[1.375rem]' : 'pr-4'} ${i > 0 ? 'border-t border-line-subtle' : ''}`}>
                   <span className="relative inline-block shrink-0">

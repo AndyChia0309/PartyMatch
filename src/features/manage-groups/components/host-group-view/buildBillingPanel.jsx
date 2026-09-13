@@ -3,7 +3,7 @@ import EmptyState from '../../../../components/ui/primitives/EmptyState'
 import BillingCycleSection from './BillingCycleSection'
 import InsufficientBalanceNotice from './InsufficientBalanceNotice'
 
-export function buildBillingPanel({ members, groupMembers, transactions, transactionsLoading, showRenewal, currentCycle, isCancelled, pendingApplicantUserIds }) {
+export function buildBillingPanel({ groupMembers, transactions, transactionsLoading, showRenewal, currentCycle, isCancelled, pendingApplicantUserIds }) {
   const insufficientMembers = (groupMembers ?? []).filter(m => m.hasSufficientBalanceForRenewal === false)
   const cycleGroups = new Map()
   for (const tx of transactions) {
@@ -23,8 +23,6 @@ export function buildBillingPanel({ members, groupMembers, transactions, transac
         )}
         {transactionsLoading ? (
           <p className="py-8 text-center text-sm text-ink-3">載入中…</p>
-        ) : members.length === 0 && cycles.length === 0 ? (
-          <EmptyState icon={Banknote} title="目前尚無成員" />
         ) : cycles.length === 0 ? (
           <EmptyState icon={Banknote} title="目前尚無代管紀錄" />
         ) : (
