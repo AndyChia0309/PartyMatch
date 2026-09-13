@@ -33,22 +33,17 @@ export function ServiceIntro({ service, plan }) {
       {service?.description && (
         <p className="text-sm leading-relaxed text-ink-2">{service.description}</p>
       )}
-      {(plan?.description || (plan?.features?.length ?? 0) > 0) && (
+      {(plan?.features?.length ?? 0) > 0 && (
         <div className={`${service?.description ? 'mt-4 border-t border-line-subtle pt-4' : ''}`}>
           <p className="mb-4 flex items-center gap-2 text-lg font-black text-brand"><Layers strokeWidth={1.5} size={16} />方案說明</p>
-          {plan?.description && (
-            <p className="mb-3 text-sm font-medium text-ink-2">{plan.description}</p>
-          )}
-          {(plan?.features ?? []).length > 0 && (
-            <ul className="space-y-2">
-              {plan.features.map((feat, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-ink-2">
-                  <CheckCircle2 strokeWidth={1.5} size={14} className="mt-0.5 shrink-0 text-brand" />
-                  {feat}
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="space-y-2">
+            {plan.features.map((feat, i) => (
+              <li key={i} className="flex items-start gap-2 text-sm text-ink-2">
+                <CheckCircle2 strokeWidth={1.5} size={14} className="mt-0.5 shrink-0 text-brand" />
+                {feat}
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </>
