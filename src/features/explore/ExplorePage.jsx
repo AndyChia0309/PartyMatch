@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Compass, RotateCw, Search } from 'lucide-react'
+import { Compass, Search } from 'lucide-react'
 import { useGroupStore } from '../../common/stores/useGroupStore'
 import { useApplicationStore } from '../../common/stores/useApplicationStore'
 import { useMemberStore } from '../../common/stores/useMemberStore'
@@ -20,7 +20,6 @@ export default function ExplorePage() {
   const groups = useDeferWhileModalOpen(useGroupStore(s => s.groups))
   const applications = useDeferWhileModalOpen(useApplicationStore(s => s.applications))
   const members = useDeferWhileModalOpen(useMemberStore(s => s.members))
-  const [refreshing, setRefreshing] = useState(false);
 
   const pageEntryKeyRef = useRef(null);
   useEffect(() => {
@@ -38,17 +37,6 @@ export default function ExplorePage() {
       window.dispatchEvent(new CustomEvent('pm:open-condition-search'))
     }
   }, [location.state]);
-
-  async function handleRefresh() {
-    if (refreshing) return
-    setRefreshing(true)
-    try {
-      await useGroupStore.getState().init({ all: true })
-      window.scrollTo(0, 0)
-    } finally {
-      setRefreshing(false)
-    }
-  }
 
   const allGroups = useMemo(
     () => groups.filter(g => g.hostId !== activeUserId),
@@ -94,20 +82,6 @@ export default function ExplorePage() {
           className="relative grid h-14 w-14 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-floating transition-all hover:-translate-y-0.5 hover:bg-brand-subtle hover:text-brand lg:h-12 lg:w-12 dark:border-[#238EC7] dark:text-[#238EC7]"
         >
           <Search className="size-6 lg:size-5" strokeWidth={1.5} />
-        </button>
-      </div>
-
-      <div className="fixed bottom-9 right-6 z-40 can-hover:lg:bottom-24">
-        <button
-          type="button"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          aria-label="重新整理群組列表"
-          className="relative grid h-14 w-14 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-floating transition-all hover:-translate-y-0.5 hover:bg-brand-subtle hover:text-brand disabled:opacity-60 lg:h-12 lg:w-12 dark:border-[#238EC7] dark:text-[#238EC7]"
-        >
-          <span className={`inline-flex size-6 lg:size-5 transition-transform duration-700 ease-out ${refreshing ? 'animate-spin [animation-duration:0.7s]' : ''}`}>
-            <RotateCw className="size-full" strokeWidth={1.5} />
-          </span>
         </button>
       </div>
 
