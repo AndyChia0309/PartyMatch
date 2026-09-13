@@ -293,9 +293,12 @@ export default function App() {
         persistent: true,
         action: {
           label: '前往查看',
-          onClick: () => runPendingRefreshAndOpen(() => {
-            window.dispatchEvent(new CustomEvent('pm:open-notify'))
-          }, { reveal: true }),
+          onClick: () => {
+            dismissToast('pm-catchup-toast')
+            runPendingRefreshAndOpen(() => {
+              window.dispatchEvent(new CustomEvent('pm:open-notify'))
+            }, { reveal: true })
+          },
         },
       })
     }
