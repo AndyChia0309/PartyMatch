@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Check, ChevronDown } from 'lucide-react'
 import { cn } from '../../../lib/utils'
 import { useClickOutside } from '../../../common/utils/hooks'
+import { UpdateDot } from '../../../common/layout/components/navShared'
 
 export default function FilterSelect({ id, group, value, onChange, groups, triggerContent, className = '', listClassName = '', ariaLabel }) {
   const open = group.openKey === id
@@ -174,7 +175,12 @@ export default function FilterSelect({ id, group, value, onChange, groups, trigg
                       active && 'bg-accent text-accent-foreground'
                     )}
                   >
-                    {item.icon}
+                    {item.icon && (
+                      <span className="relative inline-flex shrink-0">
+                        {item.icon}
+                        <UpdateDot show={!!item.hasUnread} className="h-2 w-2 -right-0.5 -top-0.5" />
+                      </span>
+                    )}
                     <span className="truncate">{item.label}</span>
                     {selected && (
                       <Check className="pointer-events-none absolute right-2 size-4" strokeWidth={1.5} />

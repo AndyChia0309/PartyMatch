@@ -12,6 +12,7 @@ import EmptyState from '../../components/ui/primitives/EmptyState'
 import FilterSelect from '../../components/ui/primitives/FilterSelect'
 import { useFilterSelectGroup } from '../../components/ui/primitives/useFilterSelectGroup'
 import ServiceLogo from '../../components/ui/ServiceLogo'
+import { UpdateDot } from './components/navShared'
 import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuRadioSection, DropdownMenuFilterTrigger,
@@ -100,14 +101,18 @@ export default function NotificationCenter() {
           ? 'member'
           : 'applicant'
       const existing = byGroup.get(groupId)
+      const hasUnread = (existing?.hasUnread ?? false) || !n.isRead
       if (!existing || String(n.createdAt ?? '') > String(existing.latestAt ?? '')) {
-        byGroup.set(groupId, { key: groupId, groupId, serviceId: group?.serviceId ?? '', label, bucket, latestAt: n.createdAt })
+        byGroup.set(groupId, { key: groupId, groupId, serviceId: group?.serviceId ?? '', label, bucket, latestAt: n.createdAt, hasUnread })
+      } else {
+        existing.hasUnread = hasUnread
       }
     })
     const groupCategories = [...byGroup.values()].sort(
       (a, b) => String(b.latestAt ?? '').localeCompare(String(a.latestAt ?? ''))
     );
-    return [...groupCategories, { key: 'system', label: '系統', bucket: 'system' }];
+    const systemHasUnread = notifications.some(n => !n.meta?.groupId && !n.isRead)
+    return [...groupCategories, { key: 'system', label: '系統', bucket: 'system', hasUnread: systemHasUnread }];
   }, [notifications, groupsState, userId, memberGroupIds]);
 
   useEffect(() => {
@@ -127,6 +132,8 @@ export default function NotificationCenter() {
     [loggedIn, notifications]
   );
 
+  const anyCategoryUnread = useMemo(() => categories.some(c => c.hasUnread), [categories])
+
   const effectiveCategory = activeCategory ?? categories[0]?.key ?? null;
   const selectedCategory = categories.find(c => c.key === effectiveCategory) ?? null
 
@@ -135,6 +142,7 @@ export default function NotificationCenter() {
       return {
         value: cat.key,
         label: cat.label,
+        hasUnread: !!cat.hasUnread,
         icon: cat.key === 'system'
           ? (
             <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[22%] border border-line bg-white text-brand">
@@ -211,13 +219,16 @@ export default function NotificationCenter() {
                   triggerContent={(
                     <span className="flex min-w-0 items-center gap-1.5">
                       {selectedCategory ? (
-                        selectedCategory.key === 'system' ? (
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[22%] border border-line bg-white text-brand">
-                            <Megaphone size={11} strokeWidth={1.5} />
-                          </span>
-                        ) : (
-                          <ServiceLogo serviceId={selectedCategory.serviceId} size={20} />
-                        )
+                        <span className="relative inline-flex shrink-0">
+                          {selectedCategory.key === 'system' ? (
+                            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[22%] border border-line bg-white text-brand">
+                              <Megaphone size={11} strokeWidth={1.5} />
+                            </span>
+                          ) : (
+                            <ServiceLogo serviceId={selectedCategory.serviceId} size={20} />
+                          )}
+                          <UpdateDot show={anyCategoryUnread} className="h-2.5 w-2.5 -right-0.5 -top-0.5" />
+                        </span>
                       ) : null}
                       <span className="truncate">{selectedCategory ? selectedCategory.label : '全部通知'}</span>
                     </span>
