@@ -13,24 +13,6 @@ const POLL_INTERVAL_MS = 5000
 let _stopPolling = null
 let _notifUserId = null;
 
-let _awaySinceLastPoll = false;
-let _awayMissedCount = 0;
-if (typeof window !== 'undefined') {
-  window.addEventListener('offline', () => { _awaySinceLastPoll = true })
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden) _awaySinceLastPoll = true
-  })
-}
-
-// 只看分頁是否真的被切到背景（document.hidden），不看視窗焦點（hasFocus）。
-// 焦點很容易因為次要操作而暫時飄走（例如點開瀏覽器自己的網址列、切到
-// devtools、觸發原生的檔案選擇視窗），使用者其實還在同一個分頁上盯著畫面，
-// 不該被當成「離開」而把當下該顯示的個別通知 toast 靜音、只留下之後才會
-// 出現的彙總訊息。
-function isAway() {
-  return document.hidden
-}
-
 const SYSTEM_NOTIFICATION_TYPES = new Set(['system']);
 
 const NOTIFICATION_REFRESH_STORES = {
@@ -128,20 +110,11 @@ export const useNotificationStore = create((set, get) => ({
     if (_stopPolling) _stopPolling()
     _notifUserId = userId;
 
-    let hadRecentError = false;
-
     _stopPolling = startPolling(async (isActive) => {
       if (!_notifUserId) return
       const polledForUserId = _notifUserId
-      const wasAway = _awaySinceLastPoll
-      const hadErrorBefore = hadRecentError
-      const currentlyAway = isAway()
-      const isCatchUp = wasAway || hadErrorBefore || currentlyAway
       try {
         const latest = await readAllNotifications()
-        hadRecentError = false;
-        if (!currentlyAway)
-          _awaySinceLastPoll = false;
         if (!isActive() || _notifUserId !== polledForUserId)
           return;
         const currentIds = new Set(useNotificationStore.getState().notifications.map(n => n.id))
@@ -156,7 +129,7 @@ export const useNotificationStore = create((set, get) => ({
         newNotifs.forEach(n => {
           const stores = NOTIFICATION_REFRESH_STORES[n.type]
           if (!stores?.length) {
-            if (isSilent(n) || isCatchUp) return
+            if (isSilent(n)) return
             window.dispatchEvent(new CustomEvent('pm:notify-toast', {
               detail: { type: n.type, meta: n.meta, title: n.title, message: n.message },
             }))
@@ -165,26 +138,17 @@ export const useNotificationStore = create((set, get) => ({
           window.dispatchEvent(new CustomEvent('pm:refresh-stores', {
             detail: {
               stores, notifId: n.id, type: n.type, meta: n.meta, title: n.title, message: n.message,
-              silent: isSilent(n) || isCatchUp,
+              silent: isSilent(n),
               page:   NOTIFICATION_REFRESH_PAGE[n.type],
             },
           }))
         });
-        if (isCatchUp) {
-          _awayMissedCount += newNotifs.filter(n => !isSilent(n)).length
-        }
-        const justReturned = (wasAway && !currentlyAway) || hadErrorBefore
-        if (justReturned && _awayMissedCount > 0) {
-          window.dispatchEvent(new CustomEvent('pm:catchup-toast', { detail: { count: _awayMissedCount } }))
-          _awayMissedCount = 0
-        }
         const BALANCE_AFFECTING_TYPES = new Set(['member_removed', 'application_rejected', 'escrow_released', 'dispute_resolved', 'group_cancelled']);
         if (newNotifs.some(n => BALANCE_AFFECTING_TYPES.has(n.type))) {
           useAuthStore.getState().refreshTokenBalance().catch(console.error)
         }
         set({ notifications: dedupeById(latest) })
       } catch (err) {
-        hadRecentError = true
         console.error('[notification poll]', err)
       }
     }, POLL_INTERVAL_MS)

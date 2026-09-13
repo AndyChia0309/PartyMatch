@@ -283,34 +283,13 @@ export default function App() {
         },
       })
     }
-    function onCatchUpToast(event) {
-      const user = useAuthStore.getState().getProfile()
-      if (!user) return
-      const { count } = event.detail ?? {}
-      if (!count) return
-      toast(`有 ${count} 則新的群組/申請通知`, 'info', {
-        id: 'pm-catchup-toast',
-        persistent: true,
-        action: {
-          label: '前往查看',
-          onClick: () => {
-            dismissToast('pm-catchup-toast')
-            runPendingRefreshAndOpen(() => {
-              window.dispatchEvent(new CustomEvent('pm:open-notify'))
-            }, { reveal: true })
-          },
-        },
-      })
-    }
     window.addEventListener('pm:refresh-member-stores', onRefreshMemberStores)
     window.addEventListener('pm:refresh-stores', onRefreshStores)
     window.addEventListener('pm:notify-toast', onNotifyToast)
-    window.addEventListener('pm:catchup-toast', onCatchUpToast)
     return () => {
       window.removeEventListener('pm:refresh-member-stores', onRefreshMemberStores)
       window.removeEventListener('pm:refresh-stores', onRefreshStores)
       window.removeEventListener('pm:notify-toast', onNotifyToast)
-      window.removeEventListener('pm:catchup-toast', onCatchUpToast)
       unsubscribeHostOpenGroup()
       unsubscribeMemberOpenGroup()
     }
