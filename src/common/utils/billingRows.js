@@ -22,3 +22,8 @@ export function buildMemberRows(transactions, isCancelled) {
   }
   return [...netByUserId.values()].filter(v => v.net > 0 && v.latestEscrowTx).map(v => v.latestEscrowTx)
 }
+
+export function cycleHasContent(transactions, isCancelled) {
+  const releasedTotal = transactions.filter(tx => tx.type === 'release').reduce((sum, tx) => sum + tx.amount, 0)
+  return releasedTotal > 0 || buildMemberRows(transactions, isCancelled).length > 0
+}

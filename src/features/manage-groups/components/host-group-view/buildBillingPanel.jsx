@@ -2,6 +2,7 @@ import { Banknote } from 'lucide-react'
 import EmptyState from '../../../../components/ui/primitives/EmptyState'
 import BillingCycleSection from './BillingCycleSection'
 import InsufficientBalanceNotice from './InsufficientBalanceNotice'
+import { cycleHasContent } from '../../../../common/utils/billingRows'
 
 export function buildBillingPanel({ groupMembers, transactions, transactionsLoading, showRenewal, currentCycle, isCancelled, pendingApplicantUserIds }) {
   const insufficientMembers = (groupMembers ?? []).filter(m => m.hasSufficientBalanceForRenewal === false)
@@ -11,7 +12,14 @@ export function buildBillingPanel({ groupMembers, transactions, transactionsLoad
     if (!cycleGroups.has(cycle)) cycleGroups.set(cycle, [])
     cycleGroups.get(cycle).push(tx)
   }
-  const cycles = [...cycleGroups.keys()].sort((a, b) => b - a);
+  const cycles = [...cycleGroups.keys()].sort((a, b) => b - a).filter(cycle => {
+    const isCurrentCycle = cycle === currentCycle
+    const rawTxs = cycleGroups.get(cycle)
+    const txs = isCurrentCycle && pendingApplicantUserIds?.size
+      ? rawTxs.filter(tx => !(tx.type === 'escrow' && pendingApplicantUserIds.has(tx.userId)))
+      : rawTxs
+    return cycleHasContent(txs, isCancelled)
+  });
 
   return {
     content: (
