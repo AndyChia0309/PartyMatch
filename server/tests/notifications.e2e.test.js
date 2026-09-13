@@ -5,7 +5,7 @@ import prisma from '../src/lib/prisma.js'
 import { resetDb } from './helpers/db.js'
 import { createUser, authHeader } from './helpers/factories.js'
 
-describe('通知（GET /notifications, PATCH /:id/read, PATCH /read-all）', () => {
+describe('通知（GET /notifications, PATCH /:id/read）', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -58,22 +58,7 @@ describe('通知（GET /notifications, PATCH /:id/read, PATCH /read-all）', () 
     expect(res.status).toBe(404)
   })
 
-  it('PATCH /read-all 只會把自己未讀的通知全部標成已讀', async () => {
-    const user  = await createUser()
-    const other = await createUser()
-    const n1 = await prisma.notification.create({ data: { userId: user.id, type: 'group_reviewed', title: 't1', message: 'm' } })
-    const n2 = await prisma.notification.create({ data: { userId: user.id, type: 'group_reviewed', title: 't2', message: 'm' } })
-    const n3 = await prisma.notification.create({ data: { userId: other.id, type: 'group_reviewed', title: 't3', message: 'm' } })
-
-    const res = await request(app).patch('/api/notifications/read-all').set('Authorization', authHeader(user))
-    expect(res.status).toBe(200)
-    expect((await prisma.notification.findUnique({ where: { id: n1.id } })).isRead).toBe(true)
-    expect((await prisma.notification.findUnique({ where: { id: n2.id } })).isRead).toBe(true)
-    expect((await prisma.notification.findUnique({ where: { id: n3.id } })).isRead).toBe(false)
-  })
-
-  it('未登入呼叫 read-all 或 :id/read 回 401', async () => {
-    expect((await request(app).patch('/api/notifications/read-all')).status).toBe(401)
+  it('未登入呼叫 :id/read 回 401', async () => {
     expect((await request(app).patch('/api/notifications/anything/read')).status).toBe(401)
   })
 })

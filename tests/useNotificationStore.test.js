@@ -1,16 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 vi.mock('../src/common/api/notificationsApi', () => ({
-  readAllNotifications:     vi.fn(),
-  patchNotification:        vi.fn(),
-  markAllNotificationsRead: vi.fn(),
+  readAllNotifications: vi.fn(),
+  patchNotification:    vi.fn(),
 }))
 vi.mock('../src/common/utils/toast', () => ({
   notifyError: vi.fn(),
   dismissToast: vi.fn(),
 }))
 
-const { readAllNotifications, patchNotification, markAllNotificationsRead } = await import('../src/common/api/notificationsApi')
+const { readAllNotifications, patchNotification } = await import('../src/common/api/notificationsApi')
 const { notifyError } = await import('../src/common/utils/toast')
 const { useNotificationStore, isSystemNotification } = await import('../src/common/stores/useNotificationStore')
 
@@ -84,23 +83,20 @@ describe('useNotificationStore', () => {
     expect(notifyError).toHaveBeenCalled()
   })
 
-  it('markAllRead() 只影響指定使用者的通知，失敗時整批回滾', async () => {
+  it('markReadForGroup() 只標記指定使用者在該群組底下的未讀通知', () => {
     useNotificationStore.setState({
       notifications: [
-        { id: 'n1', userId: USER_ID, isRead: false },
-        { id: 'n2', userId: 'other', isRead: false },
+        { id: 'n1', userId: USER_ID, isRead: false, meta: { groupId: 'g1' } },
+        { id: 'n2', userId: USER_ID, isRead: false, meta: { groupId: 'g2' } },
+        { id: 'n3', userId: 'other', isRead: false, meta: { groupId: 'g1' } },
       ],
     })
-    let rejectFn
-    markAllNotificationsRead.mockReturnValue(new Promise((_, reject) => { rejectFn = reject }))
+    patchNotification.mockResolvedValue({})
 
-    useNotificationStore.getState().markAllRead(USER_ID)
+    useNotificationStore.getState().markReadForGroup(USER_ID, 'g1')
+
     expect(useNotificationStore.getState().notifications.find(n => n.id === 'n1').isRead).toBe(true)
     expect(useNotificationStore.getState().notifications.find(n => n.id === 'n2').isRead).toBe(false)
-
-    rejectFn(new Error('失敗'))
-    await vi.waitFor(() => {
-      expect(useNotificationStore.getState().notifications.find(n => n.id === 'n1').isRead).toBe(false)
-    })
+    expect(useNotificationStore.getState().notifications.find(n => n.id === 'n3').isRead).toBe(false)
   })
 })

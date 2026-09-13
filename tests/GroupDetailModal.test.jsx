@@ -78,11 +78,11 @@ describe('GroupDetailModal', () => {
     expect(container).toBeEmptyDOMElement()
   })
 
-  it('收到 pm:open-group 事件後開啟對應群組的詳情', () => {
+  it('收到 pm:open-group 事件後開啟對應群組的詳情', async () => {
     useGroupStore.setState({ groups: [GROUP] })
     renderModal()
     openGroup('g1')
-    expect(screen.getAllByText('Netflix').length).toBeGreaterThan(0);
+    expect(await screen.findAllByText('Netflix', {}, { timeout: 3000 })).not.toHaveLength(0);
   })
 
   it('未登入訪客看到的是「登入以加入群組」而不是「申請加入」', async () => {
@@ -113,12 +113,13 @@ describe('GroupDetailModal', () => {
     expect(screen.queryByText('申請加入')).not.toBeInTheDocument()
   })
 
-  it('團主看自己的群組不會顯示「申請加入」（不能申請自己的群組）', () => {
+  it('團主看自己的群組不會顯示「申請加入」（不能申請自己的群組）', async () => {
     const host = { id: 'host-1' }
     useAuthStore.setState({ user: host, loggedIn: true })
     useGroupStore.setState({ groups: [GROUP] })
     renderModal()
     openGroup('g1')
+    expect(await screen.findAllByText('Netflix', {}, { timeout: 3000 })).not.toHaveLength(0);
     expect(screen.queryByText('申請加入')).not.toBeInTheDocument()
     expect(screen.queryByText('登入以加入群組')).not.toBeInTheDocument()
   })
@@ -135,21 +136,22 @@ describe('GroupDetailModal', () => {
     expect(useFavoriteStore.getState().isFavorited(user.id, 'g1')).toBe(true)
   })
 
-  it('點擊關閉按鈕會關閉 modal', () => {
+  it('點擊關閉按鈕會關閉 modal', async () => {
     useGroupStore.setState({ groups: [GROUP] })
     renderModal()
     openGroup('g1')
-    expect(screen.getAllByText('Netflix').length).toBeGreaterThan(0)
+    expect(await screen.findAllByText('Netflix', {}, { timeout: 3000 })).not.toHaveLength(0);
 
     fireEvent.click(screen.getByRole('button', { name: '關閉' }))
     expect(screen.queryAllByText('Netflix')).toHaveLength(0)
   })
 
-  it('已登入使用者看到額滿的群組時不會顯示「申請加入」', () => {
+  it('已登入使用者看到額滿的群組時不會顯示「申請加入」', async () => {
     useAuthStore.setState({ user: { id: 'user-1', tokenBalance: 1000 }, loggedIn: true });
     useGroupStore.setState({ groups: [{ ...GROUP, openSeats: 0, status: 'full' }] })
     renderModal()
     openGroup('g1')
+    expect(await screen.findAllByText('Netflix', {}, { timeout: 3000 })).not.toHaveLength(0);
     expect(screen.queryByText('申請加入')).not.toBeInTheDocument()
   })
 })
