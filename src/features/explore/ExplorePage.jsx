@@ -74,7 +74,7 @@ export default function ExplorePage() {
         />
       </div>
 
-      <div className="fixed bottom-28 right-6 z-40 can-hover:lg:bottom-24">
+      <div className="fixed bottom-9 left-6 z-40 can-hover:lg:left-auto can-hover:lg:right-6 can-hover:lg:bottom-24">
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent('pm:open-condition-search'))}
