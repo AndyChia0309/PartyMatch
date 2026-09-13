@@ -9,6 +9,7 @@ import { startPolling } from '../utils/poller'
 import { notifyError } from '../utils/toast'
 
 const POLL_INTERVAL_MS = 5000
+const MAX_TOAST_AGE_MS = 10 * 60 * 1000
 
 let _stopPolling = null
 let _notifUserId = null;
@@ -124,7 +125,8 @@ export const useNotificationStore = create((set, get) => ({
         );
         function isSilent(n) {
           return SILENT_REFRESH_TYPES.has(n.type) ||
-            (n.type === 'application_approved' && fullMemberGroupIds.has(n.meta?.groupId))
+            (n.type === 'application_approved' && fullMemberGroupIds.has(n.meta?.groupId)) ||
+            Date.now() - new Date(n.createdAt).getTime() > MAX_TOAST_AGE_MS
         }
         newNotifs.forEach(n => {
           const stores = NOTIFICATION_REFRESH_STORES[n.type]

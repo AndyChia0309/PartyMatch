@@ -99,4 +99,32 @@ describe('useNotificationStore', () => {
     expect(useNotificationStore.getState().notifications.find(n => n.id === 'n2').isRead).toBe(false)
     expect(useNotificationStore.getState().notifications.find(n => n.id === 'n3').isRead).toBe(false)
   })
+
+  it('startPolling()：超過 10 分鐘的舊通知不跳 Toast，但仍會靜默更新資料/加入清單', async () => {
+    const now = Date.now()
+    const staleNotifyToast = { id: 'n1', userId: USER_ID, type: 'group_created', createdAt: new Date(now - 11 * 60 * 1000).toISOString() }
+    const freshNotifyToast = { id: 'n2', userId: USER_ID, type: 'group_created', createdAt: new Date(now).toISOString() }
+    const staleRefreshStore = { id: 'n3', userId: USER_ID, type: 'application_rejected', createdAt: new Date(now - 11 * 60 * 1000).toISOString() }
+    readAllNotifications.mockResolvedValue([staleNotifyToast, freshNotifyToast, staleRefreshStore])
+
+    const notifyToastSpy = vi.fn()
+    const refreshStoresSpy = vi.fn()
+    window.addEventListener('pm:notify-toast', notifyToastSpy)
+    window.addEventListener('pm:refresh-stores', refreshStoresSpy)
+
+    useNotificationStore.getState().startPolling(USER_ID)
+    await vi.waitFor(() => {
+      expect(useNotificationStore.getState().notifications).toHaveLength(3)
+    })
+
+    expect(notifyToastSpy).toHaveBeenCalledTimes(1)
+    expect(notifyToastSpy.mock.calls[0][0].detail.type).toBe('group_created')
+
+    expect(refreshStoresSpy).toHaveBeenCalledTimes(1)
+    expect(refreshStoresSpy.mock.calls[0][0].detail.silent).toBe(true)
+
+    window.removeEventListener('pm:notify-toast', notifyToastSpy)
+    window.removeEventListener('pm:refresh-stores', refreshStoresSpy)
+    useNotificationStore.getState().teardown()
+  })
 })
