@@ -7,7 +7,7 @@ import ServiceLogo from '../../../components/ui/ServiceLogo'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../components/ui/collapsible'
 import TokenAmount from '../../../components/ui/TokenAmount'
 import GroupOverviewContent from '../../../components/ui/group/GroupOverviewContent'
-import { advanceByCycle, toISODate } from '../../../common/utils/date'
+import { toISODate } from '../../../common/utils/date'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { hasFilledServiceInfo, getServiceInfoSummary, isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
 import { fetchGroupTransactions } from '../../../common/api/groupsApi'
@@ -24,7 +24,7 @@ export default function ActivateServiceModal({
   allMembersChecked,
   loading = false,
 }) {
-  const nextDate = isOpen ? toISODate(advanceByCycle(new Date(), group.billingCycle)) : ''
+  const nextDate = isOpen ? toISODate(group.nextBillingDate, '—') : ''
   const service  = getServiceById(group.serviceId)
   const plan     = service?.plans.find(p => p.name === group.planName)
   const sharingMethod = service?.sharingMethod
