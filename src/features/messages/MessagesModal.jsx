@@ -271,7 +271,7 @@ export default function MessagesModal() {
                   onClick={() => setSelectedId(null)}
                   variant="ghost"
                   size="icon"
-                  className="shrink-0 text-ink-3 hover:text-ink active:opacity-70"
+                  className="-ml-2 shrink-0 text-ink-3 hover:text-ink active:opacity-70"
                   aria-label="返回"
                 >
                   <ChevronLeft size={18} strokeWidth={1.5} />
