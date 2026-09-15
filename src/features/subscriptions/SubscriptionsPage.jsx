@@ -13,13 +13,11 @@ import EmptyState from '../../components/ui/primitives/EmptyState'
 import { StatusBadge } from '../../components/ui/StatusBadge'
 import { getStatusLabel } from '../../components/ui/statusBadgeConfig'
 import { StatCell, StatCellGrid } from '../../components/ui/group/StatCellGrid'
-import TokenAmount from '../../components/ui/TokenAmount'
-import ServiceLogo from '../../components/ui/ServiceLogo'
+import GroupCardHeader from '../../components/ui/group/GroupCardHeader'
 import { Button } from '../../components/ui/button'
 import { Card } from '../../components/ui/card'
 import RevealSection from '../../components/ui/primitives/RevealSection'
 import { toISODate, byNewest } from '../../common/utils/date'
-import { calcDisplayPrice, calcDisplayCycle } from '../../common/utils/pricingUtils'
 import { isHistorySubscription } from '../../common/utils/groupStatusDisplay'
 import GroupHistoryModal from '../../components/ui/group/GroupHistoryModal'
 import { useDeferWhileModalOpen } from '../../common/utils/hooks'
@@ -228,28 +226,14 @@ function ApplicationCard({ app, group, hasPendingUpdate, onViewGroup }) {
       className="card-lift relative flex min-h-full cursor-pointer flex-col overflow-hidden p-5"
       onClick={onViewGroup}
     >
-      <div className="flex justify-center">
-        <StatusBadge status="pending" label="審核中" />
-      </div>
-
-      <div className="mt-4 flex justify-center">
-        <ServiceLogo serviceId={app.serviceId} size={80} className="border-line-strong" />
-      </div>
-
-      <div className="mt-3 text-center">
-        <h2 className="text-xl font-black leading-tight text-ink">{app.serviceName ?? app.groupName}</h2>
-        <p className="mt-1 text-sm font-semibold text-ink-3">{app.planName}</p>
-        {group.pricePerSeat != null && (
-          <p className="mt-1 text-base font-extrabold text-ink">
-            <TokenAmount
-              amount={calcDisplayPrice(group.pricePerSeat, group.billingCycle)}
-              cycle={calcDisplayCycle(group.billingCycle)}
-            />
-          </p>
-        )}
-      </div>
-
-      <div className="my-4 border-t border-line-subtle" />
+      <GroupCardHeader
+        badge={<StatusBadge status="pending" label="審核中" />}
+        serviceId={app.serviceId}
+        serviceName={app.serviceName ?? app.groupName}
+        planName={app.planName}
+        pricePerSeat={group.pricePerSeat}
+        billingCycle={group.billingCycle}
+      />
 
       <StatCellGrid>
         <StatCell label="團主">{app.hostName ?? '—'}</StatCell>
