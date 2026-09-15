@@ -26,6 +26,18 @@ export default function LoginPage() {
     setTouched(prev => (prev[key] ? prev : { ...prev, [key]: true }))
   }
 
+  function waitForRouteTransition() {
+    return new Promise(resolve => {
+      let started = false
+      function handler(e) {
+        if (e.detail?.active) { started = true; return }
+        if (started) { window.removeEventListener('pm:route-transition', handler); resolve() }
+      }
+      window.addEventListener('pm:route-transition', handler)
+      setTimeout(() => { window.removeEventListener('pm:route-transition', handler); resolve() }, 2500)
+    })
+  }
+
   async function enterAppAfterAuth(user, welcomeMessage) {
     const homeImport      = import('../../home/HomePage').catch(() => {})
     const appLayoutImport = import('../../../common/layout/AppLayout').catch(() => {})
@@ -36,7 +48,7 @@ export default function LoginPage() {
     } else {
       navigate('/', { replace: true })
     }
-    await new Promise(requestAnimationFrame)
+    await waitForRouteTransition()
     toast(`${welcomeMessage}${user.name ? ` ${user.name}` : ''}`)
   }
 
