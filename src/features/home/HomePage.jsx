@@ -4,6 +4,8 @@ import { ChevronRight, Compass } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import logoUrl from '../../assets/Logo.svg'
 import { useAuthStore } from '../../common/stores/useAuthStore'
+import { toast } from '../../common/utils/toast'
+import { LOCKED_MESSAGE } from '../../common/layout/components/navConstants'
 import AppNav from '../../common/layout/AppNav'
 import AppFooter from '../../common/layout/AppFooter'
 import NotificationCenter from '../../common/layout/NotificationCenter'
@@ -105,7 +107,12 @@ export default function HomePage() {
                 size="lg"
                 variant="secondary"
                 className="rounded-full px-5 sm:px-8"
-                onClick={() => loggedIn ? window.dispatchEvent(new CustomEvent('pm:open-create-group')) : navigate('/register')}
+                onClick={() => loggedIn ? window.dispatchEvent(new CustomEvent('pm:open-create-group')) : toast(LOCKED_MESSAGE, 'info', {
+                  action: {
+                    label: '前往登入',
+                    onClick: () => navigate('/login'),
+                  },
+                })}
               >
                 建立群組
                 <ChevronRight size={15} strokeWidth={1.5} />

@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronRight } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import { useAuthStore } from '../../../common/stores/useAuthStore'
+import { toast } from '../../../common/utils/toast'
+import { LOCKED_MESSAGE } from '../../../common/layout/components/navConstants'
 import { HOME_AUDIENCES } from '../data/homeContent'
 
 function audiencePhotoUrl({ photo, photoSeed }) {
@@ -54,7 +56,12 @@ export default function AudienceGrid() {
       <Button
         size="lg"
         className="rounded-full px-8"
-        onClick={() => loggedIn ? window.dispatchEvent(new CustomEvent('pm:open-create-group')) : navigate('/register')}
+        onClick={() => loggedIn ? window.dispatchEvent(new CustomEvent('pm:open-create-group')) : toast(LOCKED_MESSAGE, 'info', {
+          action: {
+            label: '前往登入',
+            onClick: () => navigate('/login'),
+          },
+        })}
       >
         立即建立群組
         <ChevronRight size={14} strokeWidth={1.5} />
