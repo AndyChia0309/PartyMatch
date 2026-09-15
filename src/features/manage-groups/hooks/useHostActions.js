@@ -243,12 +243,6 @@ async function handleActivate() {
       return
     }
 
-    const activateConvId = getConvByGroupId(viewGroupId)?.id
-    if (activateConvId) sendSystemMessage(
-      activateConvId,
-      `${group.serviceName} 服務已啟用！請在 48 小時內確認服務是否正常運作。`
-    ).catch(console.error)
-
     setViewGroupId(null);
     refreshGroups()
   }
