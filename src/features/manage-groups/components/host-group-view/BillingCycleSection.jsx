@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ArrowUpCircle, ChevronDown } from 'lucide-react'
+import { ChevronDown } from 'lucide-react'
 import { Avatar } from '../../../../components/ui/avatar'
 import { PresenceDot } from '../../../../common/layout/components/navShared'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../../components/ui/collapsible'
@@ -23,7 +23,7 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
   const statusLabel = isCancelled
     ? '已退款'
     : releasedTotal > 0
-      ? '已撥款'
+      ? '已完成'
       : outstanding > 0
         ? '平台代管中'
         : null
@@ -44,7 +44,9 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
             <span className="flex shrink-0 items-center gap-1.5">
               {statusLabel && (
                 <span className={`flex items-center gap-2 ${
-                  showHeaderAmount ? `text-sm font-bold ${isCancelled ? 'text-success-text' : 'text-info'}` : 'text-xs text-ink-3'
+                  showHeaderAmount
+                    ? `text-sm font-bold ${isCancelled ? 'text-success-text' : 'text-info'}`
+                    : statusLabel === '已完成' ? 'text-xs font-bold text-success-text' : 'text-xs text-ink-3'
                 }`}>
                   {statusLabel}
                   {showHeaderAmount && (
@@ -58,9 +60,6 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="space-y-3 border-t border-line px-4 py-3">
-            {!isCancelled && releasedTotal > 0 && (
-              <EscrowStatusCard tone="success" icon={ArrowUpCircle} title="已撥款給你的代管總額" amount={releasedTotal} />
-            )}
             <div className="overflow-hidden rounded-lg border border-line">
               {memberRows.length === 0 ? (
                 <p className="px-4 py-3 text-center text-sm text-ink-3">目前尚無代管紀錄</p>
@@ -80,6 +79,9 @@ export default function BillingCycleSection({ cycle, isCurrentCycle, transaction
                 </div>
               ))}
             </div>
+            {!isCancelled && releasedTotal > 0 && (
+              <EscrowStatusCard tone="success" title="已撥款至您的PM幣帳戶" amount={releasedTotal} />
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>

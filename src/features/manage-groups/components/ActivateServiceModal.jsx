@@ -90,10 +90,10 @@ export default function ActivateServiceModal({
                   <Collapsible open={escrowOpen} onOpenChange={setEscrowOpen}>
                     <CollapsibleTrigger asChild>
                       <button type="button" className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left">
-                        <span className="text-sm font-bold text-ink">本期代管費用</span>
+                        <span className="text-sm font-bold text-ink">本期費用</span>
                         <span className="flex shrink-0 items-center gap-1.5">
                           <span className="flex items-center gap-2 text-sm font-bold text-info">
-                            代管中
+                            平台代管中
                             <TokenAmount amount={group.escrowTokens} align="center" />
                           </span>
                           <ChevronDown size={16} strokeWidth={1.5} className={`text-ink-4 transition-transform ${escrowOpen ? 'rotate-180' : ''}`} />

@@ -47,8 +47,8 @@ export default function ConfirmServiceModal(
           ) : latestEscrow ? (
             <EscrowStatusCard
               tone="info"
-              title="本期服務費用"
-              subtitle={`${formatDateTime(latestEscrow.createdAt)} 平台代管`}
+              title="本期費用由平台代管中"
+              subtitle={formatDateTime(latestEscrow.createdAt)}
               amount={Math.abs(latestEscrow.amount)}
             />
           ) : (

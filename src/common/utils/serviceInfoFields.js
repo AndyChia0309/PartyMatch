@@ -87,7 +87,7 @@ export function getTextFields(sharingMethod, serviceId) {
 export function getServiceInfoSummary(serviceInfo, sharingMethod, serviceId) {
   if (!serviceInfo) return null
   const parts = getTextFields(sharingMethod, serviceId)
-    .map(({ key, label }) => serviceInfo[key] ? `${label}：${serviceInfo[key]}` : null)
+    .map(({ key, label }) => serviceInfo[key] ? `${label.replace(/：$/, '')}：${serviceInfo[key]}` : null)
     .filter(Boolean)
   if (parts.length > 0) return parts.join('　')
   const { fields } = getSharingMethodConfig(sharingMethod, serviceId);
