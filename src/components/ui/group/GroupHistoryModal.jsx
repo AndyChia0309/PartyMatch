@@ -2,18 +2,18 @@ import { Archive } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogCloseButton } from '../dialog'
 import EmptyState from '../primitives/EmptyState'
 
-export default function GroupHistoryModal({ isOpen, onClose, items, renderItem, emptyDescription }) {
+export default function GroupHistoryModal({ isOpen, onClose, items, renderItem, emptyDescription, title = '群組紀錄' }) {
   return (
     <Dialog open={isOpen} onOpenChange={v => { if (!v) onClose() }}>
       <DialogContent maxWidth="max-w-7xl" height="min(90dvh, 820px)">
         <DialogHeader>
           <div className="flex items-center gap-2">
             <Archive strokeWidth={1.5} size={16} className="text-ink-3" />
-            <DialogTitle>群組紀錄</DialogTitle>
+            <DialogTitle>{title}</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogDescription>群組紀錄</DialogDescription>
+        <DialogDescription>{title}</DialogDescription>
         <DialogBody>
           <div className="p-5">
             {items.length === 0 ? (

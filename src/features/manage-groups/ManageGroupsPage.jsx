@@ -72,7 +72,7 @@ export default function ManageGroupsPage() {
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          aria-label="群組紀錄"
+          aria-label="管理紀錄"
           className="relative grid h-14 w-14 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-floating transition-all hover:-translate-y-0.5 hover:bg-brand-subtle hover:text-brand lg:h-12 lg:w-12 dark:border-[#238EC7] dark:text-[#238EC7]"
         >
           <Archive className="size-6 lg:size-5" strokeWidth={1.5} />
@@ -107,6 +107,7 @@ export default function ManageGroupsPage() {
         isOpen={historyOpen}
         onClose={closeHistory}
         items={historyGroups}
+        title="管理紀錄"
         emptyDescription="已解散或已結束的群組會顯示在這裡"
         renderItem={(g, i) => (
           <RevealSection key={g.id} delay={i * 60}>

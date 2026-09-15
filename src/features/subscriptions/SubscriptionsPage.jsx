@@ -136,7 +136,7 @@ export default function SubscriptionsPage() {
         <button
           type="button"
           onClick={() => setHistoryOpen(true)}
-          aria-label="群組紀錄"
+          aria-label="訂閱紀錄"
           className="relative grid h-14 w-14 place-items-center rounded-full border border-line bg-surface text-ink-2 shadow-floating transition-all hover:-translate-y-0.5 hover:bg-brand-subtle hover:text-brand lg:h-12 lg:w-12 dark:border-[#238EC7] dark:text-[#238EC7]"
         >
           <Archive className="size-6 lg:size-5" strokeWidth={1.5} />
@@ -191,6 +191,7 @@ export default function SubscriptionsPage() {
         isOpen={historyOpen}
         onClose={closeHistory}
         items={historySubs}
+        title="訂閱紀錄"
         emptyDescription="已結束或已取消的訂閱會顯示在這裡"
         renderItem={(sub, i) => (
           <RevealSection key={sub.id} delay={i * 60}>
