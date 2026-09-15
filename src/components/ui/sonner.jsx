@@ -5,7 +5,9 @@ export function Toaster(props) {
   return (
     <Sonner
       className="pointer-events-auto"
+      style={{ '--width': 'calc(100vw - 2rem)' }}
       position="top-center"
+      expand
       offset={{ top: '2.5rem' }}
       mobileOffset={{ top: '5rem' }}
       closeButton
@@ -18,8 +20,9 @@ export function Toaster(props) {
       toastOptions={{
         unstyled: true,
         classNames: {
-          toast: 'flex w-max max-w-sm items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-floating max-[600px]:-translate-x-2',
-          title: 'min-w-0 text-sm font-semibold text-ink',
+          toast: 'flex !w-max !max-w-[calc(100vw-2rem)] items-start gap-3 rounded-2xl border border-line bg-surface px-4 py-3 shadow-floating max-[600px]:-translate-x-2',
+          content: 'min-w-0 flex-auto',
+          title: 'block whitespace-normal break-words text-sm font-semibold text-ink',
           actionButton: '!bg-transparent !p-0 shrink-0 text-sm font-bold !text-brand hover:underline',
           closeButton: 'order-last shrink-0 !border-line !bg-surface text-ink-3 hover:!bg-raised hover:!text-ink',
           icon: 'shrink-0',

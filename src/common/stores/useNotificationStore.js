@@ -123,9 +123,13 @@ export const useNotificationStore = create((set, get) => ({
         const fullMemberGroupIds = new Set(
           newNotifs.filter(n => n.type === 'group_full_member').map(n => n.meta?.groupId).filter(Boolean)
         );
+        const fillServiceInfoGroupIds = new Set(
+          newNotifs.filter(n => n.type === 'fill_service_info').map(n => n.meta?.groupId).filter(Boolean)
+        );
         function isSilent(n) {
           return SILENT_REFRESH_TYPES.has(n.type) ||
             (n.type === 'application_approved' && fullMemberGroupIds.has(n.meta?.groupId)) ||
+            (n.type === 'group_chat_opened' && fillServiceInfoGroupIds.has(n.meta?.groupId)) ||
             Date.now() - new Date(n.createdAt).getTime() > MAX_TOAST_AGE_MS
         }
         newNotifs.forEach(n => {
