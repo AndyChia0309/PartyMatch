@@ -25,8 +25,8 @@ export default function FeaturedGroupsCarousel() {
 
   return (
     <section id="section-featured-groups" className="relative flex w-full min-h-[60svh] flex-col items-center justify-center px-5 py-20 can-hover:lg:py-28">
-      <RevealSection className="mx-auto w-full max-w-3xl">
-        <div className="flex flex-col items-center text-center">
+      <RevealSection className="mx-auto w-full max-w-5xl">
+        <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
           <h2 className="text-3xl font-extrabold text-ink">探索適合你的共享群組</h2>
           <p className="mt-3 max-w-sm text-base leading-relaxed text-ink-3">
             依照需求搜尋、篩選條件，快速找到適合的群組。
@@ -35,7 +35,7 @@ export default function FeaturedGroupsCarousel() {
 
         <div className="relative -mx-5 mt-4 w-[calc(100%+2.5rem)] overflow-x-clip sm:mx-0 sm:mt-10 sm:w-full">
           <div
-            className="relative h-[420px] touch-pan-y select-none [perspective:1400px]"
+            className="relative h-[460px] touch-pan-y select-none [perspective:1400px]"
             onPointerDown={onPointerDown}
             onPointerUp={onPointerUp}
           >
@@ -55,12 +55,13 @@ export default function FeaturedGroupsCarousel() {
                 <div
                   key={g.id}
                   onClick={!isFocused ? () => setFocusIndex(i) : undefined}
-                  className={`absolute left-1/2 top-1/2 w-60 transition-all duration-500 ease-out sm:w-72 ${!isFocused ? 'cursor-pointer' : ''}`}
+                  className={`absolute left-1/2 top-1/2 w-72 transition-[transform,opacity,filter] duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] sm:w-80 lg:w-[22rem] ${!isFocused ? 'cursor-pointer' : ''}`}
                   style={{
                     transform: `translate(-50%, -50%) translateX(${translateX}%) rotateY(${rotateY}deg) scale(${scale})`,
                     filter: blurPx ? `blur(${blurPx}px)` : 'none',
                     opacity,
                     zIndex: 10 - abs,
+                    willChange: 'transform, opacity, filter',
                   }}
                 >
                   <div className={!isFocused ? 'pointer-events-none' : ''}>
@@ -80,7 +81,7 @@ export default function FeaturedGroupsCarousel() {
             size="lg"
             variant="secondary"
             className="rounded-full px-8"
-            onClick={() => navigate('/explore', { state: { openConditionSearch: true } })}
+            onClick={() => window.dispatchEvent(new CustomEvent('pm:open-condition-search'))}
           >
             <Search size={16} strokeWidth={1.5} />
             條件搜尋
