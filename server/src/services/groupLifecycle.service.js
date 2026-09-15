@@ -164,7 +164,7 @@ export async function adjustBillingDate({ groupId, hostId, nextBillingDate: requ
   notifyBatch(group.members.map(m => ({
     userId:  m.userId,
     type:    'billing_date_adjusted',
-    title:   '下次扣款日已調整',
+    title:   `${groupLabel} 下次扣款日已調整`,
     message: `「${groupLabel}」的下次扣款日由 ${oldDateText} 調整為 ${newDateText}，原因：${note}`,
     meta:    { groupId, oldDate: current.toISOString(), nextBillingDate: requested.toISOString(), note },
   })))
@@ -242,7 +242,7 @@ export async function confirmService({ groupId, userId }) {
   notify({
     userId:  group.hostId,
     type:    'member_confirmed_service',
-    title:   '成員已確認服務正常',
+    title:   `${groupLabel} ${member.user.name}已確認服務正常`,
     message: `${member.user.name} 已確認「${groupLabel}」服務正常。`,
     meta:    { groupId },
   });
@@ -260,7 +260,7 @@ export async function confirmService({ groupId, userId }) {
   notify({
     userId:  group.host.id,
     type:    'escrow_released',
-    title:   '代管款項已撥款',
+    title:   `${groupLabel} 代管款項已撥款`,
     message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
     meta:    { groupId },
   });
@@ -269,7 +269,7 @@ export async function confirmService({ groupId, userId }) {
     notifyBatch(otherMemberUserIds.map(memberUserId => ({
       userId:  memberUserId,
       type:    'escrow_released_member',
-      title:   '確認期結束，服務正式啟用',
+      title:   `${groupLabel} 確認期結束，服務正式啟用`,
       message: `「${groupLabel}」確認期已結束，服務已正式啟用。`,
       meta:    { groupId },
     })))
@@ -339,7 +339,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   notify({
     userId:  group.hostId,
     type:    'dispute_raised',
-    title:   '收到成員問題回報',
+    title:   `${groupLabel} ${member.user.name}回報問題`,
     message: `${member.user.name} 針對「${groupLabel}」服務回報問題，將於 48 小時內處理完成。`,
     meta:    { groupId },
   })
@@ -408,7 +408,7 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
   notify({
     userId:  disputeMember.userId,
     type:    'dispute_resolved_by_host',
-    title:   '問題已處理完成',
+    title:   `${groupLabel} 問題已處理完成`,
     message: `團主已回覆「${groupLabel}」你回報的問題並處理完成，請重新確認服務是否正常。`,
     meta:    { groupId },
   });
@@ -417,7 +417,7 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
     notify({
       userId:  group.hostId,
       type:    'escrow_released',
-      title:   '代管款項已撥款',
+      title:   `${groupLabel} 代管款項已撥款`,
       message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
       meta:    { groupId },
     })
@@ -469,7 +469,7 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   notify({
     userId:  disputeMember.userId,
     type:    'dispute_escalated',
-    title:   '問題回報進入仲裁',
+    title:   `${groupLabel} 問題回報進入仲裁`,
     message: `團主對「${groupLabel}」你回報的問題有不同意見，將由平台客服介入了解狀況並裁定。`,
     meta:    { groupId },
   })
@@ -534,7 +534,7 @@ export async function cancelGroup({ groupId, hostId }) {
   notifyBatch(currentMembers.map(m => ({
     userId:  m.userId,
     type:    'group_cancelled',
-    title:   '群組已解散',
+    title:   `${groupLabelForCancel} 群組已解散`,
     message: `「${groupLabelForCancel}」群組已被團主解散，代管費用已退還至你的PM幣餘額。`,
     meta:    { groupId },
   })))
@@ -710,7 +710,7 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
     notify({
       userId:  group.hostId,
       type:    'escrow_released',
-      title:   '代管款項已撥款',
+      title:   `${groupLabel} 代管款項已撥款`,
       message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
       meta:    { groupId },
     })
@@ -726,14 +726,14 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
   notify({
     userId:  disputeMember.userId,
     type:    'dispute_resolved',
-    title:   '問題處理結果',
+    title:   `${groupLabel} 問題處理結果`,
     message: memberMessage,
     meta:    { groupId: group.id },
   })
   notify({
     userId:  group.hostId,
     type:    'dispute_resolved',
-    title:   '問題處理結果',
+    title:   `${groupLabel} 問題處理結果`,
     message: hostMessage,
     meta:    { groupId: group.id },
   });
@@ -849,7 +849,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     notifyBatch(leavingMembers.map(m => ({
       userId:  m.userId,
       type:    'member_removed',
-      title:   '未列入新一期續訂名單',
+      title:   `${groupLabel} 未列入新一期續訂名單`,
       message: `團主開始「${groupLabel}」新一期續訂時未將你列入名單，本期服務結束後將不再繼續，可以重新申請或選擇其他群組。`,
       meta:    { groupId },
     })))
@@ -859,14 +859,14 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     notify({
       userId:  group.hostId,
       type:    'group_renewal',
-      title:   '新一期已開始招募補位',
+      title:   `${groupLabel} 新一期已開始招募補位`,
       message: `「${groupLabel}」有成員這期不續訂，已釋出名額並退回招募中，補齊名額後請重新鎖定群組。`,
       meta:    { groupId },
     })
     notifyBatch(renewSet.map(userId => ({
       userId,
       type:    'group_renewal',
-      title:   '新一期已開始',
+      title:   `${groupLabel} 新一期已開始`,
       message: `「${groupLabel}」開始新一期，團主正在補齊名額，補滿後會重新鎖定群組並通知你填寫最新服務帳號資訊。`,
       meta:    { groupId },
     })))
@@ -877,7 +877,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
   notifyBatch([group.hostId, ...renewSet].map(userId => ({
     userId,
     type:    'billing_date_confirmed',
-    title:   '預估下次扣款日',
+    title:   `${groupLabel} 預估下次扣款日`,
     message: `「${groupLabel}」新一期目前預估下次扣款日為 ${estimatedDateText}，實際日期會在團主啟用服務時重新確認。`,
     meta:    { groupId, nextBillingDate: base.toISOString(), estimated: true },
   })))

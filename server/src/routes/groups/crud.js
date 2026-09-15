@@ -92,7 +92,7 @@ async function remindInsufficientBalanceMembers(group) {
       notifyBatch(toNotify.map(m => ({
         userId:  m.userId,
         type:    'payment_reminder',
-        title:   '下一期扣款餘額不足',
+        title:   `${groupLabel} 下一期扣款餘額不足`,
         message: `「${groupLabel}」即將於 ${nextBillingDateStr.slice(0, 10)} 扣款，你的PM幣餘額不足，請儘快儲值以免影響續訂。`,
         meta:    { groupId: group.id, nextBillingDate: nextBillingDateStr },
       }))).catch(console.error)
@@ -178,7 +178,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
         notify({
           userId:  group.hostId,
           type:    'escrow_released',
-          title:   '代管款項已撥款',
+          title:   `${groupLabel} 代管款項已撥款`,
           message: `「${groupLabel}」確認期已逾期，代管款項已自動撥入你的PM幣餘額。`,
           meta:    { groupId: group.id },
         })
@@ -218,14 +218,14 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
           notifyBatch(removed.map(m => ({
             userId:  m.userId,
             type:    'member_removed',
-            title:   '已被移出群組',
+            title:   `${groupLabel} 已被移出群組`,
             message: `「${groupLabel}」群組因你逾期未完成帳號資訊填寫，已被自動移出，代管費用已退還至你的PM幣餘額，可以重新申請或選擇其他群組。`,
             meta:    { groupId: group.id },
           })))
           notify({
             userId:  group.hostId,
             type:    'service_info_deadline_passed',
-            title:   '成員逾期未完成，已自動移出',
+            title:   `${groupLabel} 成員逾期未完成，已自動移出`,
             message: `「${groupLabel}」群組有 ${removed.length} 位成員逾期未完成帳號資訊填寫，已自動移出並退款，群組已重新開放招募補位。`,
             meta:    { groupId: group.id },
           })
@@ -255,7 +255,7 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
         notify({
           userId:  group.hostId,
           type:    'group_activation_expired',
-          title:   '逾時未啟用服務',
+          title:   `${groupLabelOf(group)} 逾時未啟用服務`,
           message: `「${groupLabelOf(group)}」逾期未手動啟用，已退回額滿狀態並扣除 5 點信用分數，請重新鎖定群組。`,
           meta:    { groupId: group.id },
         })
@@ -353,7 +353,7 @@ router.post('/', requireAuth, validate(createGroupSchema), async (req, res, next
     notify({
       userId:  req.user.id,
       type:    'group_created',
-      title:   '群組已成功建立',
+      title:   `${groupLabelOf(group)} 群組已成功建立`,
       message: `「${groupLabelOf(group)}」群組已上架，開始招募成員中！`,
       meta:    { groupId: group.id },
     })
@@ -401,7 +401,7 @@ router.patch('/:id', requireAuth, validate(updateGroupSchema), async (req, res, 
       await notifyBatch(group.members.map(m => ({
         userId:  m.userId,
         type:    'group_ended',
-        title:   '群組已結束',
+        title:   `${groupLabel} 群組已結束`,
         message: `「${groupLabel}」群組已由團主結束，合購服務將不再續訂。`,
         meta:    { groupId: req.params.id },
       })))

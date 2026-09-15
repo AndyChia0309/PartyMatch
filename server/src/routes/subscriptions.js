@@ -39,7 +39,7 @@ async function notifyUpcomingRenewals(subscriptions, userId) {
   await notifyBatch(toCreate.map(sub => ({
     userId,
     type:    'upcoming_renewal',
-    title:   '即將續訂',
+    title:   `${sub.group.planName ?? sub.group.service?.name ?? ''} 即將續訂`,
     message: `「${sub.group.service?.name ?? sub.group.planName}」將於 ${sub.days === 0 ? '今天' : `${sub.days} 天後`}扣款，請確認PM幣餘額充足。`,
     meta:    { groupId: sub.groupId, nextBillingDate: sub.nextBillingDate.toISOString() },
   })))

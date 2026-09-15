@@ -102,7 +102,7 @@ router.post('/', requireAuth, validate(createReviewSchema), async (req, res, nex
       notify({
         userId:  revieweeId,
         type:    'group_reviewed',
-        title:   '收到新的評價',
+        title:   `${groupLabel} ${author?.name ?? '對方'}給了新評價`,
         message: `${author?.name ?? '對方'} 對「${groupLabel}」留下了評價。`,
         meta:    { groupId },
       })

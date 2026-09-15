@@ -94,14 +94,14 @@ export async function submitApplication({ groupId, message, userId }) {
   notify({
     userId,
     type:    'application_sent',
-    title:   '申請已送出',
+    title:   `${groupLabel} 申請已送出`,
     message: `你的加入申請已送達「${groupLabel}」團主，等待審核。`,
     meta:    { groupId, applicationId: application.id },
   })
   notify({
     userId:  group.hostId,
     type:    'new_application',
-    title:   '收到新的加入申請',
+    title:   `${groupLabel} ${applicant?.name ?? '有人'}提出申請`,
     message: `${applicant?.name ?? '有人'} 申請加入「${groupLabel}」群組。`,
     meta:    { groupId, applicationId: application.id },
   })
@@ -140,7 +140,7 @@ export async function cancelApplication({ applicationId, userId }) {
   notify({
     userId:  application.group.hostId,
     type:    'application_cancelled',
-    title:   '申請人已取消申請',
+    title:   `${groupLabel} ${application.user?.name ?? '申請人'}已取消申請`,
     message: `${application.user?.name ?? '申請人'} 已取消加入「${groupLabel}」群組的申請。`,
     meta:    { groupId: application.groupId, applicationId },
   })
@@ -179,7 +179,7 @@ export async function reviewApplication({ applicationId, hostId, status }) {
       notify({
         userId:  application.userId,
         type:    'application_rejected',
-        title:   '申請未通過',
+        title:   `${groupLabel} 申請未通過`,
         message: `很遺憾，你加入「${groupLabel}」群組的申請未通過，代管費用已退還至你的PM幣餘額，你可以繼續探索其他群組。`,
         meta:    { groupId: application.groupId, applicationId },
       })

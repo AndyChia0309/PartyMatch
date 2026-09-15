@@ -131,7 +131,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
         notify({
           userId:  existing.group.hostId,
           type:    'service_info_filled',
-          title:   isSharedCredentials ? `${memberName} 已提取帳號資訊` : `${memberName} 已填寫服務帳號`,
+          title:   isSharedCredentials ? `${groupLabel} ${memberName}已提取帳號資訊` : `${groupLabel} ${memberName}已填寫服務帳號`,
           message: isSharedCredentials
             ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
             : `${memberName} 已填寫「${groupLabel}」群組的服務帳號資訊。`,
@@ -151,7 +151,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           notify({
             userId:  existing.group.hostId,
             type:    'all_service_info_filled',
-            title:   isSharedCredentials ? '成員已全部完成提取' : '成員已全部完成填寫',
+            title:   isSharedCredentials ? `${groupLabel} 成員已全部完成提取` : `${groupLabel} 成員已全部完成填寫`,
             message: `「${groupLabel}」群組所有成員都已${isSharedCredentials ? '提取帳號資訊' : '填寫服務帳號'}，可以前往啟用服務了。`,
             meta:    { groupId: existing.groupId },
           });
@@ -166,7 +166,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
       notify({
         userId:  existing.userId,
         type:    'service_info_issue',
-        title:   '服務帳號需要修正',
+        title:   `${groupLabel} 服務帳號需要修正`,
         message: `團主在「${groupLabel}」發現服務帳號問題，請前往修正。`,
         meta:    { groupId: existing.groupId },
       })
@@ -201,7 +201,7 @@ router.post('/:id/extraction-start', requireAuth, async (req, res, next) => {
     if (!existing.group.sharedCredentials) return res.status(400).json({ message: '此群組非共用帳密方式' })
 
     const groupLabel = existing.group.planName ?? existing.group.service?.name ?? ''
-    const title      = '成員正在提取帳號資訊'
+    const title      = `${groupLabel} ${existing.user?.name ?? '成員'}正在提取帳號資訊`
     const message    = `${existing.user?.name ?? '成員'} 正在查看「${groupLabel}」的帳號資訊。`
 
     let notificationId = existing.extractionNotificationId

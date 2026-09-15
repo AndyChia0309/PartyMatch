@@ -248,7 +248,11 @@ export default function App() {
         },
       },
     };
-    const REFRESH_TOAST_ICON_TYPES = new Set(['group_full', 'group_full_member', 'group_activated', 'application_approved'])
+    const REFRESH_TOAST_ICON_TYPES = new Set([
+      'group_full', 'group_full_member', 'group_activated', 'application_approved', 'application_cancelled',
+      'member_removed', 'member_left', 'group_cancelled', 'application_rejected', 'all_service_info_filled',
+      'billing_date_adjusted', 'escrow_released_member', 'new_application', 'group_activation_expired',
+    ])
 
     function onRefreshStores(event) {
       const user = useAuthStore.getState().getProfile()
@@ -319,7 +323,13 @@ export default function App() {
       group_chat_opened:             openMessagesAction,
       fill_service_info:             openGroupAction,
     }
-    const TOAST_ICON_TYPES = new Set(['group_chat_opened', 'fill_service_info'])
+    const TOAST_ICON_TYPES = new Set([
+      'group_chat_opened', 'fill_service_info', 'member_confirmed_service', 'escrow_released',
+      'dispute_raised', 'dispute_resolved_by_host', 'dispute_escalated', 'dispute_resolved',
+      'group_renewal', 'upcoming_renewal', 'group_reviewed', 'service_info_filled', 'service_info_issue',
+      'credential_extraction_started', 'payment_reminder', 'service_info_deadline_passed', 'group_ended',
+      'group_created',
+    ])
     function onNotifyToast(event) {
       const user = useAuthStore.getState().getProfile()
       if (!user) return

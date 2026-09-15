@@ -127,7 +127,7 @@ export async function rejectPendingApplications(tx, groupId, { refundNote, build
   notifyBatch(pendingApps.map(app => ({
     userId:  app.userId,
     type:    'application_rejected',
-    title:   '申請未通過',
+    title:   `${groupLabel} 申請未通過`,
     message: buildMessage(groupLabel),
     meta:    { groupId, applicationId: app.id },
   })))
@@ -195,7 +195,7 @@ export async function removeMember({ memberId, actorId }) {
     notify({
       userId:  existing.group.hostId,
       type:    'member_left',
-      title:   '成員已退出群組',
+      title:   `${groupLabel} 成員已退出`,
       message: `${existing.user?.name ?? '成員'} 已退出「${groupLabel}」群組。`,
       meta:    { groupId: existing.groupId },
     })
@@ -203,7 +203,7 @@ export async function removeMember({ memberId, actorId }) {
     notify({
       userId:  existing.userId,
       type:    'member_removed',
-      title:   '已被移出群組',
+      title:   `${groupLabel} 已被移出群組`,
       message: `團主已將你移出「${groupLabel}」群組，代管費用已退還至你的PM幣餘額。`,
       meta:    { groupId: existing.groupId },
     })
