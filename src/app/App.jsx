@@ -4,6 +4,7 @@ import router from './router'
 import { Toaster } from '../components/ui/sonner'
 import { ThemeProvider } from '../components/theme-provider'
 import LoadingScreen from '../common/layout/LoadingScreen'
+import logoUrl from '../assets/Logo.svg'
 import { useAuthStore } from '../common/stores/useAuthStore'
 import { useAdminAuthStore } from '../common/stores/useAdminAuthStore'
 import { useServiceStore } from '../common/stores/useServiceStore'
@@ -40,9 +41,45 @@ function useIosFixedPositionScrollFix() {
   }, [])
 }
 
+const ROUTE_TRANSITION_DURATION_MS = 1800
+
+function useRouteTransitionOverlay() {
+  const [active, setActive] = useState(false)
+  const lastPathnameRef = useRef(router.state.location.pathname)
+  const timerRef = useRef(null)
+
+  function trigger() {
+    setActive(true)
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setActive(false), ROUTE_TRANSITION_DURATION_MS)
+  }
+
+  useEffect(() => {
+    const unsubscribe = router.subscribe(state => {
+      const pathname = state.location.pathname
+      if (pathname === lastPathnameRef.current) return
+      lastPathnameRef.current = pathname
+      trigger()
+    })
+    window.addEventListener('pm:force-route-transition', trigger)
+    return () => {
+      unsubscribe()
+      window.removeEventListener('pm:force-route-transition', trigger)
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('pm:route-transition', { detail: { active } }))
+  }, [active]);
+
+  return active
+}
+
 export default function App() {
   const [ready, setReady] = useState(false)
   const bootedRef = useRef(false)
+  const routeTransitionActive = useRouteTransitionOverlay()
   const loggedIn = useAuthStore(s => s.loggedIn)
   useIosFixedPositionScrollFix()
   useVersionCheck()
@@ -376,6 +413,11 @@ export default function App() {
 
   return (
     <ThemeProvider>
+      {routeTransitionActive && (
+        <div className="fixed inset-0 z-[300] flex items-center justify-center bg-canvas">
+          <img src={logoUrl} alt="" className="h-14 w-14 animate-logo-bounce" />
+        </div>
+      )}
       <RouterProvider router={router} />
       <Toaster />
     </ThemeProvider>

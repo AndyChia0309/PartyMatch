@@ -71,9 +71,14 @@ export default function TabletSidebarDrawer(
     return !loggedIn && isProtectedNavItem(item)
   }
 
-  function handleNavigate() {
-    setOpen(false)
-    closeAll()
+  function handleNavigate(to) {
+    return e => {
+      e.preventDefault()
+      setOpen(false)
+      closeAll()
+      window.dispatchEvent(new CustomEvent('pm:force-route-transition'))
+      navigate(to)
+    }
   }
 
   function renderItem(item) {
@@ -118,7 +123,7 @@ export default function TabletSidebarDrawer(
       <a
         key={item.to}
         href={item.to}
-        onClick={handleNavigate}
+        onClick={handleNavigate(item.to)}
         className={`flex h-12 w-full items-center gap-3 rounded-2xl px-1 text-base transition-all hover:-translate-y-0.5 ${
           isActive
             ? 'bg-brand font-extrabold text-white'
@@ -150,7 +155,7 @@ export default function TabletSidebarDrawer(
           className="data-[swipe-direction=left]:border-r-0"
         >
           <DrawerTitle className="sr-only">導覽選單</DrawerTitle>
-          <a href="/" onClick={handleNavigate} className="flex h-16 shrink-0 items-center gap-3 px-4" aria-label="回首頁">
+          <a href="/" onClick={handleNavigate('/')} className="flex h-16 shrink-0 items-center gap-3 px-4" aria-label="回首頁">
             <img src={logoUrl} alt="PartyMatch" className="h-8 w-8 shrink-0" />
             <span className="text-lg font-extrabold">
               <span className="text-brand">Party</span><span className="text-ink">Match</span>
@@ -181,7 +186,7 @@ export default function TabletSidebarDrawer(
             ) : (
               <button
                 type="button"
-                onClick={() => { setOpen(false); navigate('/login') }}
+                onClick={() => { setOpen(false); window.dispatchEvent(new CustomEvent('pm:force-route-transition')); navigate('/login') }}
                 aria-label="登入會員"
                 className="flex h-14 min-w-0 w-full items-center gap-3 rounded-2xl px-1 text-left transition-all hover:-translate-y-0.5 hover:bg-brand-subtle"
               >

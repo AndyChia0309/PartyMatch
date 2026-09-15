@@ -1,10 +1,26 @@
 import { useEffect, useRef, useState } from 'react'
 
+let routeTransitionActive = false
+const routeTransitionListeners = new Set()
+if (typeof window !== 'undefined') {
+  window.addEventListener('pm:route-transition', e => {
+    routeTransitionActive = !!e.detail?.active
+    routeTransitionListeners.forEach(fn => fn(routeTransitionActive))
+  })
+}
+
 export default function RevealSection({ children, delay = 0, className = '' }) {
   const outerRef = useRef(null)
   const [visible, setVisible] = useState(false)
+  const [blocked, setBlocked] = useState(routeTransitionActive)
 
   useEffect(() => {
+    routeTransitionListeners.add(setBlocked)
+    return () => routeTransitionListeners.delete(setBlocked)
+  }, []);
+
+  useEffect(() => {
+    if (blocked) return
     const el = outerRef.current
     if (!el)
       return;
@@ -21,7 +37,7 @@ export default function RevealSection({ children, delay = 0, className = '' }) {
       cancelAnimationFrame(raf)
       observer?.disconnect()
     }
-  }, [])
+  }, [blocked])
 
   return (
     <div ref={outerRef} className={className}>

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { createPortal } from 'react-dom'
 import { Bell, ChevronRight, Lock, LogIn, LogOut, Menu, MessageSquare, Moon, Settings, ShieldCheck, Star, Sun, User, X } from 'lucide-react'
 import logoUrl from '../../../assets/Logo.svg'
@@ -35,6 +36,7 @@ export default function DesktopSidebar({
   logout,
   loggingOut,
 }) {
+  const navigate = useNavigate()
   const { theme, toggleTheme } = useTheme()
   const [lockedTip, setLockedTip] = useState(null)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
@@ -50,6 +52,11 @@ export default function DesktopSidebar({
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [dockOpen])
+
+  function goTo(to) {
+    window.dispatchEvent(new CustomEvent('pm:force-route-transition'))
+    navigate(to)
+  }
 
   function collapseSidebar() {
     document.activeElement?.blur()
@@ -79,7 +86,7 @@ export default function DesktopSidebar({
             <Icon size={22} strokeWidth={1.5} />
             <LockBadge className="right-0 top-0" />
           </span>
-          <span className="whitespace-nowrap font-bold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+          <span className="whitespace-nowrap font-bold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
             {item.label}
           </span>
         </button>
@@ -94,7 +101,7 @@ export default function DesktopSidebar({
           <span className="grid h-9 w-9 shrink-0 place-items-center">
             <item.icon size={22} strokeWidth={1.5} />
           </span>
-          <span className="whitespace-nowrap font-bold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+          <span className="whitespace-nowrap font-bold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
             {item.label}
           </span>
         </button>
@@ -106,7 +113,7 @@ export default function DesktopSidebar({
       <a
         key={item.to}
         href={item.to}
-        onClick={() => { closeAll(); collapseSidebar() }}
+        onClick={e => { e.preventDefault(); closeAll(); collapseSidebar(); goTo(item.to) }}
         className={`flex h-12 w-full items-center gap-3 rounded-2xl px-1 text-base transition-all hover:-translate-y-0.5 ${
           isActive
             ? 'bg-brand font-extrabold text-white'
@@ -116,7 +123,7 @@ export default function DesktopSidebar({
         <span className="relative grid h-9 w-9 shrink-0 place-items-center">
           <item.icon size={22} strokeWidth={1.5} />
         </span>
-        <span className="whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+        <span className="whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
           {item.label}
         </span>
       </a>
@@ -243,16 +250,16 @@ export default function DesktopSidebar({
         data-force-open={userMenuOpen ? 'true' : undefined}
         onMouseLeave={() => setForceCollapsed(false)}
         style={forceCollapsed ? { width: '4rem' } : undefined}
-        className="group/nav fixed bottom-4 left-4 top-4 z-50 hidden w-16 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-floating transition-[width] duration-300 ease-out hover:w-64 focus-within:w-64 data-[force-open=true]:w-64 can-hover:lg:flex"
+        className="group/nav fixed bottom-4 left-4 top-4 z-50 hidden w-16 flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-floating transition-[width] duration-300 ease-out hover:w-64 has-[:focus-visible]:w-64 data-[force-open=true]:w-64 can-hover:lg:flex"
       >
         <a
           href="/"
-          onClick={() => { closeAll(); collapseSidebar() }}
+          onClick={e => { e.preventDefault(); closeAll(); collapseSidebar(); goTo('/') }}
           className="flex h-16 shrink-0 items-center gap-3 px-4"
           aria-label="回首頁"
         >
           <img src={logoUrl} alt="PartyMatch" className="h-8 w-8 shrink-0" />
-          <span className="whitespace-nowrap text-lg font-extrabold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+          <span className="whitespace-nowrap text-lg font-extrabold opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
             <span className="text-brand">Party</span><span className="text-ink">Match</span>
           </span>
         </a>
@@ -276,7 +283,7 @@ export default function DesktopSidebar({
                     <Avatar initial={avatarInitial} color={avatarColor} size="md" />
                     <PresenceDot status={presenceStatus} className="absolute bottom-0 right-0 h-3 w-3" />
                   </span>
-                  <span className="flex min-w-0 flex-1 items-center gap-2 opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+                  <span className="flex min-w-0 flex-1 items-center gap-2 opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
                     <span className="block min-w-0 flex-1 truncate text-sm font-extrabold text-ink">{userName}</span>
                     <ChevronRight size={16} strokeWidth={1.5} className="shrink-0 text-ink-2" />
                   </span>
@@ -321,14 +328,14 @@ export default function DesktopSidebar({
           ) : (
             <a
               href="/login"
-              onClick={() => { closeAll(); collapseSidebar() }}
+              onClick={e => { e.preventDefault(); closeAll(); collapseSidebar(); goTo('/login') }}
               aria-label="登入會員"
               className="flex h-14 w-full items-center gap-3 rounded-2xl px-1 text-left text-ink-2 transition-all hover:-translate-y-0.5 hover:bg-brand-subtle hover:text-brand"
             >
               <span className="grid h-10 w-10 shrink-0 place-items-center">
                 <LogIn size={22} strokeWidth={1.5} />
               </span>
-              <span className="min-w-0 flex-1 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-focus-within/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
+              <span className="min-w-0 flex-1 whitespace-nowrap opacity-0 transition-opacity duration-200 group-hover/nav:opacity-100 group-has-[:focus-visible]/nav:opacity-100 group-data-[force-open=true]/nav:opacity-100">
                 <span className="block truncate text-sm font-extrabold">登入會員</span>
               </span>
             </a>
