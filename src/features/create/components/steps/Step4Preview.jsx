@@ -34,7 +34,7 @@ export default function Step4Preview({ form, agreedToTerms, onAgreedToTermsChang
           <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-4 lg:space-y-0">
               <InfoField icon={User}    label="團主"     value={activeUser?.displayName ?? '使用者'} />
-              <InfoField icon={Package} label="服務／方案" value={`${service?.fullName ?? ''} · ${form.planName}`} />
+              <InfoField icon={Package} label="服務／方案" value={`${service?.name ?? ''} · ${form.planName}`} />
               <InfoField icon={Wallet}  label="每位價格" value={
                 <TokenAmount
                   amount={calcDisplayPrice(form.pricePerSeat, form.billingCycle)}

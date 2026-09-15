@@ -38,7 +38,7 @@ function mapFormToGroup(form) {
 
   return {
     serviceId: form.serviceId,
-    serviceName: service?.fullName ?? service?.name ?? form.serviceId,
+    serviceName: service?.name ?? form.serviceId,
     planName: form.planName,
     pricePerSeat: form.pricePerSeat || 0,
     billingCycle: form.billingCycle,

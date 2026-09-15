@@ -11,7 +11,7 @@ export default function LivePreviewPanel({ form }) {
   const group = {
     id: buildPreviewGroupId(form),
     serviceId: form.serviceId,
-    serviceName: service?.fullName ?? service?.name ?? form.serviceId ?? "",
+    serviceName: service?.name ?? form.serviceId ?? "",
     planName: form.planName || "尚未選擇方案",
     pricePerSeat: form.pricePerSeat || 0,
     billingCycle: form.billingCycle,

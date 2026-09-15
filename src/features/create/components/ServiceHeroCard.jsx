@@ -7,7 +7,7 @@ export default function ServiceHeroCard({ form, service, className = '' }) {
     <div className={`flex shrink-0 items-center gap-4 rounded-2xl border border-line bg-surface px-6 py-5 ${className}`}>
       <ServiceLogo serviceId={form.serviceId} size={56} className="shrink-0 border-line-strong" />
       <div className="min-w-0 flex-1">
-        <h2 className="truncate text-lg font-black text-ink">{service?.fullName ?? '尚未選擇服務'}</h2>
+        <h2 className="truncate text-lg font-black text-ink">{service?.name ?? '尚未選擇服務'}</h2>
         <p className="truncate text-sm text-ink-3">{form.planName || '尚未選擇方案'}</p>
       </div>
       {form.planName && (
