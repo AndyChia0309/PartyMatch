@@ -62,6 +62,14 @@ const SORT_OPTIONS = [
   { id: 'unread', label: '未讀優先' },
 ]
 
+function stripGroupLabelPrefix(title, groupsState, groupId) {
+  if (!title || !groupId) return title
+  const group = groupsState.find(g => g.id === groupId)
+  const label = group?.planName || group?.serviceName || ''
+  if (!label || !title.startsWith(label)) return title
+  return title.slice(label.length).trim() || title
+}
+
 function buildCategories(list, groupsState, userId, memberGroupIds) {
   const byGroup = new Map()
   list.forEach(n => {
@@ -316,7 +324,7 @@ export default function NotificationCenter() {
           <Icon size={16} strokeWidth={1.5} className={iconColor} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-ink">{n.title}</p>
+          <p className="text-sm font-semibold text-ink">{stripGroupLabelPrefix(n.title, groupsState, n.meta?.groupId)}</p>
           <p className="mt-0.5 text-xs text-ink-3">{n.message}</p>
           <p className="mt-1 text-xs text-ink-4">{formatRelativeDate(n.createdAt)}</p>
         </div>
