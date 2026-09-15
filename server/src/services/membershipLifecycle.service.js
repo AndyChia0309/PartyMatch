@@ -86,7 +86,7 @@ async function advanceToFullIfNeeded(tx, groupId) {
     notify({
       userId:  updatedGroup.hostId,
       type:    'group_full',
-      title:   '群組名額已滿',
+      title:   `${groupLabel} 群組名額已滿`,
       message: `「${groupLabel}」群組名額已滿，請前往鎖定群組。`,
       meta:    { groupId },
     });
@@ -97,7 +97,7 @@ async function advanceToFullIfNeeded(tx, groupId) {
       notifyBatch(memberUserIds.map(userId => ({
         userId,
         type:    'group_full_member',
-        title:   '群組名額已滿',
+        title:   `${groupLabel} 群組名額已滿`,
         message: `「${groupLabel}」群組名額已滿，等待團主鎖定。`,
         meta:    { groupId },
       })))

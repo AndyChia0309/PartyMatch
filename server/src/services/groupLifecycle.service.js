@@ -3,6 +3,7 @@ import { computeSeatCost } from '../utils/pricing.js'
 import { notify, notifyBatch, notifyGroupConversation, claimGroupStatus } from '../routes/groups/shared.js'
 import { rejectPendingApplications } from './membershipLifecycle.service.js'
 import { encryptCredential } from '../lib/credentialEncryption.js'
+import { getSystemUserId } from '../lib/systemUser.js'
 import { HOST_PUBLIC_SELECT } from '../lib/groupPrivacy.js'
 
 const HOST_GROUP_INCLUDE = {
@@ -102,13 +103,15 @@ export async function activateGroup({ groupId, hostId }) {
     message: `「${groupLabelForActivation}」群組服務已啟用，成員有 48 小時確認期。`,
     meta:    { groupId },
   })
-  notifyBatch(group.members.map(m => ({
-    userId:  m.userId,
-    type:    'group_activated',
-    title:   '服務已啟用，請確認',
-    message: `「${groupLabelForActivation}」服務已啟用！請在 48 小時內確認服務是否正常，否則將自動完成。`,
-    meta:    { groupId },
-  })))
+  getSystemUserId()
+    .then(systemUserId => prisma.credentialComment.create({
+      data: {
+        groupId,
+        authorId: systemUserId,
+        content:  `${groupLabelForActivation} 服務已啟用！請在 48 小時內確認服務是否正常運作。`,
+      },
+    }))
+    .catch(console.error)
 
   return updated
 }
@@ -579,6 +582,12 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   ])
 
   const groupLabel = groupLabelOf(group);
+  const existingConversation = await prisma.conversation.findFirst({ where: { type: 'group', groupId } })
+  if (!existingConversation) {
+    await prisma.conversation.create({
+      data: { type: 'group', groupId, participants: [group.hostId, ...group.members.map(m => m.userId)] },
+    })
+  }
   notifyGroupConversation(groupId, group.hostId, `「${groupLabel}」聊天室已啟用。`).catch(console.error)
 
   const estimatedDateText = formatDateSlash(nextBillingDate)
@@ -594,7 +603,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   notify({
     userId:  group.hostId,
     type:    'group_chat_opened',
-    title:   '群組聊天室已啟用',
+    title:   `${groupLabel}服務已鎖定`,
     message: `「${groupLabel}」群組已鎖定，聊天室已建立，點擊查看。`,
     meta:    { groupId },
   })
@@ -602,7 +611,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     {
       userId:  m.userId,
       type:    'group_chat_opened',
-      title:   '群組聊天室已啟用',
+      title:   `${groupLabel}服務已鎖定`,
       message: `「${groupLabel}」群組已鎖定，聊天室已建立，點擊查看。`,
       meta:    { groupId },
     },

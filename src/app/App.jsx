@@ -22,6 +22,7 @@ import { getNotificationToastId, isToastSuppressed, BACKGROUND_NOTIFICATION_TOAS
 import { useVersionCheck } from '../common/utils/versionCheck'
 import { usePresenceAutoStatus } from '../common/utils/presence'
 import { useRefreshGroupsOnFocus } from '../common/utils/groupFreshness'
+import ServiceLogo from '../components/ui/ServiceLogo'
 
 function useIosFixedPositionScrollFix() {
   useEffect(() => {
@@ -233,9 +234,14 @@ export default function App() {
       registerGroupToast(meta?.groupId, toastId, page)
       registerMemberGroupToast(meta?.groupId, toastId, page)
 
+      const serviceId = (type === 'group_full' || type === 'group_full_member')
+        ? useGroupStore.getState().getById(meta?.groupId)?.serviceId
+        : undefined
+
       toast(title || message || '有群組或申請狀態更新了', 'info', {
         id: toastId,
         duration: BACKGROUND_NOTIFICATION_TOAST_DURATION,
+        icon: serviceId ? <ServiceLogo serviceId={serviceId} size={20} /> : undefined,
         action: {
           label: toastAction?.label ?? '重新整理',
           onClick: () => runPendingRefreshAndOpen(() => {
@@ -274,9 +280,11 @@ export default function App() {
         return
       }
       const toastAction = INSTANT_TOAST_ACTIONS[type]
+      const serviceId = type === 'group_chat_opened' ? useGroupStore.getState().getById(meta?.groupId)?.serviceId : undefined
       toast(title || message || '有新的通知', 'info', {
         id: getNotificationToastId({ type, meta, id: undefined }) ?? undefined,
         duration: toastAction ? BACKGROUND_NOTIFICATION_TOAST_DURATION : INSTANT_NOTIFICATION_TOAST_DURATION,
+        icon: serviceId ? <ServiceLogo serviceId={serviceId} size={20} /> : undefined,
         action: toastAction && {
           label: toastAction.label,
           onClick: () => toastAction.run(meta),

@@ -71,7 +71,7 @@ export function buildMemberInfoPanel(
             })}
           </div>
         )}
-        {isSharedCredentials && <CredentialCommentsSection groupId={groupId} hostId={hostId} />}
+        <CredentialCommentsSection groupId={groupId} hostId={hostId} />
       </div>
     ),
   }
