@@ -211,6 +211,7 @@ export default function App() {
         },
       },
     };
+    const REFRESH_TOAST_ICON_TYPES = new Set(['group_full', 'group_full_member', 'group_activated', 'application_approved'])
 
     function onRefreshStores(event) {
       const user = useAuthStore.getState().getProfile()
@@ -234,7 +235,7 @@ export default function App() {
       registerGroupToast(meta?.groupId, toastId, page)
       registerMemberGroupToast(meta?.groupId, toastId, page)
 
-      const serviceId = (type === 'group_full' || type === 'group_full_member')
+      const serviceId = REFRESH_TOAST_ICON_TYPES.has(type)
         ? useGroupStore.getState().getById(meta?.groupId)?.serviceId
         : undefined
 
@@ -265,13 +266,23 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId } }))
       },
     }
+    const openMessagesAction = {
+      label: '前往查看',
+      run:   (meta) => {
+        if (!meta?.groupId) return
+        window.dispatchEvent(new CustomEvent('pm:open-messages', { detail: { groupId: meta.groupId } }))
+      },
+    }
     const INSTANT_TOAST_ACTIONS = {
       credential_extraction_started: openMemberInfoAction,
       service_info_filled:           openMemberInfoAction,
       member_confirmed_service:      openMemberInfoAction,
       dispute_raised:                openMemberInfoAction,
       dispute_resolved_by_host:      openGroupAction,
+      group_chat_opened:             openMessagesAction,
+      fill_service_info:             openGroupAction,
     }
+    const TOAST_ICON_TYPES = new Set(['group_chat_opened', 'fill_service_info'])
     function onNotifyToast(event) {
       const user = useAuthStore.getState().getProfile()
       if (!user) return
@@ -280,7 +291,7 @@ export default function App() {
         return
       }
       const toastAction = INSTANT_TOAST_ACTIONS[type]
-      const serviceId = type === 'group_chat_opened' ? useGroupStore.getState().getById(meta?.groupId)?.serviceId : undefined
+      const serviceId = TOAST_ICON_TYPES.has(type) ? useGroupStore.getState().getById(meta?.groupId)?.serviceId : undefined
       toast(title || message || '有新的通知', 'info', {
         id: getNotificationToastId({ type, meta, id: undefined }) ?? undefined,
         duration: toastAction ? BACKGROUND_NOTIFICATION_TOAST_DURATION : INSTANT_NOTIFICATION_TOAST_DURATION,

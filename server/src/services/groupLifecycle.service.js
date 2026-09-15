@@ -3,7 +3,6 @@ import { computeSeatCost } from '../utils/pricing.js'
 import { notify, notifyBatch, notifyGroupConversation, claimGroupStatus } from '../routes/groups/shared.js'
 import { rejectPendingApplications } from './membershipLifecycle.service.js'
 import { encryptCredential } from '../lib/credentialEncryption.js'
-import { getSystemUserId } from '../lib/systemUser.js'
 import { HOST_PUBLIC_SELECT } from '../lib/groupPrivacy.js'
 
 const HOST_GROUP_INCLUDE = {
@@ -103,15 +102,20 @@ export async function activateGroup({ groupId, hostId }) {
     message: `「${groupLabelForActivation}」群組服務已啟用，成員有 48 小時確認期。`,
     meta:    { groupId },
   })
-  getSystemUserId()
-    .then(systemUserId => prisma.credentialComment.create({
-      data: {
-        groupId,
-        authorId: systemUserId,
-        content:  `${groupLabelForActivation} 服務已啟用！請在 48 小時內確認服務是否正常運作。`,
-      },
-    }))
-    .catch(console.error)
+  notifyBatch(group.members.map(m => ({
+    userId:  m.userId,
+    type:    'group_activated',
+    title:   `${groupLabelForActivation}已啟用`,
+    message: `「${groupLabelForActivation}」服務已啟用，請在 48 小時內確認服務是否正常運作。`,
+    meta:    { groupId },
+  })))
+  prisma.credentialComment.create({
+    data: {
+      groupId,
+      authorId: group.hostId,
+      content:  `${groupLabelForActivation} 服務已啟用！請在 48 小時內確認服務是否正常運作。`,
+    },
+  }).catch(console.error)
 
   return updated
 }
@@ -590,15 +594,6 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   }
   notifyGroupConversation(groupId, group.hostId, `「${groupLabel}」聊天室已啟用。`).catch(console.error)
 
-  const estimatedDateText = formatDateSlash(nextBillingDate)
-  notifyBatch([group.hostId, ...group.members.map(m => m.userId)].map(userId => ({
-    userId,
-    type:    'billing_date_confirmed',
-    title:   '預估下次扣款日',
-    message: `「${groupLabel}」目前預估下次扣款日為 ${estimatedDateText}，實際日期會在團主啟用服務時重新確認。`,
-    meta:    { groupId, nextBillingDate: nextBillingDate.toISOString(), estimated: true },
-  })))
-
   const isSharedCredentials = sharedCredentials !== undefined;
   notify({
     userId:  group.hostId,
@@ -618,7 +613,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     {
       userId:  m.userId,
       type:    'fill_service_info',
-      title:   isSharedCredentials ? '請提取帳號資訊' : '請填寫服務帳號資訊',
+      title:   isSharedCredentials ? `請提取${groupLabel}帳號資訊` : `請填寫${groupLabel}帳號資訊`,
       message: isSharedCredentials
         ? `「${groupLabel}」群組已鎖定，請進入提取帳號資訊並完成付款。`
         : `「${groupLabel}」群組已鎖定，請進入填寫服務帳號並完成付款。`,

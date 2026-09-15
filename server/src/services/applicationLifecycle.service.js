@@ -206,7 +206,7 @@ export async function reviewApplication({ applicationId, hostId, status }) {
   notify({
     userId:  application.userId,
     type:    'application_approved',
-    title:   '申請已通過',
+    title:   `${groupLabel} 申請已通過`,
     message: `恭喜！你加入「${groupLabel}」群組的申請已通過，請前往我的訂閱查看。`,
     meta:    { groupId: application.groupId, applicationId },
   })
