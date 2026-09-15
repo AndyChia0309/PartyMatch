@@ -7,7 +7,6 @@ import { useAuthStore } from '../../common/stores/useAuthStore'
 import AppNav from '../../common/layout/AppNav'
 import AppFooter from '../../common/layout/AppFooter'
 import NotificationCenter from '../../common/layout/NotificationCenter'
-import ServiceLogo from '../../components/ui/ServiceLogo'
 import BubbleField from './components/BubbleField'
 import ScrollCue from './components/ScrollCue'
 import FeaturedGroupsCarousel from './components/FeaturedGroupsCarousel'
@@ -17,7 +16,6 @@ import WhyUs from './components/WhyUs'
 import FAQ from './components/FAQ'
 import SectionNav from './components/SectionNav'
 import RevealSection from '../../components/ui/primitives/RevealSection'
-import { ALL_SERVICES } from './data/allServices'
 
 const MessagesModal = lazy(() => import('../messages/MessagesModal'))
 const GroupDetailModal = lazy(() => import('../group/GroupDetailModal'));
@@ -112,12 +110,6 @@ export default function HomePage() {
                 建立群組
                 <ChevronRight size={15} strokeWidth={1.5} />
               </Button>
-            </div>
-
-            <div className="mt-8 flex items-center justify-center gap-3">
-              {ALL_SERVICES.slice(0, 5).map(s => (
-                <ServiceLogo key={s.id} serviceId={s.id} size={32} />
-              ))}
             </div>
           </div>
         </RevealSection>
