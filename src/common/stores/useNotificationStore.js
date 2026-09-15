@@ -180,21 +180,16 @@ export const useNotificationStore = create((set, get) => ({
     return get().notifications.filter(n => n.userId === userId && !n.isRead).length
   },
 
-  getUnreadCountForPage: (userId, page) => {
-    if (!userId || !page) return 0
-    return get().notifications.filter(n => n.userId === userId && !n.isRead && NOTIFICATION_REFRESH_PAGE[n.type] === page).length
-  },
-
-  markReadForPage: (userId, page) => {
-    if (!userId || !page) return
-    get().notifications
-      .filter(n => n.userId === userId && !n.isRead && NOTIFICATION_REFRESH_PAGE[n.type] === page)
-      .forEach(n => get().markRead(n.id))
-  },
-
   getUnreadCountForGroup: (userId, groupId) => {
     if (!userId || !groupId) return 0
     return get().notifications.filter(n => n.userId === userId && !n.isRead && n.meta?.groupId === groupId).length
+  },
+
+  getUnseenServiceInfoCount: (userId, groupId) => {
+    if (!userId || !groupId) return 0
+    return get().notifications.filter(
+      n => n.type === 'service_info_filled' && n.userId === userId && n.meta?.groupId === groupId && !n.isRead
+    ).length
   },
 
   markReadForGroup: (userId, groupId) => {

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Archive } from 'lucide-react'
 import { useAuthStore } from '../../common/stores/useAuthStore'
 import { useNotificationStore } from '../../common/stores/useNotificationStore'
@@ -10,21 +10,25 @@ import RevealSection from '../../components/ui/primitives/RevealSection'
 import HostedGroupCard from './components/HostedGroupCard'
 import { useHostActions } from './hooks/useHostActions'
 import { useDeferWhileModalOpen } from '../../common/utils/hooks'
+import { hostGroupNeedsAttention } from '../../common/utils/hostGroupDisplay'
 
 export default function ManageGroupsPage() {
   const activeUser = useAuthStore(s => s.user)
   const [historyOpen, setHistoryOpen] = useState(false)
   const closeHistory = () => setHistoryOpen(false);
 
-  const unreadForPage = useNotificationStore(s => s.getUnreadCountForPage(activeUser?.id, '/manage-groups'));
-  useEffect(() => {
-    if (activeUser?.id && unreadForPage > 0) {
-      useNotificationStore.getState().markReadForPage(activeUser.id, '/manage-groups')
-    }
-  }, [activeUser?.id, unreadForPage]);
-
   const refreshTick = usePendingRefreshStore(s => s.refreshTick);
   const pendingGroupIds = usePendingRefreshStore(s => s.pendingGroupIds);
+
+  const notifications = useNotificationStore(s => s.notifications);
+  const unseenServiceInfoGroupIds = useMemo(
+    () => new Set(
+      notifications
+        .filter(n => n.type === 'service_info_filled' && n.userId === activeUser?.id && !n.isRead && n.meta?.groupId)
+        .map(n => n.meta.groupId)
+    ),
+    [notifications, activeUser?.id]
+  );
 
   const {
     displayGroups: liveDisplayGroups, historyGroups: liveHistoryGroups,
@@ -36,6 +40,14 @@ export default function ManageGroupsPage() {
   const historyGroups = useDeferWhileModalOpen(liveHistoryGroups)
   const membersMap = useDeferWhileModalOpen(liveMembersMap)
   const applicationCounts = useDeferWhileModalOpen(liveApplicationCounts);
+
+  function hasPendingUpdate(group) {
+    return pendingGroupIds.has(group.id) ||
+      hostGroupNeedsAttention(group, {
+        pendingAppCount: applicationCounts[group.id] ?? 0,
+        hasUnseenServiceInfo: unseenServiceInfoGroupIds.has(group.id),
+      })
+  }
 
   const historyReopenRef = useRef(null);
   const hostOpenGroupId = useOpenGroupStore(s => s.hostOpenGroupId)
@@ -83,7 +95,7 @@ export default function ManageGroupsPage() {
                   members={membersMap[g.id] ?? []}
                   pendingAppCount={applicationCounts[g.id] ?? 0}
                   paymentCount={0}
-                  hasPendingUpdate={pendingGroupIds.has(g.id)}
+                  hasPendingUpdate={hasPendingUpdate(g)}
                   {...groupHandlersMap[g.id]}
                 />
               </RevealSection>
@@ -103,7 +115,7 @@ export default function ManageGroupsPage() {
               members={membersMap[g.id] ?? []}
               pendingAppCount={applicationCounts[g.id] ?? 0}
               paymentCount={0}
-              hasPendingUpdate={pendingGroupIds.has(g.id)}
+              hasPendingUpdate={hasPendingUpdate(g)}
               onViewGroup={() => {
                 historyReopenRef.current = { groupId: g.id, opened: false }
                 closeHistory()

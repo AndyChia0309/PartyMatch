@@ -6,7 +6,6 @@ import { useMemberStore } from '../../common/stores/useMemberStore'
 import { useApplicationStore } from '../../common/stores/useApplicationStore'
 import { useGroupStore } from '../../common/stores/useGroupStore'
 import { useAuthStore } from '../../common/stores/useAuthStore'
-import { useNotificationStore } from '../../common/stores/useNotificationStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import SubscriptionCard from './components/SubscriptionCard'
 import EmptyState from '../../components/ui/primitives/EmptyState'
@@ -72,13 +71,6 @@ export default function SubscriptionsPage() {
   const location = useLocation()
   const activeUser = useAuthStore(s => s.user)
   const activeUserId = activeUser?.id ?? null;
-
-  const unreadForPage = useNotificationStore(s => s.getUnreadCountForPage(activeUserId, '/my-subscriptions'));
-  useEffect(() => {
-    if (activeUserId && unreadForPage > 0) {
-      useNotificationStore.getState().markReadForPage(activeUserId, '/my-subscriptions')
-    }
-  }, [activeUserId, unreadForPage]);
 
   const refreshTick = usePendingRefreshStore(s => s.refreshTick);
   const pendingGroupIds = usePendingRefreshStore(s => s.pendingGroupIds)

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Banknote, CheckCircle2, ClipboardList, Clock, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, TriangleAlert, Users } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
@@ -176,12 +176,7 @@ export default function HostGroupView(
   const currentUserId = useAuthStore(s => s.user?.id);
   const submitReview  = useReviewStore(s => s.submit)
   const notifications = useNotificationStore(s => s.notifications)
-  const unseenMemberInfoCount = useMemo(
-    () => notifications.filter(
-      n => n.type === 'service_info_filled' && n.userId === currentUserId && n.meta?.groupId === group.id && !n.isRead
-    ).length,
-    [notifications, currentUserId, group.id]
-  );
+  const unseenMemberInfoCount = useNotificationStore(s => s.getUnseenServiceInfoCount(currentUserId, group.id))
 
   useEffect(() => {
     if (!currentUserId) return

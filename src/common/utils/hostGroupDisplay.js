@@ -10,6 +10,16 @@ export function getHostGroupFlags(status, nextBillingDate) {
   }
 }
 
+export function hostGroupNeedsAttention(group, { pendingAppCount = 0, hasUnseenServiceInfo = false } = {}) {
+  if (!group) return false
+  const { showRenewal } = getHostGroupFlags(group.status, group.nextBillingDate)
+  return group.status === 'full' ||
+    group.status === 'pending_activation' ||
+    showRenewal ||
+    pendingAppCount > 0 ||
+    hasUnseenServiceInfo
+}
+
 export function getHostStatusBadge(status, needsCredentialsOnLock) {
   if (status === 'full') return { variant: 'full', label: '等待鎖定' }
   if (status === 'pending_confirmation' && needsCredentialsOnLock) return { variant: 'pending_confirmation', label: '成員提取中' }
