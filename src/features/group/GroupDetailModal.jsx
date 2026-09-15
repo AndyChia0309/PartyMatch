@@ -108,6 +108,9 @@ export default function GroupDetailModal() {
     useOpenGroupStore.getState().setMemberOpenGroupId(groupId)
   }, [groupId]);
 
+  const groupIdRef = useRef(groupId)
+  useEffect(() => { groupIdRef.current = groupId })
+
   const [freshGroupId, setFreshGroupId] = useState(null)
   useEffect(() => {
     if (!groupId) return
@@ -201,7 +204,11 @@ export default function GroupDetailModal() {
       const hasUnreadForGroup = !!activeUserId && gId &&
         useNotificationStore.getState().getUnreadCountForGroup(activeUserId, gId) > 0;
       if (gId && (gId !== refreshedGroupIdRef.current || hasUnreadForGroup)) setRefreshedGroupId(null)
-      if (gId) setFreshGroupId(null)
+      if (gId && gId !== groupIdRef.current) {
+        setFreshGroupId(null)
+      } else if (gId) {
+        useGroupStore.getState().refreshGroup(gId).catch(console.error)
+      }
       pushGroupUrl(gId)
       if (e.detail?.openCredentials) setAutoOpenCredentials(true)
     }
@@ -509,7 +516,7 @@ export default function GroupDetailModal() {
       />
 
       {leaving ? (
-        <GroupModalShell loading onClose={handleClose} group={group} service={service} plan={plan} />
+        <GroupModalShell loading onClose={handleClose} group={group} service={service} plan={plan} desktopAsideTop={isDesktop ? true : undefined} />
       ) : (membershipRefreshing ? loadingGuess.isMember : isMember && !isHost) ? (
         <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} />
       ) : membershipRefreshing ? (
