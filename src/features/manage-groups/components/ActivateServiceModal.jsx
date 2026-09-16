@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { ChevronDown, PlayCircle, UserCheck } from 'lucide-react'
+import { Calendar, ChevronDown, PlayCircle, UserCheck } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogCloseButton } from '../../../components/ui/dialog'
 import { AvatarWithPresence } from '../../../components/ui/avatar'
 import { Button } from '../../../components/ui/button'
@@ -17,8 +17,12 @@ import { buildMemberRows } from '../../../common/utils/billingRows'
 function getActivationDateRange(billingCycle) {
   const min = new Date()
   const max = new Date()
-  if (billingCycle === 'yearly') max.setFullYear(max.getFullYear() + 1)
-  else max.setMonth(max.getMonth() + 1)
+  if (billingCycle === 'yearly') {
+    max.setFullYear(max.getFullYear() + 1)
+  } else {
+    min.setMonth(min.getMonth() + 1)
+    max.setMonth(max.getMonth() + 2)
+  }
   return { min: toISODate(min), max: toISODate(max) }
 }
 
@@ -83,24 +87,9 @@ export default function ActivateServiceModal({
           </div>
         </div>
 
-        {isFirstActivation && (
-          <div className="space-y-2 border-b border-line-subtle px-5 py-4">
-            <label className="block text-xs font-semibold text-ink-2">下次扣款日</label>
-            <Input
-              type="date"
-              min={minBillingDate}
-              max={maxBillingDate}
-              value={billingDate}
-              onChange={e => setBillingDate?.(e.target.value)}
-            />
-            <p className="text-xs text-ink-3">
-              請依外部平台實際啟用/扣款日期填寫，最早為今天，最晚不超過一個計費週期（{maxBillingDate}）。此日期由團主自行認定，成員如對日期有疑義可聯繫客服反映。
-            </p>
-          </div>
-        )}
         <div className="px-5 pt-5">
           <GroupOverviewContent
-            group={group}
+            group={isFirstActivation ? { ...group, nextBillingDate: null } : group}
             service={service}
             plan={plan}
             extraRows={isFirstActivation ? [] : [{ label: '下次扣款日', value: nextDate }]}
@@ -178,6 +167,32 @@ export default function ActivateServiceModal({
               </div>
             }
           />
+          {isFirstActivation && (
+            <div className="space-y-4 border-t border-line-subtle py-5">
+              <p className="flex items-center gap-2 text-lg font-black text-brand"><Calendar strokeWidth={1.5} size={16} />設定下次扣款日</p>
+              <span className="relative block">
+                <Input
+                  type="date"
+                  min={minBillingDate}
+                  max={maxBillingDate}
+                  value={billingDate}
+                  onChange={e => setBillingDate?.(e.target.value)}
+                  placeholder="請選擇下次扣款日"
+                />
+                {!billingDate && (
+                  <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-ink-4 can-hover:hidden">
+                    請選擇下次扣款日
+                  </span>
+                )}
+              </span>
+              <p className="text-xs text-ink-3">
+                {group.billingCycle === 'yearly'
+                  ? `請依外部平台實際啟用/扣款日期填寫，最早為今天，最晚不超過一個計費週期（${maxBillingDate}）。`
+                  : `月繳方案的下次扣款日至少要超過一個月後，最早為 ${minBillingDate}，最晚為 ${maxBillingDate}。`}
+                此日期由團主自行認定，成員如對日期有疑義可聯繫客服反映。
+              </p>
+            </div>
+          )}
         </div>
       </div>
         </DialogBody>

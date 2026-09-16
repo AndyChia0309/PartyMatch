@@ -58,14 +58,18 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
     const requested = new Date(requestedRaw)
     if (Number.isNaN(requested.getTime())) throw httpError(400, '日期格式不正確')
 
-    const today = new Date();
-    today.setUTCHours(0, 0, 0, 0)
+    const minAllowed = new Date()
+    minAllowed.setUTCHours(0, 0, 0, 0)
     const maxAllowed = new Date()
-    if (group.billingCycle === 'yearly') maxAllowed.setFullYear(maxAllowed.getFullYear() + 1)
-    else maxAllowed.setMonth(maxAllowed.getMonth() + 1)
+    if (group.billingCycle === 'yearly') {
+      maxAllowed.setFullYear(maxAllowed.getFullYear() + 1)
+    } else {
+      minAllowed.setMonth(minAllowed.getMonth() + 1)
+      maxAllowed.setMonth(maxAllowed.getMonth() + 2)
+    }
 
-    if (requested < today) throw httpError(400, '下次扣款日不能早於今天')
-    if (requested > maxAllowed) throw httpError(400, `下次扣款日最晚不能超過一個計費週期（${formatDateSlash(maxAllowed)}）`)
+    if (requested < minAllowed) throw httpError(400, `下次扣款日最早不能早於 ${formatDateSlash(minAllowed)}`)
+    if (requested > maxAllowed) throw httpError(400, `下次扣款日最晚不能超過 ${formatDateSlash(maxAllowed)}`)
 
     nextBillingDate = requested
   }
