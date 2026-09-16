@@ -314,11 +314,11 @@ export default function NotificationCenter() {
       <button
         key={n.id}
         onClick={() => handleNotificationClick(n, { userId, navigate, setOpen })}
-        className={`flex w-full items-start gap-3 rounded-xl border border-line px-4 py-3 text-left transition-colors hover:bg-raised ${
+        className={`flex w-full items-start gap-3 rounded-xl border border-line py-3 pl-2.5 pr-4 text-left transition-colors hover:bg-raised ${
           isUnread ? 'bg-brand-subtle/30' : ''
         }`}
       >
-        <div className="min-w-0 flex-1 pl-2">
+        <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">{stripGroupLabelPrefix(n.title, groupsState, n.meta?.groupId)}</p>
           <p className="mt-0.5 text-xs text-ink-3">{n.message}</p>
           {n.id !== 'system_guest_welcome' && (
