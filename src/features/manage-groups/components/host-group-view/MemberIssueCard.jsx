@@ -32,16 +32,29 @@ function renderFilledInfoDetail(serviceInfo, sharingMethod, serviceId) {
 export default function MemberIssueCard(
   {
     m, filled, sharingMethod, serviceId, isSharedCredentials, canReportServiceIssue, onOpenServiceIssue,
-    canResolve, onResolveDispute, onEscalateDispute, autoExpand = false,
+    canResolve, onResolveDispute, onEscalateDispute, onRejectWithdrawal, autoExpand = false,
   }
 ) {
   const [expanded, setExpanded] = useState(autoExpand)
   const [responseModal, setResponseModal] = useState(null)
+  const [rejecting, setRejecting] = useState(false)
   const cardRef = useRef(null)
   const evidenceUrl = m.disputeEvidenceUrl ?? m.serviceInfoIssueEvidenceUrl
   const hasIssue = !!m.serviceInfoIssueNote
   const showReportButton = canReportServiceIssue && filled && !hasIssue
   const { types: issueTypes, detail: issueDetail } = formatDisputeReason(m.serviceInfoIssueNote)
+  const withdrawRequestDeadline = m.withdrawRequestedAt
+    ? new Date(new Date(m.withdrawRequestedAt).getTime() + 24 * 60 * 60 * 1000)
+    : null
+
+  async function handleRejectWithdrawal() {
+    setRejecting(true)
+    try {
+      await onRejectWithdrawal?.(m.id)
+    } finally {
+      setRejecting(false)
+    }
+  }
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -80,6 +93,12 @@ export default function MemberIssueCard(
                     <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
                   )}
                 </p>
+                {withdrawRequestDeadline && (
+                  <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-warning-text">
+                    <span>成員申請撤銷回報，未處理將自動生效</span>
+                    <span>剩餘 <CountdownText deadline={withdrawRequestDeadline} /></span>
+                  </p>
+                )}
               </div>
               <ChevronDown size={16} strokeWidth={1.5} className={`shrink-0 text-ink-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
             </button>
@@ -149,6 +168,18 @@ export default function MemberIssueCard(
             className="rounded-lg text-xs"
           >
             不實回報
+          </Button>
+        </div>
+      )}
+      {withdrawRequestDeadline && (
+        <div className="mt-2">
+          <Button
+            variant="destructive"
+            onClick={handleRejectWithdrawal}
+            loading={rejecting}
+            className="w-full rounded-lg text-xs"
+          >
+            反對撤銷
           </Button>
         </div>
       )}

@@ -229,18 +229,29 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     </div>
   )
 
-  const withdrawCta = isDisputeRaiser && !isDisputeEscalated && (
-    <div className="py-2">
-      <Button
-        variant="destructive"
-        onClick={() => setWithdrawConfirm(true)}
-        disabled={dispute.withdrawing}
-        className="w-full rounded-lg shadow-button"
-      >
-        <Undo2 strokeWidth={1.5} size={15} />
-        撤銷回報
-      </Button>
-    </div>
+  const withdrawRequestDeadline = myMember?.withdrawRequestedAt
+    ? new Date(new Date(myMember.withdrawRequestedAt).getTime() + 24 * 60 * 60 * 1000)
+    : null
+
+  const withdrawCta = isDisputeRaiser && (
+    withdrawRequestDeadline ? (
+      <div className="flex items-center justify-center gap-2 rounded-lg bg-warning-subtle py-2.5 text-sm font-extrabold text-warning-text">
+        <Clock size={15} strokeWidth={1.5} />
+        撤銷申請中，剩餘 <CountdownText deadline={withdrawRequestDeadline} /> 後自動生效
+      </div>
+    ) : (
+      <div className="py-2">
+        <Button
+          variant="destructive"
+          onClick={() => setWithdrawConfirm(true)}
+          disabled={dispute.withdrawing}
+          className="w-full rounded-lg shadow-button"
+        >
+          <Undo2 strokeWidth={1.5} size={15} />
+          {isDisputeEscalated ? '申請撤銷回報' : '撤銷回報'}
+        </Button>
+      </div>
+    )
   )
 
   const hideRecruitBarLive = group.status !== 'recruiting'
@@ -513,11 +524,15 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       )}
       {withdrawConfirm && (
         <ConfirmActionDialog
-          title="撤銷問題回報"
-          message="確定要撤銷這次的問題回報嗎？撤銷後會回到確認期，需要重新確認服務或再次回報問題。"
-          confirmLabel="撤銷"
+          title={isDisputeEscalated ? '申請撤銷問題回報' : '撤銷問題回報'}
+          message={
+            isDisputeEscalated
+              ? '此問題已送交平台仲裁，撤銷需要送出申請：24 小時內若團主未提出反對將自動生效；本期已無法再次回報問題，請確認清楚再送出。'
+              : '確定要撤銷這次的問題回報嗎？撤銷後會回到確認期，需要重新確認服務；本期已無法再次回報問題。'
+          }
+          confirmLabel={isDisputeEscalated ? '送出申請' : '撤銷'}
           danger
-          onConfirm={() => { setWithdrawConfirm(false); dispute.withdraw() }}
+          onConfirm={() => { setWithdrawConfirm(false); dispute.withdraw(isDisputeEscalated) }}
           onCancel={() => setWithdrawConfirm(false)}
         />
       )}

@@ -44,6 +44,10 @@ export async function withdrawDisputeApi(id) {
   return client.post(`/groups/${id}/dispute/withdraw`)
 }
 
+export async function rejectWithdrawDisputeApi(id, memberId) {
+  return client.post(`/groups/${id}/dispute/withdraw/reject`, { memberId })
+}
+
 export async function resolveDisputeApi(id, { memberId, note } = {}) {
   return client.post(`/groups/${id}/resolve-dispute`, { memberId, note })
 }

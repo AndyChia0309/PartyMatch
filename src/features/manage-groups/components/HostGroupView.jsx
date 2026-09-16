@@ -10,6 +10,7 @@ import { getServiceById } from '../../../common/utils/serviceUtils'
 import { isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
 import { canReportServiceIssue } from '../../../common/utils/groupStatus'
 import { getHostGroupFlags, getHostStatusBadge, getHostPendingBadge } from '../../../common/utils/hostGroupDisplay'
+import { DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
 import { useAuthStore } from '../../../common/stores/useAuthStore'
 import { useApplicationStore } from '../../../common/stores/useApplicationStore'
 import { useGroupStore } from '../../../common/stores/useGroupStore'
@@ -33,7 +34,7 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
@@ -347,10 +348,14 @@ export default function HostGroupView(
     </div>
   )
 
+  const escalatedDisputeMember = members.find(m => !!m.disputeEscalatedAt)
   const disputedBanner = headerStatus === 'disputed' && (
     <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
       <Clock size={15} strokeWidth={1.5} />
-      收到問題回報，處理中
+      {escalatedDisputeMember ? DISPUTE_ESCALATED_BANNER_TEXT : '收到問題回報，處理中'}
+      {escalatedDisputeMember?.disputeDeadline && (
+        <>，剩餘 <CountdownText deadline={escalatedDisputeMember.disputeDeadline} /></>
+      )}
     </div>
   )
 
@@ -426,6 +431,7 @@ export default function HostGroupView(
         onOpenServiceIssue: m => { setServiceIssueMember(m); setServiceIssueNote(m.serviceInfoIssueNote ?? '') },
         onResolveDispute: (memberId, note) => onResolveDispute?.(group.id, memberId, note),
         onEscalateDispute: (memberId, note) => onEscalateDispute?.(group.id, memberId, note),
+        onRejectWithdrawal: memberId => onRejectWithdrawal?.(group.id, memberId),
         showPassword,
         onTogglePassword: () => setShowPassword(v => !v),
         autoExpandMemberId,

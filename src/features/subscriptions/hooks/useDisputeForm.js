@@ -52,11 +52,11 @@ export function useDisputeForm(groupId, onClose) {
     }
   }
 
-  async function withdraw() {
+  async function withdraw(wasEscalated) {
     setWithdrawing(true)
     try {
       await withdrawDisputeAction(groupId)
-      toast('已撤銷問題回報')
+      toast(wasEscalated ? '已送出撤銷申請，24 小時內若無反對將自動生效' : '已撤銷問題回報')
     } catch (err) {
       toast(err?.message ?? '撤銷失敗，請稍後再試', 'error')
     } finally {

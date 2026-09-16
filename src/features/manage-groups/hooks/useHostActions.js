@@ -277,6 +277,15 @@ async function handleActivate(nextBillingDate) {
     }
   }
 
+  async function handleRejectWithdrawal(groupId, memberId) {
+    try {
+      await useGroupStore.getState().rejectWithdrawDispute(groupId, memberId)
+      toast('已拒絕撤銷申請')
+    } catch (err) {
+      toast(err?.message ?? '處理失敗，請稍後再試', 'error')
+    }
+  }
+
   async function handleEscalateDispute(groupId, memberId, note) {
     try {
       await useGroupStore.getState().escalateDispute(groupId, { memberId, note })
@@ -472,6 +481,7 @@ async function handleApprove(appId) {
     handleReportServiceInfoIssue,
     handleResolveDispute,
     handleEscalateDispute,
+    handleRejectWithdrawal,
     handleReject,
   }
 }
