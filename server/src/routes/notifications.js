@@ -12,7 +12,7 @@ router.get('/', optionalAuth, async (req, res, next) => {
 
     const notifications = await prisma.notification.findMany({
       where,
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       take: 100,
     })
     res.json(notifications)

@@ -39,9 +39,17 @@ const adjudicateSchema = z.object({
   reason:   z.string().trim().min(1).max(500),
 })
 
-router.post('/:id/activate', requireAuth, async (req, res, next) => {
+const activateGroupSchema = z.object({
+  nextBillingDate: z.string().optional(),
+})
+
+router.post('/:id/activate', requireAuth, validate(activateGroupSchema), async (req, res, next) => {
   try {
-    const updated = await groupLifecycleService.activateGroup({ groupId: req.params.id, hostId: req.user.id })
+    const updated = await groupLifecycleService.activateGroup({
+      groupId: req.params.id,
+      hostId:  req.user.id,
+      nextBillingDate: req.body.nextBillingDate,
+    })
     res.json(maskGroupHost(updated))
   } catch (err) { next(err) }
 });
@@ -72,6 +80,16 @@ router.post('/:id/dispute', requireAuth, validate(disputeSchema), async (req, re
       userId:      req.user.id,
       reason:      req.body.reason,
       evidenceUrl: req.body.evidenceUrl,
+    })
+    res.json(maskGroupHost(updated))
+  } catch (err) { next(err) }
+});
+
+router.post('/:id/dispute/withdraw', requireAuth, async (req, res, next) => {
+  try {
+    const updated = await groupLifecycleService.withdrawDispute({
+      groupId: req.params.id,
+      userId:  req.user.id,
     })
     res.json(maskGroupHost(updated))
   } catch (err) { next(err) }

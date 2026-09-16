@@ -4,7 +4,7 @@ import prisma from '../lib/prisma.js'
 import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { maskAvatar } from '../lib/avatarVisibility.js'
-import { notify, notifyGroupConversation } from './groups/shared.js'
+import { notify } from './groups/shared.js'
 import { adjustCreditScore } from '../utils/creditScore.js'
 
 const router = Router()
@@ -107,7 +107,13 @@ router.post('/', requireAuth, validate(createReviewSchema), async (req, res, nex
         meta:    { groupId },
       })
       if (!isAuthorHost) {
-        notifyGroupConversation(groupId, authorId, `${author?.name ?? '成員'} 已送出評價。`).catch(console.error)
+        prisma.credentialComment.create({
+          data: {
+            groupId,
+            authorId,
+            content: `${author?.name ?? '成員'} 已送出評價。`,
+          },
+        }).catch(console.error)
       }
     }
 

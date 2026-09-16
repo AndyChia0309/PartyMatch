@@ -114,15 +114,15 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
       const isSharedCredentials = !!existing.group.sharedCredentials;
       const memberName = existing.user?.name ?? '成員'
 
-      if (isSharedCredentials) {
-        prisma.credentialComment.create({
-          data: {
-            groupId:  existing.groupId,
-            authorId: existing.userId,
-            content:  existing.serviceInfoIssueNote ? '已處理帳號問題，重新送出帳號資訊' : '已成功提取帳號資訊',
-          },
-        }).catch(console.error)
-      }
+      prisma.credentialComment.create({
+        data: {
+          groupId:  existing.groupId,
+          authorId: existing.userId,
+          content:  isSharedCredentials
+            ? (existing.serviceInfoIssueNote ? '已處理帳號問題，重新送出帳號資訊' : '已成功提取帳號資訊')
+            : (existing.serviceInfoIssueNote ? '已處理帳號問題，重新填寫服務帳號' : '已填寫服務帳號'),
+        },
+      }).catch(console.error)
 
       const allMembers = await prisma.member.findMany({ where: { groupId: existing.groupId } })
       const allFilled  = allMembers.every(m => m.serviceInfo != null);

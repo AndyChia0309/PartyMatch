@@ -56,6 +56,7 @@ enum DisputeStatus {
   pending
   resolved_by_host
   adjudicated
+  withdrawn_by_member
 }
 
 enum DisputeResolutionType {
@@ -98,6 +99,7 @@ enum NotificationType {
   dispute_resolved
   dispute_resolved_by_host
   dispute_escalated
+  dispute_withdrawn
   upcoming_renewal
   billing_date_confirmed
   billing_date_adjusted
