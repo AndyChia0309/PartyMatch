@@ -7,6 +7,11 @@ export function getNotificationToastId(notification) {
   return meta?.groupId ? `pm-${type}-${meta.groupId}` : id ?? null;
 }
 
+export function stripLabelPrefix(text, label) {
+  if (!text || !label || !text.startsWith(label)) return text
+  return text.slice(label.length).trim() || text
+}
+
 const suppressedToastUntil = new Map();
 
 export function suppressNextToast(type, groupId, ms = BACKGROUND_NOTIFICATION_TOAST_DURATION + 10000) {

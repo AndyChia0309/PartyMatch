@@ -8,6 +8,7 @@ import { useGroupStore } from '../stores/useGroupStore'
 import { useMemberStore } from '../stores/useMemberStore'
 import { useApplicationStore } from '../stores/useApplicationStore'
 import { formatRelativeDate } from '../utils/date'
+import { stripLabelPrefix } from '../utils/notificationToast'
 import EmptyState from '../../components/ui/primitives/EmptyState'
 import FilterSelect from '../../components/ui/primitives/FilterSelect'
 import { useFilterSelectGroup } from '../../components/ui/primitives/useFilterSelectGroup'
@@ -65,9 +66,7 @@ const SORT_OPTIONS = [
 function stripGroupLabelPrefix(title, groupsState, groupId) {
   if (!title || !groupId) return title
   const group = groupsState.find(g => g.id === groupId)
-  const label = group?.planName || group?.serviceName || ''
-  if (!label || !title.startsWith(label)) return title
-  return title.slice(label.length).trim() || title
+  return stripLabelPrefix(title, group?.planName || group?.serviceName || '')
 }
 
 function buildCategories(list, groupsState, userId, memberGroupIds) {
