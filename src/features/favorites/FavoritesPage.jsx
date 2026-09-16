@@ -34,7 +34,7 @@ export default function FavoritesPage() {
     return favorites
       .filter(f => f.userId === activeUser.id)
       .map(f => byId.get(f.groupId))
-      .filter(g => g && ((g.status === 'recruiting' && g.openSeats > 0) || g.status === 'full'));
+      .filter(g => g && g.status === 'recruiting' && g.openSeats > 0);
   }, [activeUser, favorites, allGroups])
 
   const memberGroupIds = useMemo(
