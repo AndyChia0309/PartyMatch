@@ -141,7 +141,7 @@ export default function HostGroupView(
       return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeaderStatus(group.status)
-  }, [activePanel, dataSyncTick]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [activePanel, dataSyncTick, group.status])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
