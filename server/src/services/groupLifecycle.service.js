@@ -306,6 +306,8 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     throw httpError(403, '你不是此群組成員');
   if (member.serviceInfoIssueNote)
     throw httpError(400, '你已經回報過問題，正在等待處理');
+  if (member.disputeRaisedCycle === group.currentCycle)
+    throw httpError(400, '本期已經回報過問題，如需再次反映請聯絡客服');
 
   const disputeDeadline = addHours(48);
   const groupLabel = groupLabelOf(group)
@@ -324,6 +326,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
       data:  {
         serviceInfoIssueNote: trimmedReason,
         disputeDeadline:      disputeDeadline,
+        disputeRaisedCycle:   group.currentCycle,
         ...(evidenceUrl ? { disputeEvidenceUrl: evidenceUrl } : {}),
       },
     })
@@ -350,7 +353,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     userId:  group.hostId,
     type:    'dispute_raised',
     title:   `${groupLabel} ${member.user.name}回報問題`,
-    message: `${member.user.name} 針對「${groupLabel}」服務回報問題，將於 48 小時內處理完成。`,
+    message: `${member.user.name} 針對「${groupLabel}」服務回報問題，請於 48 小時內處理完成。`,
     meta:    { groupId, memberId: member.id },
   })
   prisma.credentialComment.create({
@@ -364,6 +367,80 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   return updated
 }
 
+const WITHDRAW_REQUEST_WINDOW_HOURS = 24
+
+async function applyDisputeWithdrawal({ group, member, dispute }) {
+  const groupLabel = groupLabelOf(group)
+
+  const { updated, releasedAmount } = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.dispute.updateMany({
+      where: { id: dispute.id, status: 'pending' },
+      data:  { status: 'withdrawn_by_member', resolvedAt: new Date() },
+    })
+    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面')
+
+    await tx.member.update({
+      where: { id: member.id },
+      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, disputeDeadline: null, disputeEscalatedAt: null, withdrawRequestedAt: null },
+    })
+
+    const remainingPending = await tx.dispute.count({ where: { groupId: group.id, status: 'pending' } });
+    let releasedAmount = null
+    if (remainingPending === 0) {
+      await claimGroupStatus(tx, group.id, {
+        fromStatus: 'disputed',
+        data:       { status: 'confirming' },
+        message:    '這個群組的申訴狀態剛好被更新了，請重新整理頁面',
+      });
+      releasedAmount = await tryReleaseEscrow(tx, group.id, group.hostId)
+    }
+
+    return { updated: await tx.group.findUnique({ where: { id: group.id }, include: HOST_GROUP_INCLUDE }), releasedAmount }
+  })
+
+  notify({
+    userId:  group.hostId,
+    type:    'dispute_withdrawn',
+    title:   `${groupLabel} ${member.user.name}已撤銷問題回報`,
+    message: `${member.user.name} 已撤銷針對「${groupLabel}」的問題回報。`,
+    meta:    { groupId: group.id },
+  });
+
+  if (releasedAmount != null) {
+    notify({
+      userId:  group.hostId,
+      type:    'escrow_released',
+      title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
+      message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
+      meta:    { groupId: group.id },
+    })
+  }
+
+  prisma.credentialComment.create({
+    data: {
+      groupId:  group.id,
+      authorId: member.userId,
+      content:  `${member.user.name} 已撤銷問題回報`,
+    },
+  }).catch(console.error)
+
+  return updated
+}
+
+export async function trySweepExpiredWithdrawalRequest(group) {
+  if (group.status !== 'disputed') return null
+  const now = Date.now()
+  const expiredMember = (group.members ?? []).find(m =>
+    m.withdrawRequestedAt && (now - new Date(m.withdrawRequestedAt).getTime()) >= WITHDRAW_REQUEST_WINDOW_HOURS * 60 * 60 * 1000
+  )
+  if (!expiredMember) return null
+
+  const dispute = await prisma.dispute.findFirst({ where: { groupId: group.id, memberId: expiredMember.id, status: 'pending' } })
+  if (!dispute) return null
+
+  return applyDisputeWithdrawal({ group, member: expiredMember, dispute })
+}
+
 export async function withdrawDispute({ groupId, userId }) {
   const group = await prisma.group.findUnique({
     where:   { id: groupId },
@@ -375,65 +452,54 @@ export async function withdrawDispute({ groupId, userId }) {
   const member = group.members.find(m => m.userId === userId)
   if (!member) throw httpError(403, '你不是此群組成員');
   if (!member.serviceInfoIssueNote) throw httpError(400, '你目前沒有進行中的問題回報')
-  if (member.disputeEscalatedAt) throw httpError(400, '已送交平台裁定，無法自行撤銷')
 
   const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId: member.id, status: 'pending' } })
   if (!dispute) throw httpError(400, '找不到進行中的申訴')
 
-  const groupLabel = groupLabelOf(group)
+  if (member.disputeEscalatedAt) {
+    if (member.withdrawRequestedAt) throw httpError(400, '已經送出撤銷申請，等待處理中')
 
-  const { updated, releasedAmount } = await prisma.$transaction(async (tx) => {
-    await tx.member.update({
-      where: { id: member.id },
-      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, disputeDeadline: null, disputeEscalatedAt: null },
-    })
+    await prisma.member.update({ where: { id: member.id }, data: { withdrawRequestedAt: new Date() } })
 
-    await tx.dispute.update({
-      where: { id: dispute.id },
-      data:  { status: 'withdrawn_by_member', resolvedAt: new Date() },
-    });
-
-    const remainingPending = await tx.dispute.count({ where: { groupId, status: 'pending' } });
-    let releasedAmount = null
-    if (remainingPending === 0) {
-      await claimGroupStatus(tx, groupId, {
-        fromStatus: 'disputed',
-        data:       { status: 'confirming' },
-        message:    '這個群組的申訴狀態剛好被更新了，請重新整理頁面',
-      });
-      releasedAmount = await tryReleaseEscrow(tx, groupId, group.hostId)
-    }
-
-    return { updated: await tx.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE }), releasedAmount }
-  })
-
-  notify({
-    userId:  group.hostId,
-    type:    'dispute_withdrawn',
-    title:   `${groupLabel} ${member.user.name}已撤銷問題回報`,
-    message: `${member.user.name} 已撤銷針對「${groupLabel}」的問題回報。`,
-    meta:    { groupId },
-  });
-
-  if (releasedAmount != null) {
+    const groupLabel = groupLabelOf(group)
     notify({
       userId:  group.hostId,
-      type:    'escrow_released',
-      title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-      message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
-      meta:    { groupId },
+      type:    'dispute_withdraw_requested',
+      title:   `${groupLabel} ${member.user.name}申請撤銷問題回報`,
+      message: `${member.user.name} 針對「${groupLabel}」申請撤銷問題回報，${WITHDRAW_REQUEST_WINDOW_HOURS} 小時內若未反對將自動生效；如認為不該撤銷，請點擊「反對撤銷」。`,
+      meta:    { groupId, memberId: member.id },
     })
+
+    return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
   }
 
-  prisma.credentialComment.create({
-    data: {
-      groupId,
-      authorId: member.userId,
-      content:  `${member.user.name} 已撤銷問題回報`,
-    },
-  }).catch(console.error)
+  return applyDisputeWithdrawal({ group, member, dispute })
+}
 
-  return updated
+export async function rejectDisputeWithdrawal({ groupId, hostId, memberId }) {
+  const group = await prisma.group.findUnique({
+    where:   { id: groupId },
+    include: { members: { include: { user: { select: { id: true, name: true } } } }, service: { select: { name: true } } },
+  })
+  if (!group) throw httpError(404, '群組不存在')
+  if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
+
+  const member = group.members.find(m => m.id === memberId)
+  if (!member) throw httpError(404, '找不到成員')
+  if (!member.withdrawRequestedAt) throw httpError(400, '目前沒有進行中的撤銷申請')
+
+  await prisma.member.update({ where: { id: member.id }, data: { withdrawRequestedAt: null } })
+
+  const groupLabel = groupLabelOf(group)
+  notify({
+    userId:  member.userId,
+    type:    'dispute_withdraw_rejected',
+    title:   `${groupLabel} 撤銷申請被拒絕`,
+    message: `團主認為「${groupLabel}」的問題回報不該撤銷，將維持平台仲裁流程，請等待處理結果。`,
+    meta:    { groupId },
+  })
+
+  return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
 }
 
 export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) {
@@ -455,13 +521,8 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
   const groupLabel = groupLabelOf(group)
 
   const { updated, releasedAmount } = await prisma.$transaction(async (tx) => {
-    await tx.member.update({
-      where: { id: disputeMember.id },
-      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, confirmedAt: null, disputeDeadline: null, disputeEscalatedAt: null, confirmDeadline },
-    })
-
-    await tx.dispute.update({
-      where: { id: dispute.id },
+    const claimed = await tx.dispute.updateMany({
+      where: { id: dispute.id, status: 'pending' },
       data:  {
         status:           'resolved_by_host',
         resolutionType:   'host_private_resolved',
@@ -469,7 +530,13 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
         resolutionNote:   note ?? null,
         resolvedAt:       new Date(),
       },
-    });
+    })
+    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面')
+
+    await tx.member.update({
+      where: { id: disputeMember.id },
+      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, confirmedAt: null, disputeDeadline: null, disputeEscalatedAt: null, withdrawRequestedAt: null, confirmDeadline },
+    })
 
     const remainingPending = await tx.dispute.count({ where: { groupId, status: 'pending' } });
     let releasedAmount = null
@@ -546,13 +613,13 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
 
   const groupLabel = groupLabelOf(group)
 
-  notify({
-    userId:  disputeMember.userId,
+  notifyBatch([group.hostId, disputeMember.userId].map(userId => ({
+    userId,
     type:    'dispute_escalated',
-    title:   `${groupLabel} 問題回報進入仲裁`,
-    message: `團主對「${groupLabel}」你回報的問題有不同意見，將由平台客服介入了解狀況並裁定。`,
+    title:   `${groupLabel} 問題回報已由平台接管`,
+    message: `「${groupLabel}」的問題回報已由平台客服接管處理，請耐心等候。`,
     meta:    { groupId },
-  })
+  })))
 
   prisma.credentialComment.create({
     data: {
@@ -732,7 +799,15 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
   const releasedAmount = await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
       where: { id: dispute.id, status: 'pending' },
-      data:  { status: 'adjudicated' },
+      data:  {
+        status:             'adjudicated',
+        resolutionType,
+        resolvedByAdminId:  adminId,
+        memberRefundAmount,
+        hostReleaseAmount:  0,
+        resolutionNote:     trimmedReason,
+        resolvedAt:         new Date(),
+      },
     })
     if (claimed.count === 0) throw httpError(409, '這筆申訴已經被裁定過了，請重新整理頁面')
 
@@ -757,21 +832,9 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
         disputeEvidenceUrl:   null,
         disputeDeadline:      null,
         disputeEscalatedAt:   null,
+        withdrawRequestedAt:  null,
         confirmedAt:          winner === 'member' ? new Date() : null,
         confirmDeadline:      winner === 'host' ? confirmDeadline : null,
-      },
-    });
-
-    await tx.dispute.update({
-      where: { id: dispute.id },
-      data:  {
-        status:             'adjudicated',
-        resolutionType,
-        resolvedByAdminId:  adminId,
-        memberRefundAmount,
-        hostReleaseAmount:  0,
-        resolutionNote:     trimmedReason,
-        resolvedAt:         new Date(),
       },
     });
 

@@ -95,6 +95,21 @@ router.post('/:id/dispute/withdraw', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 });
 
+const rejectWithdrawSchema = z.object({
+  memberId: z.string().min(1),
+})
+
+router.post('/:id/dispute/withdraw/reject', requireAuth, validate(rejectWithdrawSchema), async (req, res, next) => {
+  try {
+    const updated = await groupLifecycleService.rejectDisputeWithdrawal({
+      groupId:  req.params.id,
+      hostId:   req.user.id,
+      memberId: req.body.memberId,
+    })
+    res.json(maskGroupHost(updated))
+  } catch (err) { next(err) }
+});
+
 router.post('/:id/resolve-dispute', requireAuth, validate(resolveDisputeSchema), async (req, res, next) => {
   try {
     const updated = await groupLifecycleService.resolveDisputeByHost({

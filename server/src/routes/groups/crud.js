@@ -10,7 +10,7 @@ import { maskGroupListSensitiveFields, maskGroupDetailSensitiveFields, resolveGr
 import { computeSeatCost, toPlainGroup } from '../../utils/pricing.js'
 import { refundEscrow } from '../../services/membershipLifecycle.service.js'
 import { adjustCreditScore } from '../../utils/creditScore.js'
-import { allMembersSettled } from '../../services/groupLifecycle.service.js'
+import { allMembersSettled, trySweepExpiredWithdrawalRequest } from '../../services/groupLifecycle.service.js'
 
 const router = Router()
 
@@ -259,6 +259,21 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
           message: `「${groupLabelOf(group)}」逾期未手動啟用，已退回額滿狀態並扣除 5 點信用分數，請重新鎖定群組。`,
           meta:    { groupId: group.id },
         })
+        const fresh = await prisma.group.findUnique({
+          where: { id: group.id },
+          include: {
+            host:    HOST_PUBLIC_SELECT,
+            service: true,
+            members: { include: { user: { select: { id: true, name: true, avatarColor: true, avatarInitial: true, showAvatar: true, presenceStatus: true, bio: true } } } },
+          },
+        })
+        return res.json(await resolveGroupMemberEvidenceUrls(maskGroupDetailSensitiveFields(maskGroupAvatars(fresh), req.user?.id)))
+      }
+    }
+
+    if (group.status === 'disputed') {
+      const swept = await trySweepExpiredWithdrawalRequest(group).catch(() => null)
+      if (swept) {
         const fresh = await prisma.group.findUnique({
           where: { id: group.id },
           include: {
