@@ -93,6 +93,18 @@ export default function SubscriptionsPage() {
     [activeUserId, subscriptionsState, groupsState, membersState],
   )
   useEffect(() => {
+    function onForceRefresh(e) {
+      if (e.detail?.path !== '/my-subscriptions') return
+      useSubscriptionStore.getState().init()
+      useGroupStore.getState().init({ all: true })
+      useApplicationStore.getState().init()
+      useMemberStore.getState().init()
+    }
+    window.addEventListener('pm:force-page-refresh', onForceRefresh)
+    return () => window.removeEventListener('pm:force-page-refresh', onForceRefresh)
+  }, []);
+
+  useEffect(() => {
     if (location.state?.openGroupId) {
       window.dispatchEvent(new CustomEvent('pm:open-group', {
         detail: { groupId: location.state.openGroupId, openCredentials: !!location.state.openCredentials },

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Heart } from 'lucide-react'
 import EmptyState from '../../components/ui/primitives/EmptyState'
@@ -16,6 +16,17 @@ export default function FavoritesPage() {
   const favorites = useDeferWhileModalOpen(useFavoriteStore(s => s.favorites))
   const allGroups = useDeferWhileModalOpen(useGroupStore(s => s.groups))
   const members = useDeferWhileModalOpen(useMemberStore(s => s.members))
+
+  useEffect(() => {
+    function onForceRefresh(e) {
+      if (e.detail?.path !== '/favorites') return
+      useFavoriteStore.getState().init()
+      useGroupStore.getState().init({ all: true })
+      useMemberStore.getState().init()
+    }
+    window.addEventListener('pm:force-page-refresh', onForceRefresh)
+    return () => window.removeEventListener('pm:force-page-refresh', onForceRefresh)
+  }, []);
 
   const groups = useMemo(() => {
     if (!activeUser) return []

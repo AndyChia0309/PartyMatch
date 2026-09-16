@@ -38,6 +38,16 @@ export default function ExplorePage() {
     }
   }, [location.state]);
 
+  useEffect(() => {
+    function onForceRefresh(e) {
+      if (e.detail?.path !== '/explore') return
+      useGroupStore.getState().init({ all: true })
+      window.scrollTo(0, 0)
+    }
+    window.addEventListener('pm:force-page-refresh', onForceRefresh)
+    return () => window.removeEventListener('pm:force-page-refresh', onForceRefresh)
+  }, []);
+
   const allGroups = useMemo(
     () => groups.filter(g => g.hostId !== activeUserId),
     [groups, activeUserId],

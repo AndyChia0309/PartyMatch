@@ -77,6 +77,9 @@ export default function TabletSidebarDrawer(
       setOpen(false)
       closeAll()
       window.dispatchEvent(new CustomEvent('pm:force-route-transition'))
+      if (to === pathname) {
+        window.dispatchEvent(new CustomEvent('pm:force-page-refresh', { detail: { path: to } }))
+      }
       navigate(to)
     }
   }

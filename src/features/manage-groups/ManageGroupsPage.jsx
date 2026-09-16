@@ -4,6 +4,9 @@ import { useAuthStore } from '../../common/stores/useAuthStore'
 import { useNotificationStore } from '../../common/stores/useNotificationStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import { useOpenGroupStore } from '../../common/stores/useOpenGroupStore'
+import { useGroupStore } from '../../common/stores/useGroupStore'
+import { useApplicationStore } from '../../common/stores/useApplicationStore'
+import { useMemberStore } from '../../common/stores/useMemberStore'
 import EmptyState from '../../components/ui/primitives/EmptyState'
 import GroupHistoryModal from '../../components/ui/group/GroupHistoryModal'
 import RevealSection from '../../components/ui/primitives/RevealSection'
@@ -48,6 +51,17 @@ export default function ManageGroupsPage() {
         hasUnseenServiceInfo: unseenServiceInfoGroupIds.has(group.id),
       })
   }
+
+  useEffect(() => {
+    function onForceRefresh(e) {
+      if (e.detail?.path !== '/manage-groups') return
+      useGroupStore.getState().init({ all: true })
+      useApplicationStore.getState().init()
+      useMemberStore.getState().init()
+    }
+    window.addEventListener('pm:force-page-refresh', onForceRefresh)
+    return () => window.removeEventListener('pm:force-page-refresh', onForceRefresh)
+  }, []);
 
   const historyReopenRef = useRef(null);
   const hostOpenGroupId = useOpenGroupStore(s => s.hostOpenGroupId)

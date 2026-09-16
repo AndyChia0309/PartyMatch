@@ -55,6 +55,9 @@ export default function DesktopSidebar({
 
   function goTo(to) {
     window.dispatchEvent(new CustomEvent('pm:force-route-transition'))
+    if (to === pathname) {
+      window.dispatchEvent(new CustomEvent('pm:force-page-refresh', { detail: { path: to } }))
+    }
     navigate(to)
   }
 
