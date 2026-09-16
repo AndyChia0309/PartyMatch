@@ -17,7 +17,7 @@ import {
   DropdownMenu, DropdownMenuContent,
   DropdownMenuRadioSection, DropdownMenuFilterTrigger,
 } from '../../components/ui/dropdown-menu'
-import { getMeta, handleNotificationClick } from './notificationClickHandlers'
+import { handleNotificationClick } from './notificationClickHandlers'
 
 function getMergedNotifications(userId) {
   const notifStore = useNotificationStore.getState()
@@ -32,7 +32,7 @@ function getMergedNotifications(userId) {
 const APPLY_TYPES   = ['joined', 'application_approved', 'application_rejected', 'application_sent', 'new_application', 'application_cancelled', 'application'];
 const GROUP_TYPES    = ['group_created', 'group_activated', 'group_chat_opened', 'group_full', 'group_full_member', 'group_ended', 'group_cancelled', 'group_renewal', 'member_left', 'member_removed', 'member_confirmed_service', 'group_reviewed']
 const BILLING_TYPES  = ['fill_service_info', 'service_info_filled', 'all_service_info_filled', 'service_info_deadline_passed', 'escrow_released', 'escrow_released_member', 'upcoming_renewal', 'billing_date_confirmed', 'billing_date_adjusted', 'payment_reminder']
-const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'dispute_withdrawn', 'service_info_issue'];
+const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'dispute_withdrawn', 'dispute_escalated', 'dispute_withdraw_requested', 'dispute_withdraw_rejected', 'service_info_issue'];
 
 const CLOSED_GROUP_STATUSES = ['cancelled', 'ended'];
 const HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
@@ -309,24 +309,22 @@ export default function NotificationCenter() {
   }
 
   function renderNotificationItem(n) {
-    const { icon: Icon, iconColor } = getMeta(n.type)
     const isUnread = loggedIn && !n.isRead
 
     return (
       <button
         key={n.id}
         onClick={() => handleNotificationClick(n, { userId, navigate, setOpen })}
-        className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-raised ${
+        className={`flex w-full items-start gap-3 rounded-xl border border-line px-4 py-3 text-left transition-colors hover:bg-raised ${
           isUnread ? 'bg-brand-subtle/30' : ''
         }`}
       >
-        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-raised">
-          <Icon size={16} strokeWidth={1.5} className={iconColor} />
-        </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pl-2">
           <p className="text-sm font-semibold text-ink">{stripGroupLabelPrefix(n.title, groupsState, n.meta?.groupId)}</p>
           <p className="mt-0.5 text-xs text-ink-3">{n.message}</p>
-          <p className="mt-1 text-xs text-ink-4">{formatRelativeDate(n.createdAt)}</p>
+          {n.id !== 'system_guest_welcome' && (
+            <p className="mt-1 text-xs text-ink-4">{formatRelativeDate(n.createdAt)}</p>
+          )}
         </div>
         {isUnread && <span className="mt-2 h-2 w-2 shrink-0 rounded-full bg-danger" />}
       </button>
@@ -378,7 +376,7 @@ export default function NotificationCenter() {
         <DrawerDescription className="sr-only">通知中心</DrawerDescription>
 
         {view === 'main' && (categories.length > 0 || visibleTabs.length > 1) && (
-          <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+          <div className="flex items-center gap-2 px-3 py-2">
             {categories.length > 0 && (
               <div className="min-w-0 flex-1">
                 <FilterSelect
@@ -448,7 +446,7 @@ export default function NotificationCenter() {
         )}
 
         {view === 'history' && historyCategories.length > 0 && (
-          <div className="flex items-center gap-2 border-b border-line px-3 py-2">
+          <div className="flex items-center gap-2 px-3 py-2">
             <div className="min-w-0 flex-1">
               <FilterSelect
                 id="history-category"
@@ -505,7 +503,7 @@ export default function NotificationCenter() {
                   className="py-10"
                 />
               ) : (
-                <div key={`${activeTab}-${sortOrder}-${effectiveCategory}`} className="animate-fade-in-up divide-y divide-line-subtle">
+                <div key={`${activeTab}-${sortOrder}-${effectiveCategory}`} className="animate-fade-in-up space-y-2 px-3 py-2">
                   {filtered.map(renderNotificationItem)}
                 </div>
               )}
@@ -519,7 +517,7 @@ export default function NotificationCenter() {
                   className="py-10"
                 />
               ) : (
-                <div key={effectiveHistoryCategory} className="animate-fade-in-up divide-y divide-line-subtle">
+                <div key={effectiveHistoryCategory} className="animate-fade-in-up space-y-2 px-3 py-2">
                   {filteredHistory.map(renderNotificationItem)}
                 </div>
               )}
