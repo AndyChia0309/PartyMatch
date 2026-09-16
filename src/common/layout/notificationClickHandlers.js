@@ -128,7 +128,15 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
   if (toastId) dismissToast(toastId)
 
   if (notification.type === 'group_chat_opened' && notification.meta?.groupId) {
-    window.dispatchEvent(new CustomEvent('pm:open-messages', { detail: { groupId: notification.meta.groupId } }))
+    const gId = notification.meta.groupId
+    const grp = getGroupById(gId)
+    if (grp && grp.hostId === userId) {
+      withReservedModal(() => useGroupStore.getState().init({ all: true }).finally(() => {
+        openHostGroup(gId)
+      }))
+    } else {
+      withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, gId));
+    }
     return
   }
 

@@ -746,7 +746,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     userId:  group.hostId,
     type:    'group_chat_opened',
     title:   `${groupLabel}服務已鎖定`,
-    message: `「${groupLabel}」群組已鎖定，聊天室已建立，點擊查看。`,
+    message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
     meta:    { groupId },
   })
   notifyBatch(group.members.flatMap(m => [
@@ -763,7 +763,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
       userId:  m.userId,
       type:    'group_chat_opened',
       title:   `${groupLabel}服務已鎖定`,
-      message: `「${groupLabel}」群組已鎖定，聊天室已建立，點擊查看。`,
+      message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
       meta:    { groupId },
     },
   ]))

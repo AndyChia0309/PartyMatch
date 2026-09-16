@@ -297,11 +297,17 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId } }))
       },
     }
-    const openMessagesAction = {
+    const openGroupOrHostGroupAction = {
       label: '前往查看',
       run:   (meta) => {
         if (!meta?.groupId) return
-        window.dispatchEvent(new CustomEvent('pm:open-messages', { detail: { groupId: meta.groupId } }))
+        const grp = useGroupStore.getState().getById(meta.groupId)
+        const userId = useAuthStore.getState().user?.id
+        if (grp && grp.hostId === userId) {
+          window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId } }))
+        } else {
+          window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId } }))
+        }
       },
     }
     const openBillingAction = {
@@ -319,7 +325,7 @@ export default function App() {
       dispute_withdrawn:             openMemberInfoAction,
       dispute_withdraw_requested:    openMemberInfoAction,
       dispute_withdraw_rejected:     openGroupAction,
-      group_chat_opened:             openMessagesAction,
+      group_chat_opened:             openGroupOrHostGroupAction,
       fill_service_info:             openGroupAction,
       escrow_released:               openBillingAction,
     }
