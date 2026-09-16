@@ -131,7 +131,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
         notify({
           userId:  existing.group.hostId,
           type:    'service_info_filled',
-          title:   isSharedCredentials ? `${groupLabel} ${memberName}已提取帳號資訊` : `${groupLabel} ${memberName}已填寫服務帳號`,
+          title:   isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫服務帳號`,
           message: isSharedCredentials
             ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
             : `${memberName} 已填寫「${groupLabel}」群組的服務帳號資訊。`,
@@ -176,7 +176,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           data: {
             groupId:  existing.groupId,
             authorId: req.user.id,
-            content:  `${existing.user?.name ?? '成員'}的帳號問題已回報，處理中`,
+            content:  `已回報 ${existing.user?.name ?? '成員'} 的帳號問題，請協助處理！`,
           },
         }).catch(console.error)
       }
@@ -201,17 +201,13 @@ router.post('/:id/extraction-start', requireAuth, async (req, res, next) => {
     if (!existing.group.sharedCredentials) return res.status(400).json({ message: '此群組非共用帳密方式' })
 
     const groupLabel = existing.group.planName ?? existing.group.service?.name ?? ''
-    const title      = `${groupLabel} ${existing.user?.name ?? '成員'}正在提取帳號資訊`
+    const title      = `${groupLabel} 有成員正在提取帳號資訊`
     const message    = `${existing.user?.name ?? '成員'} 正在查看「${groupLabel}」的帳號資訊。`
 
     let notificationId = existing.extractionNotificationId
     if (notificationId) {
-      const updated = await prisma.notification.updateMany({
-        where: { id: notificationId },
-        data:  { createdAt: new Date(), isRead: false, message },
-      })
-      if (updated.count === 0)
-        notificationId = null;
+      const stillExists = await prisma.notification.findUnique({ where: { id: notificationId }, select: { id: true } })
+      if (!stillExists) notificationId = null
     }
     if (!notificationId) {
       const created = await notify({
