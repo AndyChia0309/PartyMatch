@@ -24,7 +24,7 @@ export function Toaster(props) {
           content: 'min-w-0 flex-auto',
           title: 'block whitespace-normal break-words text-sm font-semibold text-ink',
           actionButton: '!bg-transparent !p-0 shrink-0 text-sm font-bold !text-brand hover:underline',
-          closeButton: 'order-last shrink-0 !border-line !bg-surface text-ink-3 hover:!bg-raised hover:!text-ink',
+          closeButton: 'order-last shrink-0 self-center !border-line !bg-surface text-ink-3 hover:!bg-raised hover:!text-ink',
           icon: 'shrink-0',
         },
       }}

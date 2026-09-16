@@ -8,18 +8,25 @@ import { toast as sonnerToast } from 'sonner'
 // 本來就是設計成不會自己倒數消失、要留給使用者看到才處理掉，不受這個機制影響。
 const activeNonPersistentIds = new Set()
 
+// Safari（尤其 macOS／iOS）在分頁失焦、切換 App、開啟網址列建議等情境下，
+// 常常會短暫觸發 visibilitychange、把 document.hidden 瞬間切成 true 又馬上切回
+// false，並不是真的把分頁背景化。如果沒有最短時間的判斷，這些瞬間閃爍會被
+// 誤判成「切回分頁」，把剛跳出來、使用者根本還沒看到的 toast 一起清空，
+// 導致 Safari 上有些通知 toast 看起來完全沒收到。
+const STALE_TOAST_HIDDEN_THRESHOLD_MS = 3000
+
 if (typeof document !== 'undefined') {
-  let wasHidden = false
+  let hiddenAt = null
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      wasHidden = true
+      hiddenAt = Date.now()
       return
     }
-    if (wasHidden) {
-      wasHidden = false
+    if (hiddenAt && Date.now() - hiddenAt >= STALE_TOAST_HIDDEN_THRESHOLD_MS) {
       activeNonPersistentIds.forEach(id => sonnerToast.dismiss(id))
       activeNonPersistentIds.clear()
     }
+    hiddenAt = null
   })
 }
 
