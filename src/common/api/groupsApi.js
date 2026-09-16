@@ -20,8 +20,8 @@ export async function lockGroupApi(id, sharedCredentials) {
   return client.post(`/groups/${id}/lock`, sharedCredentials ? { sharedCredentials } : undefined)
 }
 
-export async function activateGroupApi(id) {
-  return client.post(`/groups/${id}/activate`)
+export async function activateGroupApi(id, nextBillingDate) {
+  return client.post(`/groups/${id}/activate`, nextBillingDate ? { nextBillingDate } : undefined)
 }
 
 export async function confirmGroupApi(id) {
@@ -38,6 +38,10 @@ export async function cancelGroupApi(id) {
 
 export async function disputeGroupApi(id, { reason, evidenceUrl }) {
   return client.post(`/groups/${id}/dispute`, { reason, evidenceUrl })
+}
+
+export async function withdrawDisputeApi(id) {
+  return client.post(`/groups/${id}/dispute/withdraw`)
 }
 
 export async function resolveDisputeApi(id, { memberId, note } = {}) {

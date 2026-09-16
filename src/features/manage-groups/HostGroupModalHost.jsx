@@ -18,6 +18,7 @@ export default function HostGroupModalHost() {
     autoOpenBilling, setAutoOpenBilling,
     autoOpenMemberInfo, setAutoOpenMemberInfo,
     autoOpenMembers, setAutoOpenMembers,
+    autoExpandMemberId, setAutoExpandMemberId,
     setRenewalModalGroupId,
     membersMap,
     renewalModalGroup,
@@ -46,7 +47,7 @@ export default function HostGroupModalHost() {
     <>
       <GroupViewModal
         isOpen={!!viewGroupId}
-        onClose={() => { setViewGroupId(null); setAutoOpenLockGroup(false); setAutoOpenActivate(false); setAutoOpenApplications(false); setAutoOpenBilling(false); setAutoOpenMemberInfo(false); setAutoOpenMembers(false); refreshGroups() }}
+        onClose={() => { setViewGroupId(null); setAutoOpenLockGroup(false); setAutoOpenActivate(false); setAutoOpenApplications(false); setAutoOpenBilling(false); setAutoOpenMemberInfo(false); setAutoOpenMembers(false); setAutoExpandMemberId(null); refreshGroups() }}
         groupId={viewGroupId}
         onReportServiceInfoIssue={handleReportServiceInfoIssue}
         onResolveDispute={handleResolveDispute}
@@ -67,6 +68,7 @@ export default function HostGroupModalHost() {
         autoOpenBilling={autoOpenBilling}
         autoOpenMemberInfo={autoOpenMemberInfo}
         autoOpenMembers={autoOpenMembers}
+        autoExpandMemberId={autoExpandMemberId}
         onOpenRenewal={() => setRenewalModalGroupId(viewGroupId)}
       />
       {renewalModalGroup && (

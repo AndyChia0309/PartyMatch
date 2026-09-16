@@ -72,6 +72,13 @@ export function getMemberGroupFlags({ status, sub, myMember, hasServiceInfo, has
 export const DISPUTED_BANNER_TEXT = '問題回報處理中'
 export const DISPUTE_ESCALATED_BANNER_TEXT = '平台介入處理中'
 
+export function formatDisputeReason(issueNote) {
+  if (!issueNote) return { types: '', detail: '' }
+  const idx = issueNote.indexOf('\n')
+  if (idx === -1) return { types: issueNote, detail: '' }
+  return { types: issueNote.slice(0, idx), detail: issueNote.slice(idx + 1) }
+}
+
 export function getMemberGroupBadges({ status, sub, isSharedCredentials, flags }) {
   const { hasServiceInfoIssue, needsFillInfo, waitingForOthers, canConfirm, isDisputed, isDisputeRaiser, isDisputeEscalated, alreadyConfirmed } = flags
 

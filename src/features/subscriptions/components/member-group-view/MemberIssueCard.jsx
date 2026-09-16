@@ -3,12 +3,15 @@ import { ChevronDown } from 'lucide-react'
 import { Avatar } from '../../../../components/ui/avatar'
 import { PresenceDot } from '../../../../common/layout/components/navShared'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../../components/ui/collapsible'
+import CountdownText from '../../../../components/ui/primitives/CountdownText'
 import EvidenceLink from '../../../../components/ui/EvidenceLink'
+import { formatDisputeReason } from '../../../../common/utils/memberGroupDisplay'
 
 export default function MemberIssueCard(
-  { viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, issueNote, evidenceUrl, isDisputeEscalated }
+  { viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, issueNote, evidenceUrl, disputeDeadline, isDisputeEscalated }
 ) {
   const [expanded, setExpanded] = useState(false)
+  const { types: issueTypes, detail: issueDetail } = formatDisputeReason(issueNote)
 
   return (
     <div className="mt-4 rounded-lg border border-line p-3">
@@ -21,19 +24,25 @@ export default function MemberIssueCard(
             </span>
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-ink">{viewerName}</p>
-              <p className="text-xs text-danger-text">{isDisputeEscalated ? '平台介入處理中' : '帳號問題已回報，處理中'}</p>
+              <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
+                <span>{isDisputeEscalated ? '平台介入處理中' : '帳號問題待處理'}</span>
+                {disputeDeadline && (
+                  <span>剩餘 <CountdownText deadline={disputeDeadline} /></span>
+                )}
+              </p>
             </div>
             <ChevronDown size={16} strokeWidth={1.5} className={`shrink-0 text-ink-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="mt-2 flex items-start gap-2">
-            <p className="min-w-0 flex-1 whitespace-pre-line rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
-              {issueNote}
-            </p>
+          <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
+            <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題類型：</span>{issueTypes}</p>
+            {issueDetail && (
+              <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{issueDetail}</p>
+            )}
             <EvidenceLink
               url={evidenceUrl}
-              className="flex h-auto shrink-0 items-center gap-1 rounded-lg border border-line px-2.5 py-2 text-xs font-medium text-brand hover:bg-brand-subtle"
+              className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
             />
           </div>
         </CollapsibleContent>

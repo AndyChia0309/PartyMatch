@@ -6,16 +6,16 @@ import { hasFilledServiceInfo, isSharedCredentialsMethod } from '../../../../com
 import { parseHostCredentials } from '../../../../common/utils/hostCredentialFields'
 
 export function buildMemberInfoPanel(
-  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, showPassword, onTogglePassword }
+  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, showPassword, onTogglePassword, autoExpandMemberId }
 ) {
   const parsedCredentials = parseHostCredentials(sharedCredentials, serviceId)
   const isSharedCredentials = isSharedCredentialsMethod(sharingMethod)
   return {
     content: (
       <div className="flex flex-col px-5 pb-5 pt-3">
+        <p className="mb-2 flex items-center gap-1.5 text-base font-black text-ink"><KeyRound size={15} strokeWidth={1.5} />帳號資訊</p>
         {isSharedCredentials && (
           <div className="mb-3 py-3">
-            <p className="mb-2 flex items-center gap-1.5 text-base font-black text-ink"><KeyRound size={15} strokeWidth={1.5} />帳號資訊</p>
             {parsedCredentials ? (
               <dl className="space-y-1 rounded-lg border border-line px-3 py-2.5">
                 {parsedCredentials.map(({ key, label, value }) => (
@@ -66,6 +66,7 @@ export function buildMemberInfoPanel(
                   canResolve={canResolve}
                   onResolveDispute={onResolveDispute}
                   onEscalateDispute={onEscalateDispute}
+                  autoExpand={m.id === autoExpandMemberId}
                 />
               )
             })}

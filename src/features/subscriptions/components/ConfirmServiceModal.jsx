@@ -65,7 +65,7 @@ export default function ConfirmServiceModal(
               className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
             />
             <span className="text-sm font-medium leading-relaxed text-ink">
-              我確認「{group.serviceName}」服務已可正常使用，同意平台進行撥款
+              我已確認「{group.serviceName}」服務能夠正常使用
             </span>
           </label>
         </div>

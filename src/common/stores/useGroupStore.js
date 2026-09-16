@@ -9,6 +9,7 @@ import {
   confirmGroupApi,
   cancelGroupApi,
   disputeGroupApi,
+  withdrawDisputeApi,
   resolveDisputeApi,
   escalateDisputeApi,
   renewGroupApi,
@@ -117,8 +118,8 @@ export const useGroupStore = create((set, get) => ({
     return updated
   },
 
-  activateService: async (id) => {
-    const updated = await activateGroupApi(id)
+  activateService: async (id, nextBillingDate) => {
+    const updated = await activateGroupApi(id, nextBillingDate)
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
     return updated
   },
@@ -139,6 +140,14 @@ export const useGroupStore = create((set, get) => ({
 
   disputeGroup: async (id, payload) => {
     const updated = await disputeGroupApi(id, payload)
+    set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    return updated
+  },
+
+  withdrawDispute: async (id) => {
+    const updated = await withdrawDisputeApi(id)
+    const { useMemberStore } = await import('./useMemberStore');
+    await useMemberStore.getState().init()
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
     return updated
   },

@@ -8,7 +8,7 @@ import { CredentialsValue, CredentialsPrivacyNote, MemberProvidedCredentialsValu
 export function buildCredentialsPanel(
   {
     group, viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, showPassword, onTogglePassword,
-    issueNote, evidenceUrl, memberProfiles, isSharedCredentials, memberServiceInfo, memberServiceFields, isDisputeEscalated,
+    issueNote, evidenceUrl, disputeDeadline, memberProfiles, isSharedCredentials, memberServiceInfo, memberServiceFields, isDisputeEscalated,
   }
 ) {
   const credentialsBody = (
@@ -54,6 +54,7 @@ export function buildCredentialsPanel(
           viewerPresenceStatus={viewerPresenceStatus}
           issueNote={issueNote}
           evidenceUrl={evidenceUrl}
+          disputeDeadline={disputeDeadline}
           isDisputeEscalated={isDisputeEscalated}
         />
       )}

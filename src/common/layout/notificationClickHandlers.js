@@ -83,6 +83,7 @@ export const NOTIFICATION_META = {
   dispute_raised:           { icon: AlertTriangle,  iconColor: 'text-danger',  link: '/manage-groups' },
   dispute_resolved:         { icon: ShieldCheck,    iconColor: 'text-success', link: '/my-subscriptions' },
   dispute_resolved_by_host: { icon: ShieldCheck,    iconColor: 'text-success', link: '/my-subscriptions' },
+  dispute_withdrawn:        { icon: Undo2,          iconColor: 'text-ink-3',   link: '/manage-groups' },
   billing_date_confirmed:   { icon: CalendarCheck,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   billing_date_adjusted:    { icon: CalendarClock,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   member_confirmed_service: { icon: CheckCircle2,   iconColor: 'text-success', link: '/manage-groups' },
@@ -306,7 +307,7 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     const gId = notification.meta.groupId
     useAuthStore.getState().refreshTokenBalance().catch(console.error);
     withReservedModal(() => useGroupStore.getState().init({ all: true }).finally(() => {
-      openHostGroup(gId)
+      openHostGroup(gId, { openBilling: true })
     }));
     return
   }
@@ -317,6 +318,17 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
   }
 
   if (notification.type === 'dispute_raised' && notification.meta?.groupId) {
+    const gId = notification.meta.groupId
+    withReservedModal(() => Promise.all([
+      useGroupStore.getState().init({ all: true }),
+      useMemberStore.getState().init(),
+    ]).finally(() => {
+      openHostGroup(gId, { openMemberInfo: true, expandMemberId: notification.meta?.memberId })
+    }))
+    return
+  }
+
+  if (notification.type === 'dispute_withdrawn' && notification.meta?.groupId) {
     const gId = notification.meta.groupId
     withReservedModal(() => Promise.all([
       useGroupStore.getState().init({ all: true }),
@@ -354,7 +366,7 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     const grp = getGroupById(gId)
     if (grp && grp.hostId === userId) {
       withReservedModal(() => useGroupStore.getState().init({ all: true }).finally(() => {
-        openHostGroup(gId)
+        openHostGroup(gId, { openMemberInfo: true })
       }));
     } else {
       withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, gId))

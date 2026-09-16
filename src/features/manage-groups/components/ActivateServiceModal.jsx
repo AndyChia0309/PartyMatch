@@ -7,11 +7,20 @@ import ServiceLogo from '../../../components/ui/ServiceLogo'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../components/ui/collapsible'
 import TokenAmount from '../../../components/ui/TokenAmount'
 import GroupOverviewContent from '../../../components/ui/group/GroupOverviewContent'
+import { Input } from '../../../components/ui/input'
 import { toISODate } from '../../../common/utils/date'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { hasFilledServiceInfo, getServiceInfoSummary, isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
 import { fetchGroupTransactions } from '../../../common/api/groupsApi'
 import { buildMemberRows } from '../../../common/utils/billingRows'
+
+function getActivationDateRange(billingCycle) {
+  const min = new Date()
+  const max = new Date()
+  if (billingCycle === 'yearly') max.setFullYear(max.getFullYear() + 1)
+  else max.setMonth(max.getMonth() + 1)
+  return { min: toISODate(min), max: toISODate(max) }
+}
 
 export default function ActivateServiceModal({
   isOpen,
@@ -22,9 +31,13 @@ export default function ActivateServiceModal({
   memberChecks,
   setMemberChecks,
   allMembersChecked,
+  isFirstActivation = false,
+  billingDate = '',
+  setBillingDate,
   loading = false,
 }) {
   const nextDate = isOpen ? toISODate(group.nextBillingDate, '—') : ''
+  const { min: minBillingDate, max: maxBillingDate } = getActivationDateRange(group.billingCycle)
   const service  = getServiceById(group.serviceId)
   const plan     = service?.plans.find(p => p.name === group.planName)
   const sharingMethod = service?.sharingMethod
@@ -70,12 +83,27 @@ export default function ActivateServiceModal({
           </div>
         </div>
 
+        {isFirstActivation && (
+          <div className="space-y-2 border-b border-line-subtle px-5 py-4">
+            <label className="block text-xs font-semibold text-ink-2">下次扣款日</label>
+            <Input
+              type="date"
+              min={minBillingDate}
+              max={maxBillingDate}
+              value={billingDate}
+              onChange={e => setBillingDate?.(e.target.value)}
+            />
+            <p className="text-xs text-ink-3">
+              請依外部平台實際啟用/扣款日期填寫，最早為今天，最晚不超過一個計費週期（{maxBillingDate}）。此日期由團主自行認定，成員如對日期有疑義可聯繫客服反映。
+            </p>
+          </div>
+        )}
         <div className="px-5 pt-5">
           <GroupOverviewContent
             group={group}
             service={service}
             plan={plan}
-            extraRows={[{ label: '下次扣款日', value: nextDate }]}
+            extraRows={isFirstActivation ? [] : [{ label: '下次扣款日', value: nextDate }]}
             reviewsSection={
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -156,7 +184,7 @@ export default function ActivateServiceModal({
         <DialogFooter>
           <Button
             onClick={onConfirm}
-            disabled={!allMembersChecked}
+            disabled={!allMembersChecked || (isFirstActivation && !billingDate)}
             loading={loading}
             className="flex-1 rounded-lg"
           >確認啟用</Button>

@@ -64,6 +64,12 @@ function filterSubs(subs) {
   return subs.filter(s => !isHistorySubscription(s))
 }
 
+function hasPendingMemberAction(sub) {
+  if (sub.groupStatus === 'confirming' && !sub.confirmedAt) return true
+  if (sub.groupStatus === 'disputed' && sub.serviceInfoIssueNote) return true
+  return false
+}
+
 export default function SubscriptionsPage() {
   const navigate = useNavigate()
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -178,7 +184,7 @@ export default function SubscriptionsPage() {
                 <RevealSection key={sub.id} delay={(pendingApplications.length + i) * 60}>
                   <SubscriptionCard
                     sub={sub}
-                    hasPendingUpdate={pendingGroupIds.has(sub.groupId)}
+                    hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub)}
                     onViewGroup={onViewGroup}
                   />
                 </RevealSection>
@@ -197,7 +203,7 @@ export default function SubscriptionsPage() {
           <RevealSection key={sub.id} delay={i * 60}>
             <SubscriptionCard
               sub={sub}
-              hasPendingUpdate={pendingGroupIds.has(sub.groupId)}
+              hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub)}
               onViewGroup={sub => {
                 historyReopenRef.current = { groupId: sub.groupId, opened: false }
                 closeHistory()

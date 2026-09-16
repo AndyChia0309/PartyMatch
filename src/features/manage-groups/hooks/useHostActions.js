@@ -68,9 +68,10 @@ export function useHostActions(activeUser) {
   const [autoOpenBilling, setAutoOpenBilling]             = useState(false)
   const [autoOpenMemberInfo, setAutoOpenMemberInfo]       = useState(false)
   const [autoOpenMembers, setAutoOpenMembers]             = useState(false)
+  const [autoExpandMemberId, setAutoExpandMemberId]       = useState(null)
   const [renewalModalGroupId, setRenewalModalGroupId]     = useState(null)
 
-  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers }) {
+  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers, expandMemberId }) {
     const gId = groupId ?? openGroupId
     if (!gId) return
     setViewGroupId(gId)
@@ -80,6 +81,7 @@ export function useHostActions(activeUser) {
     setAutoOpenBilling(!!openBilling)
     setAutoOpenMemberInfo(!!openMemberInfo)
     setAutoOpenMembers(!!openMembers)
+    setAutoExpandMemberId(expandMemberId ?? null)
   }
 
   useEffect(() => {
@@ -231,13 +233,13 @@ function handleRemoveMember(member) {
     return removalDone
   }
 
-async function handleActivate() {
+async function handleActivate(nextBillingDate) {
     if (!viewGroupId) return
     const group = getGroupById(viewGroupId)
     if (!group) return
 
     try {
-      await activateService(viewGroupId)
+      await activateService(viewGroupId, nextBillingDate || undefined)
     } catch {
       toast('啟用失敗，請稍後再試', 'error')
       return
@@ -453,6 +455,7 @@ async function handleApprove(appId) {
     autoOpenBilling, setAutoOpenBilling,
     autoOpenMemberInfo, setAutoOpenMemberInfo,
     autoOpenMembers, setAutoOpenMembers,
+    autoExpandMemberId, setAutoExpandMemberId,
     renewalModalGroupId, setRenewalModalGroupId,
     allGroups, displayGroups, historyGroups, membersMap, applicationCounts,
     renewalModalGroup,

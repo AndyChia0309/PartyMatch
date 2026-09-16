@@ -13,7 +13,9 @@ export function todayISO() {
 }
 
 export function byNewest(a, b) {
-  return new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+  const diff = new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+  if (diff !== 0) return diff
+  return (b.id ?? '').localeCompare(a.id ?? '')
 }
 
 export function nowISO() {

@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react'
+import { Headset } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogCloseButton } from '../../../components/ui/dialog'
 import { Button } from '../../../components/ui/button'
 import { Textarea } from '../../../components/ui/input'
@@ -23,15 +23,15 @@ export default function ReportPlatformIssueModal({
       <DialogContent variant="panel" maxWidth="max-w-sm" instant>
         <DialogHeader>
           <div className="flex min-w-0 items-center gap-2.5">
-            <TriangleAlert strokeWidth={1.5} size={18} className="shrink-0 text-warning-text" />
-            <DialogTitle className="truncate text-base">回報問題給平台</DialogTitle>
+            <Headset strokeWidth={1.5} size={18} className="shrink-0 text-brand" />
+            <DialogTitle className="truncate text-base">聯繫客服</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogDescription>回報問題給平台</DialogDescription>
+        <DialogDescription>聯繫客服</DialogDescription>
         <DialogBody>
           <div className="animate-step-slide-up flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
-            <p className="text-xs text-ink-3">這則回報只會送給平台客服，不會通知群組內其他人，客服會盡快協助處理。</p>
+            <p className="text-xs text-ink-3">請說明您遇到的問題，客服會盡快協助處理。</p>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-ink-2">說明問題</label>
               <Textarea
@@ -56,9 +56,9 @@ export default function ReportPlatformIssueModal({
           <Button
             onClick={onSubmit}
             disabled={!description.trim() || evidenceUploading || submitting}
-            className="flex-1 rounded-lg bg-warning hover:bg-warning hover:opacity-90"
+            className="flex-1 rounded-lg"
           >
-            {submitting ? '送出中...' : '送出回報'}
+            {submitting ? '送出中...' : '送出'}
           </Button>
         </DialogFooter>
       </DialogContent>

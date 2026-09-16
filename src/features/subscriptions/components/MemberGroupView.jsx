@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Banknote, CheckCircle2, Clock, Info, LogOut, MessageCircle, Users, ClipboardEdit, TriangleAlert, KeyRound,
+  Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, Undo2,
 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
@@ -34,6 +34,7 @@ import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUT
 export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, loading = false }) {
   const [activePanel, setActivePanel] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false)
+  const [withdrawConfirm, setWithdrawConfirm] = useState(false)
   const [showFillInfo, setShowFillInfo] = useState(false)
   const [fillValues, setFillValues] = useState({})
   const [fillLoading, setFillLoading] = useState(false)
@@ -228,6 +229,20 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     </div>
   )
 
+  const withdrawCta = isDisputeRaiser && !isDisputeEscalated && (
+    <div className="py-2">
+      <Button
+        variant="destructive"
+        onClick={() => setWithdrawConfirm(true)}
+        disabled={dispute.withdrawing}
+        className="w-full rounded-lg shadow-button"
+      >
+        <Undo2 strokeWidth={1.5} size={15} />
+        撤銷回報
+      </Button>
+    </div>
+  )
+
   const hideRecruitBarLive = group.status !== 'recruiting'
 
   const headerBannerLive = (
@@ -272,7 +287,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     ) : undefined
   )
 
-  const centeredCtaLive = fillInfoCta || confirmCta || undefined
+  const centeredCtaLive = fillInfoCta || confirmCta || withdrawCta || undefined
 
   const {
     statusBadgeOverride: statusBadgeOverrideLive,
@@ -331,6 +346,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         onTogglePassword: () => setShowPassword(v => !v),
         issueNote: myMember?.serviceInfoIssueNote,
         evidenceUrl: myMember?.disputeEvidenceUrl ?? myMember?.serviceInfoIssueEvidenceUrl,
+        disputeDeadline: myMember?.disputeDeadline,
         isDisputeEscalated,
         isSharedCredentials,
         memberServiceInfo: myMember?.serviceInfo,
@@ -377,7 +393,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
           </GroupModalSideBarItem>
         )}
         <GroupModalSideBarItem pinned={!showMessagesButton} onClick={() => platformReport.setShow(true)}>
-          <TriangleAlert strokeWidth={1.5} size={17} /> 回報問題
+          <Headset strokeWidth={1.5} size={17} /> 聯繫客服
         </GroupModalSideBarItem>
         {canLeaveGroup && (
           <GroupModalSideBarItem tone="danger" onClick={() => setLeaveConfirm(true)}>
@@ -393,7 +409,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showFillInfo && !dispute.show && !confirmDialog && !reviewPrompt && (
+      ) : !showFillInfo && !dispute.show && !confirmDialog && !reviewPrompt && !platformReport.show && (
       <GroupModalShell
         onClose={onClose}
         group={group}
@@ -493,6 +509,16 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
           danger
           onConfirm={() => { setLeaveConfirm(false); onLeaveGroup?.() }}
           onCancel={() => setLeaveConfirm(false)}
+        />
+      )}
+      {withdrawConfirm && (
+        <ConfirmActionDialog
+          title="撤銷問題回報"
+          message="確定要撤銷這次的問題回報嗎？撤銷後會回到確認期，需要重新確認服務或再次回報問題。"
+          confirmLabel="撤銷"
+          danger
+          onConfirm={() => { setWithdrawConfirm(false); dispute.withdraw() }}
+          onCancel={() => setWithdrawConfirm(false)}
         />
       )}
       {reviewPrompt && (

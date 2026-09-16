@@ -32,7 +32,7 @@ function getMergedNotifications(userId) {
 const APPLY_TYPES   = ['joined', 'application_approved', 'application_rejected', 'application_sent', 'new_application', 'application_cancelled', 'application'];
 const GROUP_TYPES    = ['group_created', 'group_activated', 'group_chat_opened', 'group_full', 'group_full_member', 'group_ended', 'group_cancelled', 'group_renewal', 'member_left', 'member_removed', 'member_confirmed_service', 'group_reviewed']
 const BILLING_TYPES  = ['fill_service_info', 'service_info_filled', 'all_service_info_filled', 'service_info_deadline_passed', 'escrow_released', 'escrow_released_member', 'upcoming_renewal', 'billing_date_confirmed', 'billing_date_adjusted', 'payment_reminder']
-const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'service_info_issue'];
+const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'dispute_withdrawn', 'service_info_issue'];
 
 const CLOSED_GROUP_STATUSES = ['cancelled', 'ended'];
 const HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;

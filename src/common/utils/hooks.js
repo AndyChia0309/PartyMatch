@@ -168,6 +168,7 @@ export function useClickOutside(enabled, refs, onClose) {
   useEffect(() => {
     if (!enabled) return
     return subscribePointerDown(e => {
+      if (e.target.closest?.('[data-image-lightbox]')) return
       if (refsRef.current.every(ref => !ref.current?.contains(e.target))) onCloseRef.current()
     })
   }, [enabled])

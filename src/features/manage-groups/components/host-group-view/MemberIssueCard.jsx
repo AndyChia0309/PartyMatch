@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react'
 import { AvatarWithPresence } from '../../../../components/ui/avatar'
 import { Button } from '../../../../components/ui/button'
@@ -7,6 +7,7 @@ import CountdownText from '../../../../components/ui/primitives/CountdownText'
 import EvidenceLink from '../../../../components/ui/EvidenceLink'
 import DisputeResponseModal from './DisputeResponseModal'
 import { getTextFields } from '../../../../common/utils/serviceInfoFields'
+import { formatDisputeReason } from '../../../../common/utils/memberGroupDisplay'
 import { useClickOutside } from '../../../../common/utils/hooks'
 
 function renderFilledInfoDetail(serviceInfo, sharingMethod, serviceId) {
@@ -31,15 +32,21 @@ function renderFilledInfoDetail(serviceInfo, sharingMethod, serviceId) {
 export default function MemberIssueCard(
   {
     m, filled, sharingMethod, serviceId, isSharedCredentials, canReportServiceIssue, onOpenServiceIssue,
-    canResolve, onResolveDispute, onEscalateDispute,
+    canResolve, onResolveDispute, onEscalateDispute, autoExpand = false,
   }
 ) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(autoExpand)
   const [responseModal, setResponseModal] = useState(null)
   const cardRef = useRef(null)
   const evidenceUrl = m.disputeEvidenceUrl ?? m.serviceInfoIssueEvidenceUrl
   const hasIssue = !!m.serviceInfoIssueNote
   const showReportButton = canReportServiceIssue && filled && !hasIssue
+  const { types: issueTypes, detail: issueDetail } = formatDisputeReason(m.serviceInfoIssueNote)
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (autoExpand) setExpanded(true)
+  }, [autoExpand])
 
   useClickOutside(expanded, [cardRef], () => setExpanded(false))
 
@@ -67,10 +74,10 @@ export default function MemberIssueCard(
               <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink">{m.userName}</p>
-                <p className="text-xs text-danger-text">
-                  {m.disputeEscalatedAt ? '平台介入處理中' : '帳號問題已回報，等待處理'}
+                <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
+                  <span>{m.disputeEscalatedAt ? '平台介入處理中' : '帳號問題待處理'}</span>
                   {m.disputeDeadline && (
-                    <>，剩餘 <CountdownText deadline={m.disputeDeadline} /></>
+                    <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
                   )}
                 </p>
               </div>
@@ -101,7 +108,7 @@ export default function MemberIssueCard(
               )}
               {filled && !m.confirmedAt && !m.confirmDeadline && (
                 <p className="flex items-center gap-1 text-xs text-success-text">
-                  <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已成功填寫帳號'}
+                  <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已填寫服務帳號'}
                 </p>
               )}
             </div>
@@ -114,13 +121,14 @@ export default function MemberIssueCard(
         )}
         {hasIssue && (
           <CollapsibleContent>
-            <div className="mt-2 flex items-start gap-2">
-              <p className="min-w-0 flex-1 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
-                {m.serviceInfoIssueNote}
-              </p>
+            <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
+              <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題類型：</span>{issueTypes}</p>
+              {issueDetail && (
+                <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{issueDetail}</p>
+              )}
               <EvidenceLink
                 url={evidenceUrl}
-                className="flex h-auto shrink-0 items-center gap-1 rounded-lg border border-line px-2.5 py-2 text-xs font-medium text-brand hover:bg-brand-subtle"
+                className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
               />
             </div>
           </CollapsibleContent>

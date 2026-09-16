@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Banknote, CheckCircle2, ClipboardList, Clock, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, TriangleAlert, Users } from 'lucide-react'
+import { Banknote, CheckCircle2, ClipboardList, Clock, Headset, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, Users } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
 import CountdownText from '../../../components/ui/primitives/CountdownText'
@@ -33,9 +33,10 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
+  const [activateBillingDate, setActivateBillingDate]      = useState('')
   const [removingMember, setRemovingMember]               = useState(null)
   const [activePanel, setActivePanel]                     = useState(null);
   const [headerStatus, setHeaderStatus]                    = useState(group.status);
@@ -215,20 +216,26 @@ export default function HostGroupView(
   const allMembersChecked = members.length > 0 && members.every(m => memberChecks[m.id] && !m.serviceInfoIssueNote);
 
   function openActivate() {
+    setActivateBillingDate('')
     setShowActivate(true)
   }
 
   function closeActivate() {
     setShowActivate(false)
     setMemberChecks({})
+    setActivateBillingDate('')
   }
 
+  const isFirstActivation = !group.hasActivatedOnce;
+
   async function handleActivateConfirm() {
+    if (isFirstActivation && !activateBillingDate) return
     setActivating(true)
     try {
-      await onActivate?.(null)
+      await onActivate?.(isFirstActivation ? activateBillingDate : null)
       setShowActivate(false)
       setMemberChecks({})
+      setActivateBillingDate('')
       onClose()
     } finally {
       setActivating(false)
@@ -421,6 +428,7 @@ export default function HostGroupView(
         onEscalateDispute: (memberId, note) => onEscalateDispute?.(group.id, memberId, note),
         showPassword,
         onTogglePassword: () => setShowPassword(v => !v),
+        autoExpandMemberId,
       });
     }
     return null
@@ -499,7 +507,7 @@ export default function HostGroupView(
               </GroupModalSideBarItem>
             )}
             <GroupModalSideBarItem onClick={() => setShowPlatformReport(true)}>
-              <TriangleAlert strokeWidth={1.5} size={17} /> 回報問題
+              <Headset strokeWidth={1.5} size={17} /> 聯繫客服
             </GroupModalSideBarItem>
           </>
         )}
@@ -514,7 +522,7 @@ export default function HostGroupView(
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && (
+      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && (
       <GroupModalShell
         onClose={onClose}
         group={group}
@@ -567,6 +575,9 @@ export default function HostGroupView(
         memberChecks={memberChecks}
         setMemberChecks={setMemberChecks}
         allMembersChecked={allMembersChecked}
+        isFirstActivation={isFirstActivation}
+        billingDate={activateBillingDate}
+        setBillingDate={setActivateBillingDate}
         loading={activating}
       />
       <ReportServiceIssueModal
