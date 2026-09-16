@@ -10,7 +10,6 @@ import { useSubscriptionStore } from '../../common/stores/useSubscriptionStore'
 import { useFavoriteStore } from '../../common/stores/useFavoriteStore'
 import { useAuthStore } from '../../common/stores/useAuthStore'
 import { useNotificationStore } from '../../common/stores/useNotificationStore'
-import { useOpenGroupStore } from '../../common/stores/useOpenGroupStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import { finalizeLeaveGroup } from './utils/leaveGroupFlow'
 import { isHistoryGroup } from '../../common/utils/groupStatusDisplay'
@@ -18,6 +17,7 @@ import { getMemberJoinedBadgeVariant } from '../../common/utils/memberGroupDispl
 import { calcDisplayPrice } from '../../common/utils/pricingUtils'
 import { byNewest } from '../../common/utils/date'
 import { toast } from '../../common/utils/toast'
+import ServiceLogo from '../../components/ui/ServiceLogo'
 import { LOCKED_MESSAGE } from '../../common/layout/components/navConstants'
 import { useIsDesktop } from '../../common/utils/hooks'
 import { TokenBadge } from '../../components/ui/TokenAmount'
@@ -103,10 +103,6 @@ export default function GroupDetailModal() {
   }, [liveGroup, groupId])
   const group        = liveGroup ?? (isOpen && lastGroup?.id === groupId ? lastGroup.data : null)
   const memberRecord = group && activeUserId ? (members.find(m => m.userId === activeUserId && m.groupId === group.id) ?? null) : null
-
-  useEffect(() => {
-    useOpenGroupStore.getState().setMemberOpenGroupId(groupId)
-  }, [groupId]);
 
   const groupIdRef = useRef(groupId)
   useEffect(() => { groupIdRef.current = groupId })
@@ -249,14 +245,14 @@ export default function GroupDetailModal() {
   }, [picks]);
 
   const viewerBlocked = useMemo(() => {
-    if (!isOpen || !group || groupDataPending || membershipRefreshing || group.status === 'recruiting') return false
+    if (!isOpen || !group || groupDataPending || membershipRefreshing || leaving || group.status === 'recruiting') return false
     const viewerIsHost = group.hostId === activeUserId
     const viewerIsMember = activeUserId ? members.some(m => m.userId === activeUserId && m.groupId === group.id) : false
     const viewerApp = activeUserId ? useApplicationStore.getState().getByUserAndGroup(activeUserId, group.id) : null
     const viewerAppStatus = viewerApp?.status
-    const viewerHasActiveApp = !!viewerApp && viewerAppStatus !== 'rejected' && viewerAppStatus !== 'removed' && viewerAppStatus !== 'left' && viewerAppStatus !== 'cancelled' && !(viewerAppStatus === 'approved' && !viewerIsMember)
+    const viewerHasActiveApp = !!viewerApp && viewerAppStatus !== 'rejected' && viewerAppStatus !== 'removed' && viewerAppStatus !== 'left' && viewerAppStatus !== 'cancelled'
     return !(viewerIsHost || viewerIsMember || viewerHasActiveApp)
-  }, [isOpen, group, groupDataPending, membershipRefreshing, activeUserId, members])
+  }, [isOpen, group, groupDataPending, membershipRefreshing, leaving, activeUserId, members])
 
   useEffect(() => {
     if (!viewerBlocked || !group) return
@@ -369,7 +365,8 @@ export default function GroupDetailModal() {
         message: applyMessage,
       }, useAuthStore.getState().getProfile())
       handleClose()
-      toast('申請已送出！', 'success', {
+      toast(`${group.planName ?? group.serviceName} 申請已送出！`, 'success', {
+        icon: <ServiceLogo serviceId={group.serviceId} size={20} />,
         action: { label: '前往查看', onClick: () => window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: group.id } })) },
       })
     } catch (err) {

@@ -106,8 +106,8 @@ export default function App() {
     let pendingToastIds = new Set();
     const pendingGroupToastIds = new Map();
 
-    function registerGroupToast(groupId, toastId, page) {
-      if (!groupId || page !== '/manage-groups') return
+    function registerGroupToast(type, groupId, toastId, page) {
+      if (type !== 'group_full' || !groupId || page !== '/manage-groups') return
       if (!pendingGroupToastIds.has(groupId)) pendingGroupToastIds.set(groupId, new Set())
       pendingGroupToastIds.get(groupId).add(toastId)
     }
@@ -120,22 +120,6 @@ export default function App() {
       pendingGroupToastIds.delete(groupId)
     });
 
-    const pendingMemberGroupToastIds = new Map();
-
-    function registerMemberGroupToast(groupId, toastId, page) {
-      if (!groupId || page !== '/my-subscriptions') return
-      if (!pendingMemberGroupToastIds.has(groupId)) pendingMemberGroupToastIds.set(groupId, new Set())
-      pendingMemberGroupToastIds.get(groupId).add(toastId)
-    }
-
-    const unsubscribeMemberOpenGroup = useOpenGroupStore.subscribe(state => {
-      const groupId = state.memberOpenGroupId
-      const toastIds = groupId && pendingMemberGroupToastIds.get(groupId)
-      if (!toastIds) return
-      toastIds.forEach(id => { dismissToast(id); pendingToastIds.delete(id) })
-      pendingMemberGroupToastIds.delete(groupId)
-    })
-
     async function runPendingRefresh() {
       const user = useAuthStore.getState().getProfile()
       const pending = usePendingRefreshStore.getState().pending
@@ -146,7 +130,6 @@ export default function App() {
       pendingToastIds.forEach(id => dismissToast(id))
       pendingToastIds = new Set()
       pendingGroupToastIds.clear()
-      pendingMemberGroupToastIds.clear();
       await Promise.all(refreshes);
     }
 
@@ -281,8 +264,7 @@ export default function App() {
       const toastAction = TOAST_ACTIONS[type];
       const toastId = getNotificationToastId({ type, meta, id: notifId }) ?? 'pm-pending-data-refresh';
       pendingToastIds.add(toastId)
-      registerGroupToast(meta?.groupId, toastId, page)
-      registerMemberGroupToast(meta?.groupId, toastId, page)
+      registerGroupToast(type, meta?.groupId, toastId, page)
 
       const serviceId = REFRESH_TOAST_ICON_TYPES.has(type)
         ? useGroupStore.getState().getById(meta?.groupId)?.serviceId
@@ -376,7 +358,6 @@ export default function App() {
       window.removeEventListener('pm:refresh-stores', onRefreshStores)
       window.removeEventListener('pm:notify-toast', onNotifyToast)
       unsubscribeHostOpenGroup()
-      unsubscribeMemberOpenGroup()
     }
   }, [])
 
