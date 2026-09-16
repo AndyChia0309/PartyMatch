@@ -101,7 +101,7 @@ export async function submitApplication({ groupId, message, userId }) {
   notify({
     userId:  group.hostId,
     type:    'new_application',
-    title:   `${groupLabel} ${applicant?.name ?? '有人'}提出申請`,
+    title:   `${groupLabel} 已收到新申請`,
     message: `${applicant?.name ?? '有人'} 申請加入「${groupLabel}」群組。`,
     meta:    { groupId, applicationId: application.id },
   })
