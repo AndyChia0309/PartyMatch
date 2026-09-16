@@ -25,6 +25,19 @@ import { usePresenceAutoStatus } from '../common/utils/presence'
 import { useRefreshGroupsOnFocus } from '../common/utils/groupFreshness'
 import ServiceLogo from '../components/ui/ServiceLogo'
 
+function renderToastTitle(title, groupLabel) {
+  if (title && groupLabel && title.startsWith(groupLabel)) {
+    const rest = title.slice(groupLabel.length)
+    return (
+      <span className="flex min-w-0 items-baseline gap-1 overflow-hidden whitespace-nowrap">
+        <span className="min-w-0 truncate">{groupLabel}</span>
+        <span className="shrink-0">{rest}</span>
+      </span>
+    )
+  }
+  return <span className="block truncate">{title}</span>
+}
+
 function useIosFixedPositionScrollFix() {
   useEffect(() => {
     const html = document.documentElement
@@ -266,11 +279,11 @@ export default function App() {
       pendingToastIds.add(toastId)
       registerGroupToast(type, meta?.groupId, toastId, page)
 
-      const serviceId = REFRESH_TOAST_ICON_TYPES.has(type)
-        ? useGroupStore.getState().getById(meta?.groupId)?.serviceId
-        : undefined
+      const grp = meta?.groupId ? useGroupStore.getState().getById(meta.groupId) : undefined
+      const groupLabel = grp?.planName ?? grp?.service?.name
+      const serviceId = REFRESH_TOAST_ICON_TYPES.has(type) ? grp?.serviceId : undefined
 
-      toast(title || message || '有群組或申請狀態更新了', 'info', {
+      toast(renderToastTitle(title || message || '有群組或申請狀態更新了', groupLabel), 'info', {
         id: toastId,
         duration: BACKGROUND_NOTIFICATION_TOAST_DURATION,
         icon: serviceId ? <ServiceLogo serviceId={serviceId} size={20} /> : undefined,
@@ -345,8 +358,10 @@ export default function App() {
         return
       }
       const toastAction = INSTANT_TOAST_ACTIONS[type]
-      const serviceId = TOAST_ICON_TYPES.has(type) ? useGroupStore.getState().getById(meta?.groupId)?.serviceId : undefined
-      toast(title || message || '有新的通知', 'info', {
+      const grp = meta?.groupId ? useGroupStore.getState().getById(meta.groupId) : undefined
+      const groupLabel = grp?.planName ?? grp?.service?.name
+      const serviceId = TOAST_ICON_TYPES.has(type) ? grp?.serviceId : undefined
+      toast(renderToastTitle(title || message || '有新的通知', groupLabel), 'info', {
         id: getNotificationToastId({ type, meta, id: undefined }) ?? undefined,
         duration: toastAction ? BACKGROUND_NOTIFICATION_TOAST_DURATION : INSTANT_NOTIFICATION_TOAST_DURATION,
         icon: serviceId ? <ServiceLogo serviceId={serviceId} size={20} /> : undefined,
