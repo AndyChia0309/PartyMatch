@@ -756,18 +756,18 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   notifyBatch(group.members.flatMap(m => [
     {
       userId:  m.userId,
+      type:    'group_chat_opened',
+      title:   `${groupLabel}服務已鎖定`,
+      message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
+      meta:    { groupId },
+    },
+    {
+      userId:  m.userId,
       type:    'fill_service_info',
       title:   isSharedCredentials ? `請提取${groupLabel}帳號資訊` : `請填寫${groupLabel}帳號資訊`,
       message: isSharedCredentials
         ? `「${groupLabel}」群組已鎖定，請進入提取帳號資訊並完成付款。`
         : `「${groupLabel}」群組已鎖定，請進入填寫服務帳號並完成付款。`,
-      meta:    { groupId },
-    },
-    {
-      userId:  m.userId,
-      type:    'group_chat_opened',
-      title:   `${groupLabel}服務已鎖定`,
-      message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
       meta:    { groupId },
     },
   ]))
