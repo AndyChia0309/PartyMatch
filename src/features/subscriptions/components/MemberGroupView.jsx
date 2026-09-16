@@ -31,7 +31,7 @@ import { toast } from '../../../common/utils/toast'
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
 
-export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, loading = false }) {
+export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoScrollToComments, loading = false }) {
   const [activePanel, setActivePanel] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [withdrawConfirm, setWithdrawConfirm] = useState(false)
@@ -72,12 +72,18 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
   const currentUser = useAuthStore(s => s.user)
 
-  const unreadForGroup = useNotificationStore(s => s.getUnreadCountForGroup(currentUser?.id, group.id))
+  const notifications = useNotificationStore(s => s.notifications)
+  const unreadForGroup = notifications.filter(
+    n => n.userId === currentUser?.id && !n.isRead && n.meta?.groupId === group.id && n.type !== 'credential_comment'
+  ).length
   useEffect(() => {
-    if (currentUser?.id && unreadForGroup > 0) {
-      useNotificationStore.getState().markReadForGroup(currentUser.id, group.id)
-    }
-  }, [currentUser?.id, group.id, unreadForGroup])
+    if (!currentUser?.id) return
+    notifications
+      .filter(n => n.userId === currentUser.id && !n.isRead && n.meta?.groupId === group.id && n.type !== 'credential_comment')
+      .forEach(n => useNotificationStore.getState().markRead(n.id))
+  }, [notifications, currentUser?.id, group.id])
+
+  const hasUnseenCredentialComment = useNotificationStore(s => s.hasUnseenCredentialComment(currentUser?.id, group.id))
 
   const allMembers  = useMemberStore(s => s.members)
   const subscriptions = useSubscriptionStore(s => s.subscriptions)
@@ -103,7 +109,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     isPaymentRelevant, showMessagesButton, needsFillInfo, waitingForOthers,
     canConfirm, isDisputeRaiser, isDisputeEscalated, canLeaveGroup, showReviewHostButton,
   } = memberFlags
-  const canViewCredentials  = isPaymentRelevant && (hasServiceInfo || hasServiceInfoIssue);
+  const canViewCredentials  = isPaymentRelevant;
 
   async function selectPanel(panel) {
     setActivePanel(panel);
@@ -360,6 +366,8 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         disputeDeadline: myMember?.disputeDeadline,
         isDisputeEscalated,
         isSharedCredentials,
+        hasExtracted: hasServiceInfo || hasServiceInfoIssue,
+        autoScrollToComments,
         memberServiceInfo: myMember?.serviceInfo,
         memberServiceFields: sharingMethodConfig.fields,
         memberProfiles: showsProfileName
@@ -370,6 +378,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
             userAvatarColor: m.userAvatarColor,
             userPresenceStatus: m.userPresenceStatus,
             profileName: m.serviceInfo?.memberProfileName ?? null,
+            extractionStartedAt: m.extractionStartedAt,
             isSelf: m.userId === currentUser?.id,
           }))
           : [],
@@ -394,8 +403,14 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
           </GroupModalSideBarItem>
         )}
         {canViewCredentials && (
-          <GroupModalSideBarItem active={activePanel === 'credentials'} onClick={() => selectPanel('credentials')}>
-            <KeyRound strokeWidth={1.5} size={17} /> 帳號資訊
+          <GroupModalSideBarItem active={activePanel === 'credentials'} onClick={() => selectPanel('credentials')} className="relative">
+            <span className="relative">
+              <KeyRound strokeWidth={1.5} size={17} />
+              {hasUnseenCredentialComment && (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning-text" />
+              )}
+            </span>
+            帳號資訊
           </GroupModalSideBarItem>
         )}
         {showMessagesButton && (

@@ -198,10 +198,24 @@ export const useNotificationStore = create((set, get) => ({
     ).length
   },
 
+  hasUnseenCredentialComment: (userId, groupId) => {
+    if (!userId || !groupId) return false
+    return get().notifications.some(
+      n => n.type === 'credential_comment' && n.userId === userId && n.meta?.groupId === groupId && !n.isRead
+    )
+  },
+
   markReadForGroup: (userId, groupId) => {
     if (!userId || !groupId) return
     get().notifications
       .filter(n => n.userId === userId && !n.isRead && n.meta?.groupId === groupId)
+      .forEach(n => get().markRead(n.id))
+  },
+
+  markReadForGroupAndType: (userId, groupId, type) => {
+    if (!userId || !groupId || !type) return
+    get().notifications
+      .filter(n => n.userId === userId && !n.isRead && n.meta?.groupId === groupId && n.type === type)
       .forEach(n => get().markRead(n.id))
   },
 

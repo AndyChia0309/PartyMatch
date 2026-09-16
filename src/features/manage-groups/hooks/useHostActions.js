@@ -69,11 +69,13 @@ export function useHostActions(activeUser) {
   const [autoOpenMemberInfo, setAutoOpenMemberInfo]       = useState(false)
   const [autoOpenMembers, setAutoOpenMembers]             = useState(false)
   const [autoExpandMemberId, setAutoExpandMemberId]       = useState(null)
+  const [autoScrollToComments, setAutoScrollToComments]   = useState(false)
   const [renewalModalGroupId, setRenewalModalGroupId]     = useState(null)
 
-  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers, expandMemberId }) {
+  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers, expandMemberId, scrollToComments }) {
     const gId = groupId ?? openGroupId
     if (!gId) return
+    window.dispatchEvent(new CustomEvent('pm:close-group-detail'))
     setViewGroupId(gId)
     setAutoOpenLockGroup(!!openLockGroup)
     setAutoOpenActivate(!!openActivate)
@@ -82,12 +84,29 @@ export function useHostActions(activeUser) {
     setAutoOpenMemberInfo(!!openMemberInfo)
     setAutoOpenMembers(!!openMembers)
     setAutoExpandMemberId(expandMemberId ?? null)
+    setAutoScrollToComments(!!scrollToComments)
   }
 
   useEffect(() => {
     function onOpenHostGroup(e) { applyOpenHostGroup(e.detail ?? {}) }
     window.addEventListener('pm:open-host-group', onOpenHostGroup)
     return () => window.removeEventListener('pm:open-host-group', onOpenHostGroup)
+  }, []);
+
+  useEffect(() => {
+    function onCloseHostGroup() {
+      setViewGroupId(null)
+      setAutoOpenLockGroup(false)
+      setAutoOpenActivate(false)
+      setAutoOpenApplications(false)
+      setAutoOpenBilling(false)
+      setAutoOpenMemberInfo(false)
+      setAutoOpenMembers(false)
+      setAutoExpandMemberId(null)
+      setAutoScrollToComments(false)
+    }
+    window.addEventListener('pm:close-host-group', onCloseHostGroup)
+    return () => window.removeEventListener('pm:close-host-group', onCloseHostGroup)
   }, []);
 
   useEffect(() => {
@@ -459,6 +478,7 @@ async function handleApprove(appId) {
     autoOpenMemberInfo, setAutoOpenMemberInfo,
     autoOpenMembers, setAutoOpenMembers,
     autoExpandMemberId, setAutoExpandMemberId,
+    autoScrollToComments, setAutoScrollToComments,
     renewalModalGroupId, setRenewalModalGroupId,
     allGroups, displayGroups, historyGroups, membersMap, applicationCounts,
     renewalModalGroup,

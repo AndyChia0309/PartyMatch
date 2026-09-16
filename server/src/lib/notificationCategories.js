@@ -21,6 +21,7 @@ export const NOTIFICATION_CATEGORIES = {
   fill_service_info:             'billing',
   service_info_filled:           'billing',
   credential_extraction_started: 'billing',
+  credential_comment:            'billing',
   all_service_info_filled:       'billing',
   group_activation_expired:      'billing',
   service_info_deadline_passed:  'billing',

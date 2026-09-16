@@ -34,7 +34,7 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
@@ -179,11 +179,12 @@ export default function HostGroupView(
   const submitReview  = useReviewStore(s => s.submit)
   const notifications = useNotificationStore(s => s.notifications)
   const unseenMemberInfoCount = useNotificationStore(s => s.getUnseenServiceInfoCount(currentUserId, group.id))
+  const hasUnseenCredentialComment = useNotificationStore(s => s.hasUnseenCredentialComment(currentUserId, group.id))
 
   useEffect(() => {
     if (!currentUserId) return
     notifications
-      .filter(n => n.userId === currentUserId && !n.isRead && n.meta?.groupId === group.id && n.type !== 'service_info_filled')
+      .filter(n => n.userId === currentUserId && !n.isRead && n.meta?.groupId === group.id && !['service_info_filled', 'credential_comment'].includes(n.type))
       .forEach(n => useNotificationStore.getState().markRead(n.id))
   }, [notifications, currentUserId, group.id]);
 
@@ -435,6 +436,7 @@ export default function HostGroupView(
         showPassword,
         onTogglePassword: () => setShowPassword(v => !v),
         autoExpandMemberId,
+        autoScrollToComments,
       });
     }
     return null
@@ -488,10 +490,12 @@ export default function HostGroupView(
           <GroupModalSideBarItem active={activePanel === 'memberInfo'} onClick={() => goToPanel('memberInfo')} className="relative">
             <span className="relative">
               <KeyRound strokeWidth={1.5} size={17} />
-              {unseenMemberInfoCount > 0 && (
+              {unseenMemberInfoCount > 0 ? (
                 <span className="absolute -right-2 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-warning-text px-0.5 text-2xs font-bold text-white">
                   {unseenMemberInfoCount}
                 </span>
+              ) : hasUnseenCredentialComment && (
+                <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-warning-text" />
               )}
             </span>
             帳號資訊

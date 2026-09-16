@@ -53,6 +53,7 @@ export default function GroupDetailModal() {
   const [cancelling, setCancelling]             = useState(false)
   const [applying, setApplying]                 = useState(false)
   const [autoOpenCredentials, setAutoOpenCredentials] = useState(false)
+  const [autoScrollToComments, setAutoScrollToComments] = useState(false)
   const picksScrollRef = useRef(null)
   const picksObserverRef = useRef(null)
   const [picksAtStart, setPicksAtStart] = useState(true)
@@ -161,12 +162,13 @@ export default function GroupDetailModal() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [membershipRefreshing, groupId]);
 
-  const unreadForGroup = useNotificationStore(s => s.getUnreadCountForGroup(activeUserId, groupId));
+  const notificationsForReadCheck = useNotificationStore(s => s.notifications)
   useEffect(() => {
-    if (activeUserId && groupId && unreadForGroup > 0) {
-      useNotificationStore.getState().markReadForGroup(activeUserId, groupId)
-    }
-  }, [activeUserId, groupId, unreadForGroup]);
+    if (!activeUserId || !groupId) return
+    notificationsForReadCheck
+      .filter(n => n.userId === activeUserId && !n.isRead && n.meta?.groupId === groupId && n.type !== 'credential_comment')
+      .forEach(n => useNotificationStore.getState().markRead(n.id))
+  }, [notificationsForReadCheck, activeUserId, groupId]);
 
   useEffect(() => {
     if (groupId) usePendingRefreshStore.getState().clearGroup(groupId)
@@ -179,6 +181,7 @@ export default function GroupDetailModal() {
   function resetSubViews() {
     resetApply()
     setAutoOpenCredentials(false)
+    setAutoScrollToComments(false)
     setShowMembers(false); setLeaveConfirm(false); setCancelConfirm(false)
   }
 
@@ -197,6 +200,7 @@ export default function GroupDetailModal() {
     function onOpen(e) {
       resetSubViews()
       const gId = e.detail?.groupId ?? null;
+      if (gId) window.dispatchEvent(new CustomEvent('pm:close-host-group'))
       const hasUnreadForGroup = !!activeUserId && gId &&
         useNotificationStore.getState().getUnreadCountForGroup(activeUserId, gId) > 0;
       if (gId && (gId !== refreshedGroupIdRef.current || hasUnreadForGroup)) setRefreshedGroupId(null)
@@ -207,9 +211,15 @@ export default function GroupDetailModal() {
       }
       pushGroupUrl(gId)
       if (e.detail?.openCredentials) setAutoOpenCredentials(true)
+      if (e.detail?.scrollToComments) setAutoScrollToComments(true)
     }
+    function onCloseGroupDetail() { pushGroupUrl(null) }
     window.addEventListener('pm:open-group', onOpen)
-    return () => window.removeEventListener('pm:open-group', onOpen)
+    window.addEventListener('pm:close-group-detail', onCloseGroupDetail)
+    return () => {
+      window.removeEventListener('pm:open-group', onOpen)
+      window.removeEventListener('pm:close-group-detail', onCloseGroupDetail)
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -515,7 +525,7 @@ export default function GroupDetailModal() {
       {leaving ? (
         <GroupModalShell loading onClose={handleClose} group={group} service={service} plan={plan} desktopAsideTop={isDesktop ? true : undefined} />
       ) : (membershipRefreshing ? loadingGuess.isMember : isMember && !isHost) ? (
-        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} />
+        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} />
       ) : membershipRefreshing ? (
         <GroupModalShell
           loading

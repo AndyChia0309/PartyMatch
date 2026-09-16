@@ -5,6 +5,7 @@ import { requireAuth } from '../middleware/auth.js'
 import { validate } from '../middleware/validate.js'
 import { maskAvatar } from '../lib/avatarVisibility.js'
 import { getSignedDownloadUrl } from '../lib/r2Storage.js'
+import { notifyBatch } from './groups/shared.js'
 
 const router = Router()
 
@@ -54,6 +55,29 @@ router.post('/', requireAuth, validate(createCommentSchema), async (req, res, ne
       data:    { groupId, authorId: req.user.id, content, ...(attachmentUrl && { attachmentUrl }) },
       include: { author: { select: { id: true, name: true, avatarColor: true, avatarInitial: true, showAvatar: true, presenceStatus: true } } },
     })
+
+    const group = await prisma.group.findUnique({
+      where:  { id: groupId },
+      select: { hostId: true, planName: true, service: { select: { name: true } } },
+    })
+    if (group) {
+      const groupLabel = group.planName ?? group.service?.name ?? ''
+      const authorName = comment.author?.name ?? '成員'
+      const title       = `${groupLabel} 帳號資訊有新留言`
+      const message     = `${authorName}已新增留言，請點擊後前往查看。`
+      const members = await prisma.member.findMany({ where: { groupId }, select: { userId: true } })
+      const recipientIds = [group.hostId, ...members.map(m => m.userId)].filter(id => id !== req.user.id)
+      if (recipientIds.length > 0) {
+        notifyBatch(recipientIds.map(userId => ({
+          userId,
+          type:    'credential_comment',
+          title,
+          message,
+          meta:    { groupId },
+        })))
+      }
+    }
+
     res.status(201).json({
       ...comment,
       author: maskAvatar(comment.author),

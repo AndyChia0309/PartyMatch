@@ -8,20 +8,25 @@ import { CredentialsValue, CredentialsPrivacyNote, MemberProvidedCredentialsValu
 export function buildCredentialsPanel(
   {
     group, viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, showPassword, onTogglePassword,
-    issueNote, evidenceUrl, disputeDeadline, memberProfiles, isSharedCredentials, memberServiceInfo, memberServiceFields, isDisputeEscalated,
+    issueNote, evidenceUrl, disputeDeadline, memberProfiles, isSharedCredentials, hasExtracted, memberServiceInfo, memberServiceFields, isDisputeEscalated,
+    autoScrollToComments,
   }
 ) {
   const credentialsBody = (
     <div className="p-5">
       <p className="mb-2 flex items-center gap-1.5 text-base font-black text-ink"><KeyRound size={15} strokeWidth={1.5} />帳號資訊</p>
       {isSharedCredentials ? (
-        <CredentialsValue group={group} viewerName={viewerName} showPassword={showPassword} onTogglePassword={onTogglePassword} />
+        hasExtracted ? (
+          <CredentialsValue group={group} viewerName={viewerName} showPassword={showPassword} onTogglePassword={onTogglePassword} />
+        ) : (
+          <p className="rounded-lg border border-dashed border-line px-3 py-2.5 text-sm text-ink-4">尚未提取帳號資訊</p>
+        )
       ) : (
         <MemberProvidedCredentialsValue serviceInfo={memberServiceInfo} fields={memberServiceFields} />
       )}
       {memberProfiles?.length > 0 && (
         <div className="mt-3 space-y-2">
-          {memberProfiles.map(({ id, userName, userAvatarInitial, userAvatarColor, userPresenceStatus, profileName, isSelf }) => (
+          {memberProfiles.map(({ id, userName, userAvatarInitial, userAvatarColor, userPresenceStatus, profileName, extractionStartedAt, isSelf }) => (
             <div key={id} className="rounded-lg border border-line p-3">
               <div className="flex items-center gap-3">
                 <span className="relative inline-block shrink-0">
@@ -30,7 +35,11 @@ export function buildCredentialsPanel(
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink">{userName}{isSelf ? '（你）' : ''}</p>
-                  {!profileName && <p className="text-xs text-ink-4">尚未提取帳號</p>}
+                  {!profileName && (
+                    <p className={`text-xs ${extractionStartedAt ? 'text-info-text' : 'text-ink-4'}`}>
+                      {extractionStartedAt ? '已查看帳號資訊' : '尚未提取帳號'}
+                    </p>
+                  )}
                 </div>
               </div>
               {profileName && (
@@ -58,7 +67,7 @@ export function buildCredentialsPanel(
           isDisputeEscalated={isDisputeEscalated}
         />
       )}
-      <CredentialCommentsSection groupId={group.id} hostId={group.hostId} />
+      <CredentialCommentsSection groupId={group.id} hostId={group.hostId} autoScroll={autoScrollToComments} />
     </div>
   )
 

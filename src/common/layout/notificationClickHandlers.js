@@ -68,6 +68,7 @@ export const NOTIFICATION_META = {
   fill_service_info:        { icon: ClipboardEdit,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   service_info_filled:      { icon: ClipboardCheck, iconColor: 'text-success', link: '/manage-groups' },
   credential_extraction_started: { icon: KeyRound,  iconColor: 'text-ink-3',   link: '/manage-groups' },
+  credential_comment:       { icon: MessageSquare,  iconColor: 'text-ink-3',   link: null },
   all_service_info_filled:  { icon: PlayCircle,     iconColor: 'text-success', link: '/manage-groups' },
   service_info_deadline_passed: { icon: AlertTriangle, iconColor: 'text-danger', link: '/manage-groups' },
   group_activated:          { icon: Rocket,         iconColor: 'text-success', link: '/my-subscriptions' },
@@ -294,6 +295,23 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     withReservedModal(() => useMemberStore.getState().init().finally(() => {
       openHostGroup(gId, { openMemberInfo: true })
     }));
+    return
+  }
+
+  if (notification.type === 'credential_comment' && notification.meta?.groupId) {
+    const gId = notification.meta.groupId
+    const cachedGrp = getGroupById(gId)
+    const resolveGrp = cachedGrp
+      ? Promise.resolve(cachedGrp)
+      : useGroupStore.getState().init({ all: true }).then(() => getGroupById(gId))
+    withReservedModal(() => resolveGrp.then(grp => {
+      if (grp && grp.hostId === userId) {
+        return useMemberStore.getState().init().finally(() => {
+          openHostGroup(gId, { openMemberInfo: true, scrollToComments: true })
+        })
+      }
+      return navigateToMemberGroupOrExplore(navigate, userId, gId, { openCredentials: true, scrollToComments: true })
+    }))
     return
   }
 

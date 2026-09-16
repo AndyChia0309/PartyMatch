@@ -82,6 +82,7 @@ enum NotificationType {
   fill_service_info
   service_info_filled
   credential_extraction_started
+  credential_comment
   all_service_info_filled
   group_activation_expired
   service_info_deadline_passed

@@ -10,13 +10,16 @@ import { uploadCredentialCommentAttachment } from '../../../common/api/storageAp
 import { startPolling } from '../../../common/utils/poller'
 import { toast } from '../../../common/utils/toast'
 import { useEvidenceUpload } from '../../../common/utils/hooks'
+import { useAuthStore } from '../../../common/stores/useAuthStore'
+import { useNotificationStore } from '../../../common/stores/useNotificationStore'
 
-export default function CredentialCommentsSection({ groupId, hostId }) {
+export default function CredentialCommentsSection({ groupId, hostId, autoScroll = false }) {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
   const [sending, setSending] = useState(false)
   const listRef = useRef(null)
+  const sectionRef = useRef(null)
   const attachment = useEvidenceUpload(uploadCredentialCommentAttachment)
 
   useEffect(() => {
@@ -34,6 +37,12 @@ export default function CredentialCommentsSection({ groupId, hostId }) {
   useEffect(() => {
     if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight
   }, [comments.length])
+
+  useEffect(() => {
+    if (loading || !autoScroll) return
+    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, autoScroll])
 
   async function handleSend(e) {
     e.preventDefault()
@@ -53,7 +62,7 @@ export default function CredentialCommentsSection({ groupId, hostId }) {
   }
 
   return (
-    <div className="mt-4 border-t border-line-subtle pt-4">
+    <div ref={sectionRef} className="mt-4 border-t border-line-subtle pt-4">
       <p className="mb-2 flex items-center gap-1.5 text-base font-black text-ink">
         <MessageSquare size={15} strokeWidth={1.5} /> 留言
       </p>
@@ -84,6 +93,10 @@ export default function CredentialCommentsSection({ groupId, hostId }) {
           <Input
             value={text}
             onChange={e => setText(e.target.value)}
+            onFocus={() => {
+              const user = useAuthStore.getState().user
+              if (user) useNotificationStore.getState().markReadForGroupAndType(user.id, groupId, 'credential_comment')
+            }}
             placeholder="輸入留言…"
             maxLength={500}
             className="flex-1 py-2"

@@ -323,6 +323,19 @@ export default function App() {
         }
       },
     }
+    const openCredentialsOrMemberInfoAction = {
+      label: '前往查看',
+      run:   (meta) => {
+        if (!meta?.groupId) return
+        const grp = useGroupStore.getState().getById(meta.groupId)
+        const userId = useAuthStore.getState().user?.id
+        if (grp && grp.hostId === userId) {
+          window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openMemberInfo: true, scrollToComments: true } }))
+        } else {
+          window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId, openCredentials: true, scrollToComments: true } }))
+        }
+      },
+    }
     const openBillingAction = {
       label: '前往查收',
       run:   (meta) => {
@@ -339,6 +352,7 @@ export default function App() {
       dispute_withdraw_requested:    openMemberInfoAction,
       dispute_withdraw_rejected:     openGroupAction,
       group_chat_opened:             openGroupOrHostGroupAction,
+      credential_comment:            openCredentialsOrMemberInfoAction,
       fill_service_info:             openGroupAction,
       escrow_released:               openBillingAction,
     }
