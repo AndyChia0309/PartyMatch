@@ -51,7 +51,7 @@ export default function ApplicationCard({ app, groupFull, error, submitting, onA
         )}
       </div>
       {app.message && (
-        <div className="ml-[52px] mt-2">
+        <div className="mt-2">
           {!isPending && (
             <button
               onClick={() => setExpanded(v => !v)}
@@ -61,7 +61,7 @@ export default function ApplicationCard({ app, groupFull, error, submitting, onA
             </button>
           )}
           {expanded && (
-            <p className="mt-1.5 rounded-lg bg-raised px-3 py-2 text-xs leading-relaxed text-ink-2">{app.message}</p>
+            <p className="my-3 text-xs leading-relaxed text-ink-2"><span className="font-semibold text-ink-3">申請留言：</span>{app.message}</p>
           )}
         </div>
       )}
