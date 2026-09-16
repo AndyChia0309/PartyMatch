@@ -40,7 +40,8 @@ export async function admitMemberIntoGroup(tx, { groupId, userId, seatCost, maxM
     data: { userId, type: 'escrow', amount: -seatCost, relatedGroupId: groupId, cycle: currentGroup?.currentCycle ?? 1, note },
   })
 
-  await advanceToFullIfNeeded(tx, groupId)
+  const fullInfo = await advanceToFullIfNeeded(tx, groupId)
+  if (fullInfo) notifyGroupFull(fullInfo)
   return member
 }
 
@@ -66,8 +67,8 @@ export async function finalizeApprovedApplication(tx, { groupId, userId, maxMemb
     }),
   ])
 
-  await advanceToFullIfNeeded(tx, groupId)
-  return member
+  const fullInfo = await advanceToFullIfNeeded(tx, groupId)
+  return { member, fullInfo }
 }
 
 async function advanceToFullIfNeeded(tx, groupId) {
@@ -75,33 +76,36 @@ async function advanceToFullIfNeeded(tx, groupId) {
     where:  { id: groupId },
     select: { currentMembers: true, maxMembers: true, hostId: true, planName: true, service: { select: { name: true } } },
   });
-  if (updatedGroup.currentMembers + 1 >= updatedGroup.maxMembers) {
-    await tx.group.update({ where: { id: groupId }, data: { status: 'full' } })
-    await rejectPendingApplications(tx, groupId, {
-      refundNote: '群組名額已滿，代管退款',
-      buildMessage: groupLabel => `很遺憾，「${groupLabel}」群組名額已滿，你的申請未通過，代管費用已退還至你的PM幣餘額，你可以繼續探索其他群組。`,
-    })
+  if (updatedGroup.currentMembers + 1 < updatedGroup.maxMembers) return null
 
-    const groupLabel = updatedGroup.planName ?? updatedGroup.service?.name ?? ''
-    notify({
-      userId:  updatedGroup.hostId,
-      type:    'group_full',
+  await tx.group.update({ where: { id: groupId }, data: { status: 'full' } })
+  await rejectPendingApplications(tx, groupId, {
+    refundNote: '群組名額已滿，代管退款',
+    buildMessage: groupLabel => `很遺憾，「${groupLabel}」群組名額已滿，你的申請未通過，代管費用已退還至你的PM幣餘額，你可以繼續探索其他群組。`,
+  })
+
+  const groupLabel = updatedGroup.planName ?? updatedGroup.service?.name ?? ''
+  const existingMembers = await tx.member.findMany({ where: { groupId }, select: { userId: true } });
+  return { groupId, hostId: updatedGroup.hostId, groupLabel, memberUserIds: existingMembers.map(m => m.userId) }
+}
+
+export function notifyGroupFull({ groupId, hostId, groupLabel, memberUserIds }) {
+  notify({
+    userId:  hostId,
+    type:    'group_full',
+    title:   `${groupLabel} 群組名額已滿`,
+    message: `「${groupLabel}」群組名額已滿，請前往鎖定群組。`,
+    meta:    { groupId },
+  });
+
+  if (memberUserIds.length > 0) {
+    notifyBatch(memberUserIds.map(userId => ({
+      userId,
+      type:    'group_full_member',
       title:   `${groupLabel} 群組名額已滿`,
-      message: `「${groupLabel}」群組名額已滿，請前往鎖定群組。`,
+      message: `「${groupLabel}」群組名額已滿，等待團主鎖定。`,
       meta:    { groupId },
-    });
-
-    const existingMembers = await tx.member.findMany({ where: { groupId }, select: { userId: true } });
-    const memberUserIds = existingMembers.map(m => m.userId)
-    if (memberUserIds.length > 0) {
-      notifyBatch(memberUserIds.map(userId => ({
-        userId,
-        type:    'group_full_member',
-        title:   `${groupLabel} 群組名額已滿`,
-        message: `「${groupLabel}」群組名額已滿，等待團主鎖定。`,
-        meta:    { groupId },
-      })))
-    }
+    })))
   }
 }
 

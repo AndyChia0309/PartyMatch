@@ -1,6 +1,6 @@
 import prisma from '../lib/prisma.js'
 import { computeSeatCost } from '../utils/pricing.js'
-import { finalizeApprovedApplication, refundEscrow } from './membershipLifecycle.service.js'
+import { finalizeApprovedApplication, refundEscrow, notifyGroupFull } from './membershipLifecycle.service.js'
 import { notify, claimGroupStatus } from '../routes/groups/shared.js'
 
 function httpError(statusCode, message, responsePayload) {
@@ -188,6 +188,7 @@ export async function reviewApplication({ applicationId, hostId, status }) {
     return updated
   }
 
+  let fullInfo = null
   const updated = await prisma.$transaction(async (tx) => {
     const claimed = await tx.application.updateMany({
       where: { id: applicationId, status: 'pending' },
@@ -198,18 +199,21 @@ export async function reviewApplication({ applicationId, hostId, status }) {
     const group = await tx.group.findUnique({ where: { id: application.groupId }, select: { maxMembers: true } })
     if (!group) throw httpError(404, '群組不存在')
 
-    await finalizeApprovedApplication(tx, { groupId: application.groupId, userId: application.userId, maxMembers: group.maxMembers })
+    const result = await finalizeApprovedApplication(tx, { groupId: application.groupId, userId: application.userId, maxMembers: group.maxMembers })
+    fullInfo = result.fullInfo
 
     return tx.application.findUnique({ where: { id: applicationId } })
   })
 
-  notify({
+  await notify({
     userId:  application.userId,
     type:    'application_approved',
     title:   `${groupLabel} 申請已通過`,
     message: `恭喜！你加入「${groupLabel}」群組的申請已通過，請前往我的訂閱查看。`,
     meta:    { groupId: application.groupId, applicationId },
   })
+
+  if (fullInfo) notifyGroupFull(fullInfo)
 
   return updated
 }
