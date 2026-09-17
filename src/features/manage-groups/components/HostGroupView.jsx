@@ -34,7 +34,7 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
@@ -105,7 +105,7 @@ export default function HostGroupView(
       setCredentialValues({})
       setShowLockGroupConfirm(false)
       setActivePanel(null)
-      useGroupStore.getState().refreshGroup(group.id).catch(console.error)
+      useGroupStore.getState().refreshGroup(group.id).catch(console.error).finally(() => setPanelTick(t => t + 1))
     }
     window.addEventListener('pm:open-host-group', onOpenHostGroup)
     return () => window.removeEventListener('pm:open-host-group', onOpenHostGroup)
@@ -130,34 +130,44 @@ export default function HostGroupView(
   }, [autoOpenMembers])
 
   useEffect(() => {
-    if (activePanel !== null)
-      return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeaderStatus(group.status)
-  }, [activePanel, group.status])
-
-  useEffect(() => {
-    if (activePanel === null)
-      return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHeaderStatus(group.status)
-  }, [activePanel, dataSyncTick, group.status])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel, panelTick, dataSyncTick])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (autoOpenMemberInfo) setActivePanel('memberInfo')
   }, [autoOpenMemberInfo])
 
+  const [frozenMemberInfo, setFrozenMemberInfo] = useState(() => ({
+    status:  group.status,
+    members: members.filter(m => m.groupId === group.id),
+  }))
+
   useEffect(() => {
     if (activePanel !== 'memberInfo')
       return;
-    useMemberStore.getState().init().catch(console.error)
+    let active = true
+    Promise.all([
+      useGroupStore.getState().refreshGroup(group.id).catch(console.error),
+      useMemberStore.getState().init().catch(console.error),
+    ]).finally(() => {
+      if (!active) return
+      setFrozenMemberInfo({
+        status:  useGroupStore.getState().getById(group.id)?.status ?? group.status,
+        members: useMemberStore.getState().members.filter(m => m.groupId === group.id),
+      })
+    })
     const user = useAuthStore.getState().getProfile()
-    if (!user) return
-    useNotificationStore.getState().notifications
-      .filter(n => n.type === 'service_info_filled' && n.userId === user.id && n.meta?.groupId === group.id && !n.isRead)
-      .forEach(n => useNotificationStore.getState().markRead(n.id))
-  }, [activePanel, group.id, panelTick])
+    if (user) {
+      useNotificationStore.getState().notifications
+        .filter(n => n.type === 'service_info_filled' && n.userId === user.id && n.meta?.groupId === group.id && !n.isRead)
+        .forEach(n => useNotificationStore.getState().markRead(n.id))
+    }
+    return () => { active = false }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePanel, group.id, panelTick, dataSyncTick])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -353,7 +363,7 @@ export default function HostGroupView(
   const disputedBanner = headerStatus === 'disputed' && (
     <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
       <Clock size={15} strokeWidth={1.5} />
-      {escalatedDisputeMember ? DISPUTE_ESCALATED_BANNER_TEXT : '收到問題回報，處理中'}
+      {escalatedDisputeMember ? DISPUTE_ESCALATED_BANNER_TEXT : '請至帳號資訊查看問題回報內容'}
       {escalatedDisputeMember?.disputeDeadline && (
         <>，剩餘 <CountdownText deadline={escalatedDisputeMember.disputeDeadline} /></>
       )}
@@ -423,16 +433,15 @@ export default function HostGroupView(
       return buildMemberInfoPanel({
         groupId: group.id,
         hostId: group.hostId,
-        groupStatus: group.status,
-        members,
+        groupStatus: frozenMemberInfo.status,
+        members: frozenMemberInfo.members,
         sharingMethod: serviceDef?.sharingMethod,
         sharedCredentials: group.sharedCredentials,
         serviceId: group.serviceId,
-        canReportServiceIssue: canReportServiceIssue(group.status),
+        canReportServiceIssue: canReportServiceIssue(frozenMemberInfo.status),
         onOpenServiceIssue: m => { setServiceIssueMember(m); setServiceIssueNote(m.serviceInfoIssueNote ?? '') },
-        onResolveDispute: (memberId, note) => onResolveDispute?.(group.id, memberId, note),
-        onEscalateDispute: (memberId, note) => onEscalateDispute?.(group.id, memberId, note),
-        onRejectWithdrawal: memberId => onRejectWithdrawal?.(group.id, memberId),
+        onResolveDispute: (memberId, note) => onResolveDispute?.(group.id, memberId, note)?.finally(() => setDataSyncTick(t => t + 1)),
+        onEscalateDispute: (memberId, note) => onEscalateDispute?.(group.id, memberId, note)?.finally(() => setDataSyncTick(t => t + 1)),
         showPassword,
         onTogglePassword: () => setShowPassword(v => !v),
         autoExpandMemberId,

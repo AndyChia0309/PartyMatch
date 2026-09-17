@@ -34,7 +34,6 @@ export default function HostGroupModalHost() {
     handleReportServiceInfoIssue,
     handleResolveDispute,
     handleEscalateDispute,
-    handleRejectWithdrawal,
     handleReject,
     handleAdjustBillingDate,
   } = useHostActions(activeUser);
@@ -54,7 +53,6 @@ export default function HostGroupModalHost() {
         onReportServiceInfoIssue={handleReportServiceInfoIssue}
         onResolveDispute={handleResolveDispute}
         onEscalateDispute={handleEscalateDispute}
-        onRejectWithdrawal={handleRejectWithdrawal}
         onActivate={handleActivate}
         onLockGroup={handleLockGroup}
         onCancelGroup={handleCancelGroup}

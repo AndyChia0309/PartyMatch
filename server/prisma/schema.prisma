@@ -102,8 +102,6 @@ enum NotificationType {
   dispute_resolved_by_host
   dispute_escalated
   dispute_withdrawn
-  dispute_withdraw_requested
-  dispute_withdraw_rejected
   upcoming_renewal
   billing_date_confirmed
   billing_date_adjusted
@@ -268,8 +266,7 @@ model Member {
   confirmDeadline             DateTime?
   disputeDeadline             DateTime?
   disputeEscalatedAt          DateTime?
-  disputeRaisedCycle          Int?
-  withdrawRequestedAt         DateTime?
+  lastDisputeActionAt         DateTime?
   joinedAt                    DateTime  @default(now())
   createdAt                   DateTime  @default(now())
   updatedAt                   DateTime  @updatedAt

@@ -356,8 +356,6 @@ export default function App() {
       dispute_raised:                openMemberInfoAction,
       dispute_resolved_by_host:      openGroupAction,
       dispute_withdrawn:             openMemberInfoAction,
-      dispute_withdraw_requested:    openMemberInfoAction,
-      dispute_withdraw_rejected:     openGroupAction,
       group_chat_opened:             openGroupOrHostGroupAction,
       credential_comment:            openCredentialsOrMemberInfoAction,
       fill_service_info:             openGroupAction,
@@ -366,7 +364,6 @@ export default function App() {
     const TOAST_ICON_TYPES = new Set([
       'group_chat_opened', 'fill_service_info', 'member_confirmed_service', 'escrow_released',
       'dispute_raised', 'dispute_resolved_by_host', 'dispute_escalated', 'dispute_resolved', 'dispute_withdrawn',
-      'dispute_withdraw_requested', 'dispute_withdraw_rejected',
       'group_renewal', 'upcoming_renewal', 'group_reviewed', 'service_info_issue',
       'credential_extraction_started', 'payment_reminder', 'service_info_deadline_passed', 'group_ended',
       'group_created', 'credential_comment',

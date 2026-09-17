@@ -10,7 +10,6 @@ import {
   cancelGroupApi,
   disputeGroupApi,
   withdrawDisputeApi,
-  rejectWithdrawDisputeApi,
   resolveDisputeApi,
   escalateDisputeApi,
   renewGroupApi,
@@ -142,30 +141,24 @@ export const useGroupStore = create((set, get) => ({
   disputeGroup: async (id, payload) => {
     const updated = await disputeGroupApi(id, payload)
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    const { useMemberStore } = await import('./useMemberStore');
+    useMemberStore.getState().init().catch(console.error)
     return updated
   },
 
   withdrawDispute: async (id) => {
     const updated = await withdrawDisputeApi(id)
-    const { useMemberStore } = await import('./useMemberStore');
-    await useMemberStore.getState().init()
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
-    return updated
-  },
-
-  rejectWithdrawDispute: async (id, memberId) => {
-    const updated = await rejectWithdrawDisputeApi(id, memberId)
     const { useMemberStore } = await import('./useMemberStore');
-    await useMemberStore.getState().init()
-    set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    useMemberStore.getState().init().catch(console.error)
     return updated
   },
 
   resolveDispute: async (id, payload) => {
     const updated = await resolveDisputeApi(id, payload)
-    const { useMemberStore } = await import('./useMemberStore');
-    await useMemberStore.getState().init()
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    const { useMemberStore } = await import('./useMemberStore');
+    useMemberStore.getState().init().catch(console.error)
     return updated
   },
 

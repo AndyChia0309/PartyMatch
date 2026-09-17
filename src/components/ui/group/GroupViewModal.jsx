@@ -12,7 +12,7 @@ const GROUP_POLL_INTERVAL_MS = 15000
 
 export default function GroupViewModal({
   isOpen, onClose, groupId,
-  onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onActivate, onLockGroup, onCancelGroup, onRemoveMember,
+  onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onActivate, onLockGroup, onCancelGroup, onRemoveMember,
   onLeaveGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds,
   autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers,
   autoExpandMemberId, onOpenRenewal, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone,
@@ -77,7 +77,6 @@ export default function GroupViewModal({
       onReportServiceInfoIssue={onReportServiceInfoIssue}
       onResolveDispute={onResolveDispute}
       onEscalateDispute={onEscalateDispute}
-      onRejectWithdrawal={onRejectWithdrawal}
       onRemoveMember={onRemoveMember}
       onActivate={onActivate} onLockGroup={onLockGroup} onCancelGroup={onCancelGroup}
       onApprove={onApprove} onReject={onReject} onAdjustBillingDate={onAdjustBillingDate}

@@ -6,7 +6,7 @@ import { hasFilledServiceInfo, isSharedCredentialsMethod } from '../../../../com
 import { parseHostCredentials } from '../../../../common/utils/hostCredentialFields'
 
 export function buildMemberInfoPanel(
-  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone }
+  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone }
 ) {
   const parsedCredentials = parseHostCredentials(sharedCredentials, serviceId)
   const isSharedCredentials = isSharedCredentialsMethod(sharingMethod)
@@ -66,7 +66,6 @@ export function buildMemberInfoPanel(
                   canResolve={canResolve}
                   onResolveDispute={onResolveDispute}
                   onEscalateDispute={onEscalateDispute}
-                  onRejectWithdrawal={onRejectWithdrawal}
                   autoExpand={m.id === autoExpandMemberId}
                 />
               )

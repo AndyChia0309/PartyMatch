@@ -3,8 +3,9 @@ import { uploadDisputeEvidence } from '../../../common/api/storageApi'
 import { useGroupStore } from '../../../common/stores/useGroupStore'
 import { toast } from '../../../common/utils/toast'
 import { useEvidenceUpload } from '../../../common/utils/hooks'
+import CountdownText from '../../../components/ui/primitives/CountdownText'
 
-export function useDisputeForm(groupId, onClose) {
+export function useDisputeForm(groupId) {
   const [show, setShow] = useState(false)
   const [reasons, setReasons] = useState([])
   const [detail, setDetail] = useState('')
@@ -38,25 +39,25 @@ export function useDisputeForm(groupId, onClose) {
       await disputeGroup(groupId, { reason, evidenceUrl: evidence.key || undefined })
       setShow(false)
       reset()
-      onClose()
-      toast('已送出回報，將於 48 小時內處理', 'success', {
-        action: {
-          label: '前往查看',
-          onClick: () => window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId, openCredentials: true } })),
-        },
-      })
+      toast('已送出回報，將於 48 小時內處理', 'success')
     } catch (err) {
-      toast(err?.message ?? '回報失敗，請稍後再試', 'error')
+      const code = err?.response?.data?.code
+      if (code === 'DISPUTE_COOLDOWN') {
+        const cooldownEndsAt = err?.response?.data?.cooldownEndsAt
+        toast(cooldownEndsAt ? <span>回報過於頻繁，剩餘 <CountdownText deadline={cooldownEndsAt} /> 後可再試</span> : err.message, 'error')
+      } else {
+        toast(err?.message ?? '回報失敗，請稍後再試', 'error')
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  async function withdraw(wasEscalated) {
+  async function withdraw() {
     setWithdrawing(true)
     try {
       await withdrawDisputeAction(groupId)
-      toast(wasEscalated ? '已送出撤銷申請，24 小時內若無反對將自動生效' : '已撤銷問題回報')
+      toast('已撤銷問題回報')
     } catch (err) {
       toast(err?.message ?? '撤銷失敗，請稍後再試', 'error')
     } finally {

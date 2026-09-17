@@ -82,7 +82,12 @@ router.post('/:id/dispute', requireAuth, validate(disputeSchema), async (req, re
       evidenceUrl: req.body.evidenceUrl,
     })
     res.json(maskGroupHost(updated))
-  } catch (err) { next(err) }
+  } catch (err) {
+    if (err.code === 'DISPUTE_COOLDOWN') {
+      return res.status(err.statusCode).json({ message: err.message, code: err.code, cooldownEndsAt: err.cooldownEndsAt })
+    }
+    next(err)
+  }
 });
 
 router.post('/:id/dispute/withdraw', requireAuth, async (req, res, next) => {
@@ -90,21 +95,6 @@ router.post('/:id/dispute/withdraw', requireAuth, async (req, res, next) => {
     const updated = await groupLifecycleService.withdrawDispute({
       groupId: req.params.id,
       userId:  req.user.id,
-    })
-    res.json(maskGroupHost(updated))
-  } catch (err) { next(err) }
-});
-
-const rejectWithdrawSchema = z.object({
-  memberId: z.string().min(1),
-})
-
-router.post('/:id/dispute/withdraw/reject', requireAuth, validate(rejectWithdrawSchema), async (req, res, next) => {
-  try {
-    const updated = await groupLifecycleService.rejectDisputeWithdrawal({
-      groupId:  req.params.id,
-      hostId:   req.user.id,
-      memberId: req.body.memberId,
     })
     res.json(maskGroupHost(updated))
   } catch (err) { next(err) }

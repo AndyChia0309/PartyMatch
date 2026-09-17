@@ -286,27 +286,28 @@ async function handleActivate(nextBillingDate) {
     }
 
     const convId = getConvByGroupId(viewGroupId)?.id
-    if (convId) sendSystemMessage(convId, `團主調整了下次扣款日，原因：${note}`).catch(console.error)
+    if (convId) sendSystemMessage(convId, `團主調整了扣款日期，原因：${note}`).catch(console.error)
 
-    toast('已調整下次扣款日')
+    toast('已調整扣款日期')
     refreshGroups()
+  }
+
+  function buildDisputeErrorToastOptions(groupId, err) {
+    if (err?.response?.data?.code !== 'DISPUTE_ALREADY_CLAIMED') return undefined
+    return {
+      action: {
+        label: '重新整理',
+        onClick: () => window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId, openMemberInfo: true } })),
+      },
+    }
   }
 
   async function handleResolveDispute(groupId, memberId, note) {
     try {
       await useGroupStore.getState().resolveDispute(groupId, { memberId, note })
       toast('已標記問題處理完成')
-    } catch {
-      toast('處理失敗，請稍後再試', 'error')
-    }
-  }
-
-  async function handleRejectWithdrawal(groupId, memberId) {
-    try {
-      await useGroupStore.getState().rejectWithdrawDispute(groupId, memberId)
-      toast('已拒絕撤銷申請')
     } catch (err) {
-      toast(err?.message ?? '處理失敗，請稍後再試', 'error')
+      toast(err?.message ?? '處理失敗，請稍後再試', 'error', buildDisputeErrorToastOptions(groupId, err))
     }
   }
 
@@ -320,7 +321,7 @@ async function handleActivate(nextBillingDate) {
         },
       })
     } catch (err) {
-      toast(err?.message ?? '處理失敗，請稍後再試', 'error')
+      toast(err?.message ?? '處理失敗，請稍後再試', 'error', buildDisputeErrorToastOptions(groupId, err))
     }
   }
 
@@ -506,7 +507,6 @@ async function handleApprove(appId) {
     handleReportServiceInfoIssue,
     handleResolveDispute,
     handleEscalateDispute,
-    handleRejectWithdrawal,
     handleReject,
   }
 }

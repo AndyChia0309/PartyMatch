@@ -3,11 +3,12 @@ import { Check, ShieldAlert } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogBody, DialogFooter, DialogCloseButton } from '../../../../components/ui/dialog'
 import { Button } from '../../../../components/ui/button'
 import { Textarea } from '../../../../components/ui/input'
+import EvidenceLink from '../../../../components/ui/EvidenceLink'
 
 const MODE_CONFIG = {
   resolve: {
     icon: Check,
-    title: '標記處理完成',
+    title: '問題處理完成',
     description: '確認這名成員回報的問題已經處理完成，群組會回到確認期讓所有人重新確認服務。',
     placeholder: '處理備註（選填），會留在群組帳號資訊留言區',
     required: false,
@@ -23,7 +24,7 @@ const MODE_CONFIG = {
   },
 }
 
-export default function DisputeResponseModal({ isOpen, mode, onClose, onSubmit }) {
+export default function DisputeResponseModal({ isOpen, mode, issueTypes, issueDetail, evidenceUrl, onClose, onSubmit }) {
   const [note, setNote] = useState('')
   const [loading, setLoading] = useState(false)
   const config = MODE_CONFIG[mode] ?? MODE_CONFIG.resolve
@@ -54,6 +55,18 @@ export default function DisputeResponseModal({ isOpen, mode, onClose, onSubmit }
         <DialogBody>
           <div className="animate-step-slide-up space-y-3 p-5">
             <p className="text-sm text-ink-3">{config.description}</p>
+            {issueTypes && (
+              <div className="space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
+                <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題類型：</span>{issueTypes}</p>
+                {issueDetail && (
+                  <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{issueDetail}</p>
+                )}
+                <EvidenceLink
+                  url={evidenceUrl}
+                  className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
+                />
+              </div>
+            )}
             <Textarea
               value={note}
               onChange={e => setNote(e.target.value)}

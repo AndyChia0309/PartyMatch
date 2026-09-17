@@ -12,6 +12,7 @@ const HOST_GROUP_INCLUDE = {
 };
 
 const MAX_BILLING_DATE_ADJUST_DAYS = 7
+const DISPUTE_COOLDOWN_MINUTES = 1
 
 function httpError(statusCode, message, extra) {
   const err = new Error(message)
@@ -65,11 +66,11 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   if (requestedRaw) {
     const requested = new Date(requestedRaw)
     if (Number.isNaN(requested.getTime())) throw httpError(400, '日期格式不正確')
-    if (requested < minAllowed) throw httpError(400, `下次扣款日最早不能早於 ${formatDateSlash(minAllowed)}`)
-    if (requested > maxAllowed) throw httpError(400, `下次扣款日最晚不能超過 ${formatDateSlash(maxAllowed)}`)
+    if (requested < minAllowed) throw httpError(400, `扣款日期最早不能早於 ${formatDateSlash(minAllowed)}`)
+    if (requested > maxAllowed) throw httpError(400, `扣款日期最晚不能超過 ${formatDateSlash(maxAllowed)}`)
     nextBillingDate = requested
   } else if (isFirstActivation) {
-    throw httpError(400, '請填寫下次扣款日')
+    throw httpError(400, '請填寫扣款日期')
   } else {
     nextBillingDate = minAllowed
   }
@@ -97,30 +98,31 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   });
 
   const groupLabel = groupLabelOf(group)
-  const finalDateText = formatDateSlash(nextBillingDate)
-  notifyBatch([group.hostId, ...group.members.map(m => m.userId)].map(userId => ({
-    userId,
-    type:    'billing_date_confirmed',
-    title:   '下次扣款日已確定',
-    message: `「${groupLabel}」服務已啟用，下次扣款日確定為 ${finalDateText}。`,
-    meta:    { groupId, nextBillingDate: nextBillingDate.toISOString(), estimated: false },
-  })))
-
   const groupLabelForActivation = groupLabelOf(group)
-  notify({
+  await notify({
     userId:  group.hostId,
     type:    'group_activated',
     title:   '服務已啟用，確認期開始',
     message: `「${groupLabelForActivation}」群組服務已啟用，成員有 48 小時確認期。`,
     meta:    { groupId },
   })
-  notifyBatch(group.members.map(m => ({
+  await notifyBatch(group.members.map(m => ({
     userId:  m.userId,
     type:    'group_activated',
     title:   `${groupLabelForActivation}服務已啟用，確認期開始`,
     message: `「${groupLabelForActivation}」服務已啟用，請在 48 小時內確認服務是否正常運作。`,
     meta:    { groupId },
   })))
+
+  const finalDateText = formatDateSlash(nextBillingDate)
+  await notifyBatch([group.hostId, ...group.members.map(m => m.userId)].map(userId => ({
+    userId,
+    type:    'billing_date_confirmed',
+    title:   '扣款日期已確定',
+    message: `「${groupLabel}」服務已啟用，扣款日期確定為 ${finalDateText}。`,
+    meta:    { groupId, nextBillingDate: nextBillingDate.toISOString(), estimated: false },
+  })))
+
   prisma.credentialComment.create({
     data: {
       groupId,
@@ -168,8 +170,8 @@ async function applyBillingDateAdjustment(group, requested, note) {
   notifyBatch(group.members.map(m => ({
     userId:  m.userId,
     type:    'billing_date_adjusted',
-    title:   `${groupLabel} 下次扣款日已調整`,
-    message: `「${groupLabel}」的下次扣款日由 ${oldDateText} 調整為 ${newDateText}，原因：${note}。${resetConfirmations ? '如果你已經確認過服務，請針對新日期重新確認一次。' : ''}`,
+    title:   `${groupLabel} 扣款日期已調整`,
+    message: `「${groupLabel}」的扣款日期由 ${oldDateText} 調整為 ${newDateText}，原因：${note}。${resetConfirmations ? '如果你已經確認過服務，請針對新日期重新確認一次。' : ''}`,
     meta:    { groupId: group.id, oldDate: current.toISOString(), nextBillingDate: requested.toISOString(), note },
   })))
 
@@ -342,8 +344,12 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     throw httpError(403, '你不是此群組成員');
   if (member.serviceInfoIssueNote)
     throw httpError(400, '你已經回報過問題，正在等待處理');
-  if (member.disputeRaisedCycle === group.currentCycle)
-    throw httpError(400, '本期已經回報過問題，如需再次反映請聯絡客服');
+  if (member.lastDisputeActionAt) {
+    const cooldownEndsAt = new Date(member.lastDisputeActionAt.getTime() + DISPUTE_COOLDOWN_MINUTES * 60 * 1000)
+    if (cooldownEndsAt > new Date()) {
+      throw httpError(400, '回報過於頻繁，請稍後再試', { code: 'DISPUTE_COOLDOWN', cooldownEndsAt: cooldownEndsAt.toISOString() })
+    }
+  }
 
   const disputeDeadline = addHours(48);
   const groupLabel = groupLabelOf(group)
@@ -362,7 +368,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
       data:  {
         serviceInfoIssueNote: trimmedReason,
         disputeDeadline:      disputeDeadline,
-        disputeRaisedCycle:   group.currentCycle,
+        lastDisputeActionAt:  new Date(),
         ...(evidenceUrl ? { disputeEvidenceUrl: evidenceUrl } : {}),
       },
     })
@@ -403,8 +409,6 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   return updated
 }
 
-const WITHDRAW_REQUEST_WINDOW_HOURS = 24
-
 async function applyDisputeWithdrawal({ group, member, dispute }) {
   const groupLabel = groupLabelOf(group)
 
@@ -413,11 +417,11 @@ async function applyDisputeWithdrawal({ group, member, dispute }) {
       where: { id: dispute.id, status: 'pending' },
       data:  { status: 'withdrawn_by_member', resolvedAt: new Date() },
     })
-    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面')
+    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
     await tx.member.update({
       where: { id: member.id },
-      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, disputeDeadline: null, disputeEscalatedAt: null, withdrawRequestedAt: null },
+      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, disputeDeadline: null, disputeEscalatedAt: null, lastDisputeActionAt: new Date() },
     })
 
     const remainingPending = await tx.dispute.count({ where: { groupId: group.id, status: 'pending' } });
@@ -463,27 +467,13 @@ async function applyDisputeWithdrawal({ group, member, dispute }) {
   return updated
 }
 
-export async function trySweepExpiredWithdrawalRequest(group) {
-  if (group.status !== 'disputed') return null
-  const now = Date.now()
-  const expiredMember = (group.members ?? []).find(m =>
-    m.withdrawRequestedAt && (now - new Date(m.withdrawRequestedAt).getTime()) >= WITHDRAW_REQUEST_WINDOW_HOURS * 60 * 60 * 1000
-  )
-  if (!expiredMember) return null
-
-  const dispute = await prisma.dispute.findFirst({ where: { groupId: group.id, memberId: expiredMember.id, status: 'pending' } })
-  if (!dispute) return null
-
-  return applyDisputeWithdrawal({ group, member: expiredMember, dispute })
-}
-
 export async function withdrawDispute({ groupId, userId }) {
   const group = await prisma.group.findUnique({
     where:   { id: groupId },
     include: { members: { include: { user: { select: { id: true, name: true } } } }, service: { select: { name: true } } },
   })
   if (!group) throw httpError(404, '群組不存在')
-  if (group.status !== 'disputed') throw httpError(400, `群組狀態為 ${group.status}，不在申訴期`)
+  if (group.status !== 'disputed') throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
   const member = group.members.find(m => m.userId === userId)
   if (!member) throw httpError(403, '你不是此群組成員');
@@ -492,50 +482,7 @@ export async function withdrawDispute({ groupId, userId }) {
   const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId: member.id, status: 'pending' } })
   if (!dispute) throw httpError(400, '找不到進行中的申訴')
 
-  if (member.disputeEscalatedAt) {
-    if (member.withdrawRequestedAt) throw httpError(400, '已經送出撤銷申請，等待處理中')
-
-    await prisma.member.update({ where: { id: member.id }, data: { withdrawRequestedAt: new Date() } })
-
-    const groupLabel = groupLabelOf(group)
-    notify({
-      userId:  group.hostId,
-      type:    'dispute_withdraw_requested',
-      title:   `${groupLabel} ${member.user.name}申請撤銷問題回報`,
-      message: `${member.user.name} 針對「${groupLabel}」申請撤銷問題回報，${WITHDRAW_REQUEST_WINDOW_HOURS} 小時內若未反對將自動生效；如認為不該撤銷，請點擊「反對撤銷」。`,
-      meta:    { groupId, memberId: member.id },
-    })
-
-    return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
-  }
-
   return applyDisputeWithdrawal({ group, member, dispute })
-}
-
-export async function rejectDisputeWithdrawal({ groupId, hostId, memberId }) {
-  const group = await prisma.group.findUnique({
-    where:   { id: groupId },
-    include: { members: { include: { user: { select: { id: true, name: true } } } }, service: { select: { name: true } } },
-  })
-  if (!group) throw httpError(404, '群組不存在')
-  if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-
-  const member = group.members.find(m => m.id === memberId)
-  if (!member) throw httpError(404, '找不到成員')
-  if (!member.withdrawRequestedAt) throw httpError(400, '目前沒有進行中的撤銷申請')
-
-  await prisma.member.update({ where: { id: member.id }, data: { withdrawRequestedAt: null } })
-
-  const groupLabel = groupLabelOf(group)
-  notify({
-    userId:  member.userId,
-    type:    'dispute_withdraw_rejected',
-    title:   `${groupLabel} 撤銷申請被拒絕`,
-    message: `團主認為「${groupLabel}」的問題回報不該撤銷，將維持平台仲裁流程，請等待處理結果。`,
-    meta:    { groupId },
-  })
-
-  return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
 }
 
 export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) {
@@ -545,7 +492,7 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-  if (group.status !== 'disputed') throw httpError(400, `群組狀態為 ${group.status}，不在申訴期`)
+  if (group.status !== 'disputed') throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
   const disputeMember = group.members.find(m => m.id === memberId && m.serviceInfoIssueNote)
   if (!disputeMember) throw httpError(400, '找不到申訴成員')
@@ -567,11 +514,11 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
         resolvedAt:       new Date(),
       },
     })
-    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面')
+    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
     await tx.member.update({
       where: { id: disputeMember.id },
-      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, confirmedAt: null, disputeDeadline: null, disputeEscalatedAt: null, withdrawRequestedAt: null, confirmDeadline },
+      data:  { serviceInfoIssueNote: null, disputeEvidenceUrl: null, confirmedAt: null, disputeDeadline: null, disputeEscalatedAt: null, confirmDeadline },
     })
 
     const remainingPending = await tx.dispute.count({ where: { groupId, status: 'pending' } });
@@ -624,7 +571,7 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-  if (group.status !== 'disputed') throw httpError(400, `群組狀態為 ${group.status}，不在申訴期`)
+  if (group.status !== 'disputed') throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
   const disputeMember = group.members.find(m => m.id === memberId && m.serviceInfoIssueNote)
   if (!disputeMember) throw httpError(400, '找不到申訴成員')
@@ -636,16 +583,18 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   if (!trimmedNote) throw httpError(400, '請說明你認為此回報不實的理由')
 
   const disputeEscalatedAt = new Date()
-  await prisma.$transaction([
-    prisma.dispute.update({
-      where: { id: dispute.id },
+  await prisma.$transaction(async (tx) => {
+    const claimed = await tx.dispute.updateMany({
+      where: { id: dispute.id, status: 'pending' },
       data:  { hostDisputed: true, hostResponseNote: trimmedNote, hostRespondedAt: disputeEscalatedAt },
-    }),
-    prisma.member.update({
+    })
+    if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
+
+    await tx.member.update({
       where: { id: disputeMember.id },
       data:  { disputeEscalatedAt },
-    }),
-  ])
+    })
+  })
 
   const groupLabel = groupLabelOf(group)
 
@@ -804,7 +753,7 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
     include: { members: { include: { user: { select: { id: true } } } }, service: { select: { name: true } } },
   })
   if (!group) throw httpError(404, '群組不存在')
-  if (group.status !== 'disputed') throw httpError(400, `群組狀態為 ${group.status}，不在申訴期`)
+  if (group.status !== 'disputed') throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
   const disputeMember = group.members.find(m => m.id === memberId && m.serviceInfoIssueNote);
   if (!disputeMember) throw httpError(400, '找不到申訴成員')
@@ -856,7 +805,6 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
         disputeEvidenceUrl:   null,
         disputeDeadline:      null,
         disputeEscalatedAt:   null,
-        withdrawRequestedAt:  null,
         confirmedAt:          winner === 'member' ? new Date() : null,
         confirmDeadline:      winner === 'host' ? confirmDeadline : null,
       },

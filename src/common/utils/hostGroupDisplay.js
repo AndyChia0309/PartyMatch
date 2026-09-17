@@ -30,7 +30,7 @@ export function getHostStatusBadge(status, needsCredentialsOnLock) {
 
 export function getHostPendingBadge(status, needsCredentialsOnLock) {
   if (status === 'pending_confirmation') return { text: needsCredentialsOnLock ? '成員提取中' : '成員填寫中' }
-  if (status === 'disputed') return { text: '收到問題回報，處理中', color: 'danger' }
+  if (status === 'disputed') return { text: '請至帳號資訊查看問題回報內容', color: 'danger' }
   return undefined
 }
 

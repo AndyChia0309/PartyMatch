@@ -87,8 +87,6 @@ export const NOTIFICATION_META = {
   dispute_resolved_by_host: { icon: ShieldCheck,    iconColor: 'text-success', link: '/my-subscriptions' },
   dispute_withdrawn:        { icon: Undo2,          iconColor: 'text-ink-3',   link: '/manage-groups' },
   dispute_escalated:        { icon: AlertTriangle,  iconColor: 'text-danger',  link: '/manage-groups' },
-  dispute_withdraw_requested: { icon: Undo2,        iconColor: 'text-warning-text', link: '/manage-groups' },
-  dispute_withdraw_rejected:  { icon: XCircle,      iconColor: 'text-danger', link: '/my-subscriptions' },
   billing_date_confirmed:   { icon: CalendarCheck,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   billing_date_adjusted:    { icon: CalendarClock,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   member_confirmed_service: { icon: CheckCircle2,   iconColor: 'text-success', link: '/manage-groups' },
@@ -367,22 +365,6 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     ]).finally(() => {
       openHostGroup(gId, { openMemberInfo: true })
     }))
-    return
-  }
-
-  if (notification.type === 'dispute_withdraw_requested' && notification.meta?.groupId) {
-    const gId = notification.meta.groupId
-    withReservedModal(() => Promise.all([
-      useGroupStore.getState().init({ all: true }),
-      useMemberStore.getState().init(),
-    ]).finally(() => {
-      openHostGroup(gId, { openMemberInfo: true, expandMemberId: notification.meta?.memberId })
-    }))
-    return
-  }
-
-  if (notification.type === 'dispute_withdraw_rejected' && notification.meta?.groupId) {
-    withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId));
     return
   }
 
