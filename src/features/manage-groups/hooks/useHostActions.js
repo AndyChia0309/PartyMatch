@@ -16,7 +16,7 @@ import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../../common/utils/
 const getGroupById     = (id)      => useGroupStore.getState().getById(id);
 const getGroupsByHostId = (hostId) => useGroupStore.getState().getByHostId(hostId)
 const lockGroup           = (id, sharedCredentials) => useGroupStore.getState().lockGroup(id, sharedCredentials)
-const activateService     = (id)   => useGroupStore.getState().activateService(id)
+const activateService     = (id, nextBillingDate) => useGroupStore.getState().activateService(id, nextBillingDate)
 const adjustBillingDate   = (id, payload) => useGroupStore.getState().adjustBillingDate(id, payload)
 const startRenewalCycle = (id, renewingUserIds) => useGroupStore.getState().startRenewalCycle(id, renewingUserIds)
 const endGroup         = (id)      => useGroupStore.getState().endGroup(id)
