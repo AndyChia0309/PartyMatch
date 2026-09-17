@@ -27,6 +27,7 @@ import { createId } from '../../common/utils/storage'
 import ConversationList, { CONV_TABS } from './components/ConversationList'
 import ChatWindow from './components/ChatWindow'
 import { isSystemConversation, markConversationReadLocal } from './utils'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../common/utils/panelBroadcast'
 
 function isImeConfirmEnter(e, isComposingRef, lastCompositionEndRef) {
   if (isComposingRef.current || e.nativeEvent?.isComposing || e.keyCode === 229) return true
@@ -91,13 +92,19 @@ export default function MessagesModal() {
         } catch {}
       }
       if (conv) setSelectedId(conv.id)
+      broadcastPanelOpened('messages')
     }
     function onClose() { resetAndClose() }
+    function onPanelOpened(e) {
+      if (e.detail?.panelId !== 'messages') resetAndClose()
+    }
     window.addEventListener('pm:open-messages', onOpen)
     window.addEventListener('pm:close-messages', onClose)
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
     return () => {
       window.removeEventListener('pm:open-messages', onOpen)
       window.removeEventListener('pm:close-messages', onClose)
+      window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -120,6 +127,7 @@ export default function MessagesModal() {
         useConversationStore.getState().addConversationOptimistic(normalized)
         useConversationStore.getState().refresh(user.id)
         setSelectedId(conv.id)
+        broadcastPanelOpened('messages')
       } catch (err) {
         console.error('[MessagesModal] DM 建立失敗:', err)
       }

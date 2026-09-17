@@ -13,8 +13,11 @@ import UserReviewsModal from '../../features/manage-groups/components/UserReview
 import { LOCKED_MESSAGE } from './components/navConstants'
 import DesktopSidebar from './components/DesktopSidebar'
 import TabletSidebarDrawer from './components/TabletSidebarDrawer'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../utils/panelBroadcast'
 
 const ConditionSearchModal = lazy(() => import('../../features/match/ConditionSearchModal'))
+
+const LOCAL_PANEL_IDS = new Set(['topup', 'settings', 'profile', 'credit-score', 'reviews', 'condition-search'])
 
 export default function AppNav() {
   const navigate = useNavigate()
@@ -35,10 +38,20 @@ export default function AppNav() {
   const [reviewsOpen, setReviewsOpen] = useState(false)
   const [conditionSearchOpen, setConditionSearchOpen] = useState(false)
 
+  function closeAllPanels() {
+    document.activeElement?.blur()
+    setTopupOpen(false)
+    setSettingsOpen(false)
+    setProfileOpen(false)
+    setCreditScoreOpen(false)
+    setReviewsOpen(false)
+    setConditionSearchOpen(false)
+  }
+
   useEffect(() => {
-    function openTopup() { setTopupOpen(true) }
     window.addEventListener('pm:open-topup', openTopup)
     return () => window.removeEventListener('pm:open-topup', openTopup)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
@@ -50,70 +63,84 @@ export default function AppNav() {
   }, [navigate])
 
   useEffect(() => {
-    function openProfileEvent() { setProfileOpen(true) }
+    function openProfileEvent() { closeAllPanels(); setProfileOpen(true); broadcastPanelOpened('profile') }
     window.addEventListener('pm:open-profile', openProfileEvent)
     return () => window.removeEventListener('pm:open-profile', openProfileEvent)
   }, [])
 
   useEffect(() => {
-    function openConditionSearchEvent() { setConditionSearchOpen(true) }
+    function openConditionSearchEvent() { closeAllPanels(); setConditionSearchOpen(true); broadcastPanelOpened('condition-search') }
     window.addEventListener('pm:open-condition-search', openConditionSearchEvent)
     return () => window.removeEventListener('pm:open-condition-search', openConditionSearchEvent)
+  }, [])
+
+  useEffect(() => {
+    function onPanelOpened(e) {
+      if (!LOCAL_PANEL_IDS.has(e.detail?.panelId)) closeAllPanels()
+    }
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    return () => window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
   }, [])
 
   const unreadNotifs = useNotificationStore(s => loggedIn && currentUser?.id ? s.getUnreadCount(currentUser.id) : 0)
   const unreadMsgs = useConversationStore(s => loggedIn && currentUser?.id ? s.getUnreadMsgCount(currentUser.id) : 0)
 
-  function closeAll() {
-    document.activeElement?.blur()
+  function openTopup() {
+    closeAllPanels()
+    setTopupOpen(true)
+    broadcastPanelOpened('topup')
   }
 
   function openCreate() {
-    closeAll()
+    closeAllPanels()
     if (!loggedIn) return
     window.dispatchEvent(new CustomEvent('pm:open-create-group'))
   }
 
   function openConditionSearch() {
-    closeAll()
+    closeAllPanels()
     window.dispatchEvent(new CustomEvent('pm:open-condition-search'))
   }
 
   function openNotify() {
-    closeAll()
+    closeAllPanels()
     window.dispatchEvent(new CustomEvent('pm:open-notify'))
   }
 
   function openMessages() {
     if (!loggedIn) return
-    closeAll()
+    closeAllPanels()
     window.dispatchEvent(new CustomEvent('pm:open-messages'))
   }
 
   function openSettings() {
-    closeAll()
+    closeAllPanels()
     setSettingsOpen(true)
+    broadcastPanelOpened('settings')
   }
 
   function openProfile() {
-    closeAll()
+    closeAllPanels()
     setProfileOpen(true)
+    broadcastPanelOpened('profile')
   }
 
   function openCreditScore() {
-    closeAll()
+    closeAllPanels()
     setCreditScoreOpen(true)
+    broadcastPanelOpened('credit-score')
   }
 
   function openReviews() {
-    closeAll()
+    closeAllPanels()
     setReviewsOpen(true)
+    broadcastPanelOpened('reviews')
   }
 
   function preventLockedAction(e) {
     e.preventDefault()
     e.stopPropagation()
-    closeAll()
+    closeAllPanels()
     toast(LOCKED_MESSAGE, 'info', {
       action: {
         label: '前往登入',
@@ -133,8 +160,8 @@ export default function AppNav() {
         presenceStatus={presenceStatus}
         unreadNotifs={unreadNotifs}
         unreadMsgs={unreadMsgs}
-        setTopupOpen={setTopupOpen}
-        closeAll={closeAll}
+        openTopup={openTopup}
+        closeAll={closeAllPanels}
         openCreate={openCreate}
         openConditionSearch={openConditionSearch}
         openNotify={openNotify}
@@ -156,7 +183,7 @@ export default function AppNav() {
         avatarColor={avatarColor}
         presenceStatus={presenceStatus}
         host={{ id: currentUser?.id, displayName: userName, avatarInitial, avatarColor }}
-        closeAll={closeAll}
+        closeAll={closeAllPanels}
         openCreate={openCreate}
         openConditionSearch={openConditionSearch}
         preventLockedAction={preventLockedAction}

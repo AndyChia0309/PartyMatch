@@ -11,6 +11,7 @@ import { useNotificationStore } from '../../../common/stores/useNotificationStor
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../../common/utils/panelBroadcast'
 
 const getGroupById     = (id)      => useGroupStore.getState().getById(id);
 const getGroupsByHostId = (hostId) => useGroupStore.getState().getByHostId(hostId)
@@ -52,7 +53,7 @@ function loadHostData(activeUser) {
   return { hostedGroups, applications, members, seatMap }
 }
 
-export function useHostActions(activeUser) {
+export function useHostActions(activeUser, { manageModal = true } = {}) {
   const groupsState        = useGroupStore(s => s.groups);
   const applicationsState  = useApplicationStore(s => s.applications)
   const membersState       = useMemberStore(s => s.members)
@@ -85,15 +86,18 @@ export function useHostActions(activeUser) {
     setAutoOpenMembers(!!openMembers)
     setAutoExpandMemberId(expandMemberId ?? null)
     setAutoScrollToComments(!!scrollToComments)
+    broadcastPanelOpened('host-group')
   }
 
   useEffect(() => {
+    if (!manageModal) return
     function onOpenHostGroup(e) { applyOpenHostGroup(e.detail ?? {}) }
     window.addEventListener('pm:open-host-group', onOpenHostGroup)
     return () => window.removeEventListener('pm:open-host-group', onOpenHostGroup)
-  }, []);
+  }, [manageModal]);
 
   useEffect(() => {
+    if (!manageModal) return
     function onCloseHostGroup() {
       setViewGroupId(null)
       setAutoOpenLockGroup(false)
@@ -105,9 +109,16 @@ export function useHostActions(activeUser) {
       setAutoExpandMemberId(null)
       setAutoScrollToComments(false)
     }
+    function onPanelOpened(e) {
+      if (e.detail?.panelId !== 'host-group') onCloseHostGroup()
+    }
     window.addEventListener('pm:close-host-group', onCloseHostGroup)
-    return () => window.removeEventListener('pm:close-host-group', onCloseHostGroup)
-  }, []);
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    return () => {
+      window.removeEventListener('pm:close-host-group', onCloseHostGroup)
+      window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    }
+  }, [manageModal]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect

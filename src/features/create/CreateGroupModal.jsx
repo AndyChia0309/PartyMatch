@@ -16,6 +16,7 @@ import { calcPricePerSeat } from '../../common/utils/pricingUtils'
 import { useAuthStore } from '../../common/stores/useAuthStore'
 import { toast } from '../../common/utils/toast'
 import { suppressNextToast } from '../../common/utils/notificationToast'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../common/utils/panelBroadcast'
 
 const STEP_COMPONENTS = [Step1Service, Step2Plan, Step3Settings, Step4Preview]
 const STEP_TITLES = ['選擇服務', '選擇方案', '群組設定', '最後確認']
@@ -107,10 +108,20 @@ export default function CreateGroupModal() {
       setShowPreview(false)
       setIsSubmitting(false)
       setOpen(true)
+      broadcastPanelOpened('create-group')
     }
     window.addEventListener('pm:open-create-group', onOpen)
     return () => window.removeEventListener('pm:open-create-group', onOpen)
   }, [])
+
+  useEffect(() => {
+    function onPanelOpened(e) {
+      if (e.detail?.panelId !== 'create-group' && open) requestClose()
+    }
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    return () => window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
 
   function onChange(key, value) {
     setForm(prev => {

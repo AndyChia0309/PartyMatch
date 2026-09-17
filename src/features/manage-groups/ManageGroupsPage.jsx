@@ -38,7 +38,7 @@ export default function ManageGroupsPage() {
     membersMap: liveMembersMap, applicationCounts: liveApplicationCounts,
     groupHandlersMap,
     refreshGroups,
-  } = useHostActions(activeUser);
+  } = useHostActions(activeUser, { manageModal: false });
   const displayGroups = useDeferWhileModalOpen(liveDisplayGroups)
   const historyGroups = useDeferWhileModalOpen(liveHistoryGroups)
   const membersMap = useDeferWhileModalOpen(liveMembersMap)

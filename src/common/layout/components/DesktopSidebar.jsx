@@ -22,7 +22,7 @@ export default function DesktopSidebar({
   presenceStatus,
   unreadNotifs,
   unreadMsgs,
-  setTopupOpen,
+  openTopup,
   closeAll,
   openCreate,
   openConditionSearch,
@@ -150,7 +150,7 @@ export default function DesktopSidebar({
     if (!loggedIn) return null
     return (
       <button
-        onClick={() => setTopupOpen(true)}
+        onClick={openTopup}
         className={FLOATING_ICON_BUTTON_CLASS}
         aria-label="PM幣儲值"
       >

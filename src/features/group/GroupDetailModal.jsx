@@ -20,6 +20,7 @@ import { toast } from '../../common/utils/toast'
 import ServiceLogo from '../../components/ui/ServiceLogo'
 import { LOCKED_MESSAGE } from '../../common/layout/components/navConstants'
 import { useIsDesktop } from '../../common/utils/hooks'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../common/utils/panelBroadcast'
 import { TokenBadge } from '../../components/ui/TokenAmount'
 import ConfirmActionDialog from '../../components/ui/ConfirmActionDialog'
 import CountdownText from '../../components/ui/primitives/CountdownText'
@@ -212,13 +213,19 @@ export default function GroupDetailModal() {
       pushGroupUrl(gId)
       if (e.detail?.openCredentials) setAutoOpenCredentials(true)
       if (e.detail?.scrollToComments) setAutoScrollToComments(true)
+      broadcastPanelOpened('group-detail')
     }
     function onCloseGroupDetail() { pushGroupUrl(null) }
+    function onPanelOpened(e) {
+      if (e.detail?.panelId !== 'group-detail') onCloseGroupDetail()
+    }
     window.addEventListener('pm:open-group', onOpen)
     window.addEventListener('pm:close-group-detail', onCloseGroupDetail)
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
     return () => {
       window.removeEventListener('pm:open-group', onOpen)
       window.removeEventListener('pm:close-group-detail', onCloseGroupDetail)
+      window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
