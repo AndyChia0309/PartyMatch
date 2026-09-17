@@ -34,7 +34,7 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
@@ -437,6 +437,7 @@ export default function HostGroupView(
         onTogglePassword: () => setShowPassword(v => !v),
         autoExpandMemberId,
         autoScrollToComments,
+        onAutoScrollToCommentsDone,
       });
     }
     return null

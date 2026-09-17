@@ -73,6 +73,7 @@ export default function HostGroupModalHost() {
         autoOpenMembers={autoOpenMembers}
         autoExpandMemberId={autoExpandMemberId}
         autoScrollToComments={autoScrollToComments}
+        onAutoScrollToCommentsDone={() => setAutoScrollToComments(false)}
         onOpenRenewal={() => setRenewalModalGroupId(viewGroupId)}
       />
       {renewalModalGroup && (

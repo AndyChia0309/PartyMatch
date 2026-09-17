@@ -9,7 +9,7 @@ export function buildCredentialsPanel(
   {
     group, viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, showPassword, onTogglePassword,
     issueNote, evidenceUrl, disputeDeadline, memberProfiles, isSharedCredentials, hasExtracted, memberServiceInfo, memberServiceFields, isDisputeEscalated,
-    autoScrollToComments,
+    autoScrollToComments, onAutoScrollToCommentsDone,
   }
 ) {
   const credentialsBody = (
@@ -67,7 +67,7 @@ export function buildCredentialsPanel(
           isDisputeEscalated={isDisputeEscalated}
         />
       )}
-      <CredentialCommentsSection groupId={group.id} hostId={group.hostId} autoScroll={autoScrollToComments} />
+      <CredentialCommentsSection groupId={group.id} hostId={group.hostId} autoScroll={autoScrollToComments} onAutoScrolled={onAutoScrollToCommentsDone} />
     </div>
   )
 

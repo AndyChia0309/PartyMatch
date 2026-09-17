@@ -15,7 +15,7 @@ export default function GroupViewModal({
   onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, onActivate, onLockGroup, onCancelGroup, onRemoveMember,
   onLeaveGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds,
   autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers,
-  autoExpandMemberId, onOpenRenewal, autoOpenCredentials, autoScrollToComments,
+  autoExpandMemberId, onOpenRenewal, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone,
 }) {
   const groups       = useGroupStore(s => s.groups);
   const allMembers   = useMemberStore(s => s.members)
@@ -91,8 +91,9 @@ export default function GroupViewModal({
       autoOpenMembers={autoOpenMembers}
       autoExpandMemberId={autoExpandMemberId}
       autoScrollToComments={autoScrollToComments}
+      onAutoScrollToCommentsDone={onAutoScrollToCommentsDone}
       onOpenRenewal={onOpenRenewal}
     />
   )
-  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} />
+  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={onAutoScrollToCommentsDone} />
 }

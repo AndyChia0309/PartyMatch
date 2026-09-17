@@ -31,7 +31,7 @@ import { toast } from '../../../common/utils/toast'
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
 
-export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoScrollToComments, loading = false }) {
+export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone, loading = false }) {
   const [activePanel, setActivePanel] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [withdrawConfirm, setWithdrawConfirm] = useState(false)
@@ -368,6 +368,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         isSharedCredentials,
         hasExtracted: hasServiceInfo || hasServiceInfoIssue,
         autoScrollToComments,
+        onAutoScrollToCommentsDone,
         memberServiceInfo: myMember?.serviceInfo,
         memberServiceFields: sharingMethodConfig.fields,
         memberProfiles: showsProfileName

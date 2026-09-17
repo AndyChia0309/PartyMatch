@@ -6,7 +6,7 @@ import { hasFilledServiceInfo, isSharedCredentialsMethod } from '../../../../com
 import { parseHostCredentials } from '../../../../common/utils/hostCredentialFields'
 
 export function buildMemberInfoPanel(
-  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments }
+  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, onRejectWithdrawal, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone }
 ) {
   const parsedCredentials = parseHostCredentials(sharedCredentials, serviceId)
   const isSharedCredentials = isSharedCredentialsMethod(sharingMethod)
@@ -73,7 +73,7 @@ export function buildMemberInfoPanel(
             })}
           </div>
         )}
-        <CredentialCommentsSection groupId={groupId} hostId={hostId} autoScroll={autoScrollToComments} />
+        <CredentialCommentsSection groupId={groupId} hostId={hostId} autoScroll={autoScrollToComments} onAutoScrolled={onAutoScrollToCommentsDone} />
       </div>
     ),
   }

@@ -532,7 +532,7 @@ export default function GroupDetailModal() {
       {leaving ? (
         <GroupModalShell loading onClose={handleClose} group={group} service={service} plan={plan} desktopAsideTop={isDesktop ? true : undefined} />
       ) : (membershipRefreshing ? loadingGuess.isMember : isMember && !isHost) ? (
-        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} />
+        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={() => setAutoScrollToComments(false)} />
       ) : membershipRefreshing ? (
         <GroupModalShell
           loading

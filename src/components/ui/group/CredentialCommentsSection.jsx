@@ -13,7 +13,18 @@ import { useEvidenceUpload } from '../../../common/utils/hooks'
 import { useAuthStore } from '../../../common/stores/useAuthStore'
 import { useNotificationStore } from '../../../common/stores/useNotificationStore'
 
-export default function CredentialCommentsSection({ groupId, hostId, autoScroll = false }) {
+function scrollIntoNearestContainer(el) {
+  if (!el) return
+  let container = el.parentElement
+  while (container && container !== document.body && container.scrollHeight <= container.clientHeight + 1) {
+    container = container.parentElement
+  }
+  if (!container || container === document.body) return
+  const delta = el.getBoundingClientRect().top - container.getBoundingClientRect().top
+  container.scrollTo({ top: container.scrollTop + delta, behavior: 'smooth' })
+}
+
+export default function CredentialCommentsSection({ groupId, hostId, autoScroll = false, onAutoScrolled }) {
   const [comments, setComments] = useState([])
   const [loading, setLoading] = useState(true)
   const [text, setText] = useState('')
@@ -40,7 +51,8 @@ export default function CredentialCommentsSection({ groupId, hostId, autoScroll 
 
   useEffect(() => {
     if (loading || !autoScroll) return
-    sectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    scrollIntoNearestContainer(sectionRef.current)
+    onAutoScrolled?.()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, autoScroll])
 
