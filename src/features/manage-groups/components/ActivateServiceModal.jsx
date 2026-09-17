@@ -168,7 +168,7 @@ export default function ActivateServiceModal({
             }
           />
           <div className="space-y-4 border-t border-line-subtle py-5">
-            <p className="flex items-center gap-2 text-lg font-black text-brand"><Calendar strokeWidth={1.5} size={16} />設定下次扣款日</p>
+            <p className="flex items-center gap-2 text-lg font-black text-brand"><Calendar strokeWidth={1.5} size={16} />設定扣款日期</p>
             <span className="relative block">
               <Input
                 type="date"
@@ -176,11 +176,11 @@ export default function ActivateServiceModal({
                 max={maxBillingDateStr}
                 value={billingDate}
                 onChange={e => setBillingDate?.(e.target.value)}
-                placeholder="請選擇下次扣款日"
+                placeholder="請選擇扣款日期"
               />
               {!billingDate && (
                 <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-ink-4 can-hover:hidden">
-                  請選擇下次扣款日
+                  請選擇扣款日期
                 </span>
               )}
             </span>

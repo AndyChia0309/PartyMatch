@@ -137,7 +137,7 @@ export default function PlatformReportsSection() {
                     rows={2}
                   />
                   <div className="flex items-center gap-2">
-                    <span className="shrink-0 text-xs text-ink-3">同時調整下次扣款日（選填）</span>
+                    <span className="shrink-0 text-xs text-ink-3">同時調整扣款日期（選填）</span>
                     <Input
                       type="date"
                       value={dateDraft}

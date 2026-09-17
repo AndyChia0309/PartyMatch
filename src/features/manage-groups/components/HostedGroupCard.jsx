@@ -92,11 +92,11 @@ function HostedGroupCard({
             {collectionState}
           </StatCell>
         ) : group.status === 'pending_confirmation' || group.status === 'pending_activation' ? (
-          <StatCell label="下次扣款">
+          <StatCell label="扣款日期">
             啟用後確定
           </StatCell>
         ) : (
-          <StatCell label="下次扣款">
+          <StatCell label="扣款日期">
             {toISODate(group.nextBillingDate, '—')}
           </StatCell>
         )}
