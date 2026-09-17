@@ -32,6 +32,14 @@ export default function ManageGroupsPage() {
     ),
     [notifications, activeUser?.id]
   );
+  const unseenCredentialCommentGroupIds = useMemo(
+    () => new Set(
+      notifications
+        .filter(n => n.type === 'credential_comment' && n.userId === activeUser?.id && !n.isRead && n.meta?.groupId)
+        .map(n => n.meta.groupId)
+    ),
+    [notifications, activeUser?.id]
+  );
 
   const {
     displayGroups: liveDisplayGroups, historyGroups: liveHistoryGroups,
@@ -49,6 +57,7 @@ export default function ManageGroupsPage() {
       hostGroupNeedsAttention(group, {
         pendingAppCount: applicationCounts[group.id] ?? 0,
         hasUnseenServiceInfo: unseenServiceInfoGroupIds.has(group.id),
+        hasUnseenCredentialComment: unseenCredentialCommentGroupIds.has(group.id),
       })
   }
 

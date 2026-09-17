@@ -10,14 +10,16 @@ export function getHostGroupFlags(status, nextBillingDate) {
   }
 }
 
-export function hostGroupNeedsAttention(group, { pendingAppCount = 0, hasUnseenServiceInfo = false } = {}) {
+export function hostGroupNeedsAttention(group, { pendingAppCount = 0, hasUnseenServiceInfo = false, hasUnseenCredentialComment = false } = {}) {
   if (!group) return false
   const { showRenewal } = getHostGroupFlags(group.status, group.nextBillingDate)
   return group.status === 'full' ||
     group.status === 'pending_activation' ||
+    group.status === 'disputed' ||
     showRenewal ||
     pendingAppCount > 0 ||
-    hasUnseenServiceInfo
+    hasUnseenServiceInfo ||
+    hasUnseenCredentialComment
 }
 
 export function getHostStatusBadge(status, needsCredentialsOnLock) {

@@ -6,6 +6,7 @@ import { useMemberStore } from '../../common/stores/useMemberStore'
 import { useApplicationStore } from '../../common/stores/useApplicationStore'
 import { useGroupStore } from '../../common/stores/useGroupStore'
 import { useAuthStore } from '../../common/stores/useAuthStore'
+import { useNotificationStore } from '../../common/stores/useNotificationStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import SubscriptionCard from './components/SubscriptionCard'
 import EmptyState from '../../components/ui/primitives/EmptyState'
@@ -21,6 +22,8 @@ import { isHistorySubscription } from '../../common/utils/groupStatusDisplay'
 import GroupHistoryModal from '../../components/ui/group/GroupHistoryModal'
 import { useDeferWhileModalOpen } from '../../common/utils/hooks'
 import { UpdateDot } from '../../common/layout/components/navShared'
+import { getServiceById } from '../../common/utils/serviceUtils'
+import { hasFilledServiceInfo } from '../../common/utils/serviceInfoFields'
 
 const getGroupById = (id) => useGroupStore.getState().getById(id)
 
@@ -64,9 +67,15 @@ function filterSubs(subs) {
   return subs.filter(s => !isHistorySubscription(s))
 }
 
-function hasPendingMemberAction(sub) {
-  if (sub.groupStatus === 'confirming' && !sub.confirmedAt) return true
+function hasPendingMemberAction(sub, hasUnseenCredentialComment = false) {
+  if (hasUnseenCredentialComment) return true
+  const isConfirmingLike = sub.groupStatus === 'confirming' || (sub.groupStatus === 'disputed' && !sub.serviceInfoIssueNote)
+  if (isConfirmingLike && !sub.confirmedAt) return true
   if (sub.groupStatus === 'disputed' && sub.serviceInfoIssueNote) return true
+  if (sub.groupStatus === 'pending_confirmation' && !sub.serviceInfoIssueNote) {
+    const sharingMethod = getServiceById(sub.serviceId)?.sharingMethod
+    if (!hasFilledServiceInfo(sub.serviceInfo, sharingMethod, sub.serviceId)) return true
+  }
   return false
 }
 
@@ -80,6 +89,16 @@ export default function SubscriptionsPage() {
 
   const refreshTick = usePendingRefreshStore(s => s.refreshTick);
   const pendingGroupIds = usePendingRefreshStore(s => s.pendingGroupIds)
+
+  const notifications = useNotificationStore(s => s.notifications);
+  const unseenCredentialCommentGroupIds = useMemo(
+    () => new Set(
+      notifications
+        .filter(n => n.type === 'credential_comment' && n.userId === activeUserId && !n.isRead && n.meta?.groupId)
+        .map(n => n.meta.groupId)
+    ),
+    [notifications, activeUserId]
+  );
 
   const subscriptionsState = useDeferWhileModalOpen(useSubscriptionStore(s => s.subscriptions));
   const groupsState        = useDeferWhileModalOpen(useGroupStore(s => s.groups))
@@ -196,7 +215,7 @@ export default function SubscriptionsPage() {
                 <RevealSection key={sub.id} delay={(pendingApplications.length + i) * 60}>
                   <SubscriptionCard
                     sub={sub}
-                    hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub)}
+                    hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub, unseenCredentialCommentGroupIds.has(sub.groupId))}
                     onViewGroup={onViewGroup}
                   />
                 </RevealSection>
@@ -215,7 +234,7 @@ export default function SubscriptionsPage() {
           <RevealSection key={sub.id} delay={i * 60}>
             <SubscriptionCard
               sub={sub}
-              hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub)}
+              hasPendingUpdate={pendingGroupIds.has(sub.groupId) || hasPendingMemberAction(sub, unseenCredentialCommentGroupIds.has(sub.groupId))}
               onViewGroup={sub => {
                 historyReopenRef.current = { groupId: sub.groupId, opened: false }
                 closeHistory()
