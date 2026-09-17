@@ -533,7 +533,7 @@ export default function HostGroupView(
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && (
+      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && !showAdjustBillingDate && (
       <GroupModalShell
         onClose={onClose}
         group={group}
