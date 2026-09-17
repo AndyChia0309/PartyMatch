@@ -288,7 +288,7 @@ export async function confirmService({ groupId, userId }) {
   notify({
     userId:  group.hostId,
     type:    'member_confirmed_service',
-    title:   `${groupLabel} ${member.user.name}已確認服務正常`,
+    title:   `${groupLabel} 成員已確認服務正常`,
     message: `${member.user.name} 已確認「${groupLabel}」服務正常。`,
     meta:    { groupId },
   });

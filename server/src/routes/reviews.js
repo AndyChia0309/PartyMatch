@@ -99,10 +99,11 @@ router.post('/', requireAuth, validate(createReviewSchema), async (req, res, nex
 
     if (isNew) {
       const groupLabel = group.planName ?? group.service?.name ?? ''
+      const authorLabel = isAuthorHost ? '團主' : '成員'
       notify({
         userId:  revieweeId,
         type:    'group_reviewed',
-        title:   `${groupLabel} ${author?.name ?? '對方'}給了新評價`,
+        title:   `${groupLabel} ${authorLabel}給了新評價`,
         message: `${author?.name ?? '對方'} 對「${groupLabel}」留下了評價。`,
         meta:    { groupId },
       })
@@ -111,7 +112,7 @@ router.post('/', requireAuth, validate(createReviewSchema), async (req, res, nex
           data: {
             groupId,
             authorId,
-            content: `${author?.name ?? '成員'} 已送出評價。`,
+            content: '已送出評價。',
           },
         }).catch(console.error)
       }
