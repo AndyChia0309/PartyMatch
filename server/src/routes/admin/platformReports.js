@@ -2,6 +2,8 @@ import { Router } from 'express'
 import prisma from '../../lib/prisma.js'
 import { requireAdmin } from '../../middleware/auth.js'
 import { getSignedDownloadUrl } from '../../lib/r2Storage.js'
+import { adminAdjustBillingDate } from '../../services/groupLifecycle.service.js'
+import { notify } from '../groups/shared.js'
 
 const router = Router()
 
@@ -50,15 +52,34 @@ router.post('/:id/resolve', requireAdmin, async (req, res, next) => {
     if (!report) return res.status(404).json({ message: '找不到回報' })
     if (report.status === 'resolved') return res.status(400).json({ message: '這筆回報已經處理過' })
 
+    const resolutionNote = req.body.resolutionNote?.trim() || null
+
+    if (req.body.nextBillingDate) {
+      await adminAdjustBillingDate({
+        groupId:         report.groupId,
+        nextBillingDate: req.body.nextBillingDate,
+        note:            resolutionNote || '客服工單裁定調整',
+      })
+    }
+
     const updated = await prisma.platformReport.update({
       where: { id: report.id },
       data: {
         status:            'resolved',
         resolvedByAdminId: req.admin.id,
-        resolutionNote:    req.body.resolutionNote?.trim() || null,
+        resolutionNote,
         resolvedAt:        new Date(),
       },
     })
+
+    notify({
+      userId:  report.reporterId,
+      type:    'platform_report_resolved',
+      title:   '你的客服回報已處理',
+      message: resolutionNote ? `平台已處理你的回報，備註：${resolutionNote}` : '平台已處理你的回報。',
+      meta:    { groupId: report.groupId, reportId: report.id },
+    })
+
     res.json(updated)
   } catch (err) { next(err) }
 });

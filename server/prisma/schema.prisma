@@ -111,6 +111,7 @@ enum NotificationType {
   group_reviewed
   account_reactivated
   payment_reminder
+  platform_report_resolved
   system
 }
 

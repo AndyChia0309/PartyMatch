@@ -36,8 +36,8 @@ export async function fetchAdminPlatformReports(params = {}) {
   return adminClient.get('/admin/platform-reports', { params })
 }
 
-export async function resolvePlatformReportApi(reportId, { resolutionNote } = {}) {
-  return adminClient.post(`/admin/platform-reports/${reportId}/resolve`, { resolutionNote })
+export async function resolvePlatformReportApi(reportId, { resolutionNote, nextBillingDate } = {}) {
+  return adminClient.post(`/admin/platform-reports/${reportId}/resolve`, { resolutionNote, nextBillingDate })
 }
 
 export async function searchUserByEmail(email) {

@@ -1,6 +1,6 @@
 import {
   AlertTriangle, Bell, CalendarCheck, CalendarClock, CheckCircle2, ClipboardCheck, ClipboardEdit,
-  Flag, KeyRound, LogOut, Megaphone, MessageSquare, PlayCircle, RefreshCw, Rocket, RotateCcw, Send, ShieldCheck,
+  Flag, Headset, KeyRound, LogOut, Megaphone, MessageSquare, PlayCircle, RefreshCw, Rocket, RotateCcw, Send, ShieldCheck,
   Sparkles, Star, Undo2, UserMinus, UserPlus, Users, Wallet, XCircle,
 } from 'lucide-react'
 import { useAuthStore } from '../stores/useAuthStore'
@@ -94,6 +94,7 @@ export const NOTIFICATION_META = {
   member_confirmed_service: { icon: CheckCircle2,   iconColor: 'text-success', link: '/manage-groups' },
   group_reviewed:           { icon: Star,           iconColor: 'text-ink-3',   link: '/manage-groups' },
   account_reactivated:      { icon: RotateCcw,      iconColor: 'text-success', link: '/' },
+  platform_report_resolved: { icon: Headset,        iconColor: 'text-success', link: '/my-subscriptions' },
   payment_reminder:         { icon: Wallet,         iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   system:                   { icon: Megaphone,      iconColor: 'text-ink-3',   link: '/' },
   default:                  { icon: Bell,           iconColor: 'text-ink-3',   link: '/my-subscriptions' },
