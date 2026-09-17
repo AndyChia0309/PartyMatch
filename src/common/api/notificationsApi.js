@@ -7,3 +7,7 @@ export async function readAllNotifications() {
 export async function patchNotification(id) {
   return client.patch(`/notifications/${id}/read`)
 }
+
+export async function deleteNotificationsByIds(ids) {
+  return client.delete('/notifications', { data: { ids } })
+}

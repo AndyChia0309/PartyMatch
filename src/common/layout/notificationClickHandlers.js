@@ -79,6 +79,7 @@ export const NOTIFICATION_META = {
   group_ended:              { icon: Flag,           iconColor: 'text-ink-3',   link: '/explore' },
   member_removed:           { icon: UserMinus,      iconColor: 'text-danger',  link: '/explore' },
   member_left:              { icon: LogOut,         iconColor: 'text-ink-3',   link: '/manage-groups' },
+  member_left_self:         { icon: LogOut,         iconColor: 'text-ink-3',   link: '/explore' },
   escrow_released:          { icon: Wallet,         iconColor: 'text-success', link: '/manage-groups' },
   escrow_released_member:   { icon: Wallet,         iconColor: 'text-success', link: '/my-subscriptions' },
   dispute_raised:           { icon: AlertTriangle,  iconColor: 'text-danger',  link: '/manage-groups' },
@@ -204,7 +205,7 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     return
   }
 
-  if (notification.type === 'member_removed' && notification.meta?.groupId) {
+  if ((notification.type === 'member_removed' || notification.type === 'member_left_self') && notification.meta?.groupId) {
     useAuthStore.getState().refreshTokenBalance().catch(console.error);
     useAuthStore.getState().refreshCreditScore().catch(console.error);
     withReservedModal(() => new Promise(resolve => {

@@ -237,6 +237,13 @@ export default function App() {
           window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openMembers: true } }))
         },
       },
+      member_left_self: {
+        label: '前往查看',
+        run:   (meta) => {
+          if (!meta?.groupId) return
+          window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId } }))
+        },
+      },
       group_activated: {
         label: '前往查看',
         run:   (meta) => {
@@ -253,7 +260,7 @@ export default function App() {
     };
     const REFRESH_TOAST_ICON_TYPES = new Set([
       'group_full', 'group_full_member', 'group_activated', 'application_approved', 'application_cancelled',
-      'member_removed', 'member_left', 'group_cancelled', 'application_rejected', 'service_info_filled',
+      'member_removed', 'member_left', 'member_left_self', 'group_cancelled', 'application_rejected', 'service_info_filled',
       'all_service_info_filled', 'billing_date_adjusted', 'escrow_released_member', 'new_application',
       'group_activation_expired',
     ])
@@ -362,7 +369,7 @@ export default function App() {
       'dispute_withdraw_requested', 'dispute_withdraw_rejected',
       'group_renewal', 'upcoming_renewal', 'group_reviewed', 'service_info_issue',
       'credential_extraction_started', 'payment_reminder', 'service_info_deadline_passed', 'group_ended',
-      'group_created',
+      'group_created', 'credential_comment',
     ])
     function onNotifyToast(event) {
       const user = useAuthStore.getState().getProfile()

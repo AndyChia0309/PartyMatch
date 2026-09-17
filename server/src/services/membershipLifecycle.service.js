@@ -203,6 +203,13 @@ export async function removeMember({ memberId, actorId }) {
       message: `${existing.user?.name ?? '成員'} 已退出「${groupLabel}」群組。`,
       meta:    { groupId: existing.groupId },
     })
+    notify({
+      userId:  existing.userId,
+      type:    'member_left_self',
+      title:   `${groupLabel} 你已退出此群組`,
+      message: `你已退出「${groupLabel}」群組，代管費用已退還至你的PM幣餘額。`,
+      meta:    { groupId: existing.groupId },
+    })
   } else {
     notify({
       userId:  existing.userId,

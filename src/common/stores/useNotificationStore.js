@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   readAllNotifications,
   patchNotification,
+  deleteNotificationsByIds,
 } from '../api/notificationsApi'
 import { useAuthStore } from './useAuthStore'
 import { todayISO, byNewest } from '../utils/date'
@@ -19,6 +20,7 @@ const SYSTEM_NOTIFICATION_TYPES = new Set(['system']);
 const NOTIFICATION_REFRESH_STORES = {
   member_removed:          ['group', 'member', 'subscription'],
   member_left:              ['group', 'member'],
+  member_left_self:         ['group', 'member', 'subscription'],
   group_cancelled:          ['group'],
   application_approved:     ['group', 'member', 'subscription', 'application'],
   application_rejected:     ['application'],
@@ -39,6 +41,7 @@ const NOTIFICATION_REFRESH_STORES = {
 const NOTIFICATION_REFRESH_PAGE = {
   member_removed: '/my-subscriptions',
   member_left: '/manage-groups',
+  member_left_self: '/explore',
   group_cancelled: '/my-subscriptions',
   application_approved: '/my-subscriptions',
   application_rejected: '/my-subscriptions',
@@ -151,7 +154,7 @@ export const useNotificationStore = create((set, get) => ({
             },
           }))
         });
-        const BALANCE_AFFECTING_TYPES = new Set(['member_removed', 'application_rejected', 'escrow_released', 'dispute_resolved', 'group_cancelled']);
+        const BALANCE_AFFECTING_TYPES = new Set(['member_removed', 'member_left_self', 'application_rejected', 'escrow_released', 'dispute_resolved', 'group_cancelled']);
         if (newNotifs.some(n => BALANCE_AFFECTING_TYPES.has(n.type))) {
           useAuthStore.getState().refreshTokenBalance().catch(console.error)
         }
@@ -228,5 +231,20 @@ export const useNotificationStore = create((set, get) => ({
       if (prior) set(s => ({ notifications: s.notifications.map(n => n.id === id ? prior : n) }))
       notifyError(err, '標記已讀失敗，請稍後再試')
     })
+  },
+
+  deleteByIds: async (ids) => {
+    if (!ids?.length) return
+    const idSet = new Set(ids)
+    const prior = get().notifications
+    set(s => ({
+      notifications: s.notifications.filter(n => !idSet.has(n.id)),
+    }))
+    try {
+      await deleteNotificationsByIds(ids)
+    } catch (err) {
+      set({ notifications: prior })
+      notifyError(err, '刪除通知失敗，請稍後再試')
+    }
   },
 }))

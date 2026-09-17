@@ -30,4 +30,16 @@ router.patch('/:id/read', requireAuth, async (req, res, next) => {
   } catch (err) { next(err) }
 });
 
+router.delete('/', requireAuth, async (req, res, next) => {
+  try {
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids : []
+    if (ids.length === 0) return res.status(400).json({ message: '缺少要刪除的通知' })
+
+    await prisma.notification.deleteMany({
+      where: { id: { in: ids }, userId: req.user.id },
+    })
+    res.json({ success: true })
+  } catch (err) { next(err) }
+});
+
 export default router

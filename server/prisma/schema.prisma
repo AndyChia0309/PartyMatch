@@ -92,6 +92,7 @@ enum NotificationType {
   group_cancelled
   group_renewal
   member_left
+  member_left_self
   member_removed
   service_info_issue
   escrow_released

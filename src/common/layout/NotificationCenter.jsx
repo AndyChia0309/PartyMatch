@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Bell, CheckCheck, ChevronLeft, History, Megaphone, X } from 'lucide-react'
+import { Bell, CheckCheck, ChevronLeft, History, Megaphone, Trash2, X } from 'lucide-react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '../../components/ui/drawer'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useNotificationStore } from '../stores/useNotificationStore'
@@ -13,6 +13,8 @@ import EmptyState from '../../components/ui/primitives/EmptyState'
 import FilterSelect from '../../components/ui/primitives/FilterSelect'
 import { useFilterSelectGroup } from '../../components/ui/primitives/useFilterSelectGroup'
 import ServiceLogo from '../../components/ui/ServiceLogo'
+import ConfirmActionDialog from '../../components/ui/ConfirmActionDialog'
+import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../utils/panelBroadcast'
 import { UpdateDot } from './components/navShared'
 import {
   DropdownMenu, DropdownMenuContent,
@@ -31,7 +33,7 @@ function getMergedNotifications(userId) {
 }
 
 const APPLY_TYPES   = ['joined', 'application_approved', 'application_rejected', 'application_sent', 'new_application', 'application_cancelled', 'application'];
-const GROUP_TYPES    = ['group_created', 'group_activated', 'group_chat_opened', 'group_full', 'group_full_member', 'group_ended', 'group_cancelled', 'group_renewal', 'member_left', 'member_removed', 'member_confirmed_service', 'group_reviewed']
+const GROUP_TYPES    = ['group_created', 'group_activated', 'group_chat_opened', 'group_full', 'group_full_member', 'group_ended', 'group_cancelled', 'group_renewal', 'member_left', 'member_left_self', 'member_removed', 'member_confirmed_service', 'group_reviewed']
 const BILLING_TYPES  = ['fill_service_info', 'service_info_filled', 'all_service_info_filled', 'service_info_deadline_passed', 'escrow_released', 'escrow_released_member', 'upcoming_renewal', 'billing_date_confirmed', 'billing_date_adjusted', 'payment_reminder']
 const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'dispute_withdrawn', 'dispute_escalated', 'dispute_withdraw_requested', 'dispute_withdraw_rejected', 'service_info_issue'];
 
@@ -177,15 +179,23 @@ export default function NotificationCenter() {
   const [view, setView] = useState('main')
   const [activeTab, setActiveTab] = useState('all')
   const [sortOrder, setSortOrder] = useState('newest');
+  const [activeHistoryTab, setActiveHistoryTab] = useState('all')
+  const [historySortOrder, setHistorySortOrder] = useState('newest');
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeHistoryCategory, setActiveHistoryCategory] = useState(null);
+  const [deleteHistoryConfirm, setDeleteHistoryConfirm] = useState(false);
   const filterSelectGroup = useFilterSelectGroup();
   const historyFilterSelectGroup = useFilterSelectGroup();
   const [filterMenuOpen, setFilterMenuOpen] = useState(false);
+  const [historyFilterMenuOpen, setHistoryFilterMenuOpen] = useState(false);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (filterSelectGroup.openKey) setFilterMenuOpen(false)
   }, [filterSelectGroup.openKey])
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (historyFilterSelectGroup.openKey) setHistoryFilterMenuOpen(false)
+  }, [historyFilterSelectGroup.openKey])
 
   const allNotifications = useMemo(
     () => loggedIn
@@ -204,7 +214,10 @@ export default function NotificationCenter() {
       if (group.hostId === userId) return CLOSED_GROUP_STATUSES.includes(group.status)
       if (CLOSED_GROUP_STATUSES.includes(group.status)) return true
       const member = myMemberByGroupId.get(groupId)
-      if (member) return new Date(n.createdAt) < new Date(member.joinedAtTime || member.joinedAt)
+      if (member) {
+        if (n.type === 'application_sent' || n.type === 'application_approved') return false
+        return new Date(n.createdAt) < new Date(member.joinedAtTime || member.joinedAt)
+      }
       const pendingApp = myPendingApplicationByGroupId.get(groupId)
       if (pendingApp) return new Date(n.createdAt) < new Date(pendingApp.createdAt)
       return true
@@ -240,13 +253,28 @@ export default function NotificationCenter() {
     function onOpen() {
       setActiveTab('all')
       setActiveCategory(null)
+      setActiveHistoryTab('all')
       setActiveHistoryCategory(null)
       setView('main')
       setOpen(true)
+      broadcastPanelOpened('notify')
     }
     window.addEventListener('pm:open-notify', onOpen)
     return () => window.removeEventListener('pm:open-notify', onOpen)
   }, [])
+
+  useEffect(() => {
+    function onPanelOpened(e) {
+      if (e.detail?.panelId !== 'notify') setOpen(false)
+    }
+    window.addEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+    return () => window.removeEventListener(PANEL_OPENED_EVENT, onPanelOpened)
+  }, [])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (view === 'history' && historyNotifications.length === 0) setView('main')
+  }, [view, historyNotifications.length])
 
   const visibleTabs = useMemo(() => loggedIn ? TABS : [], [loggedIn])
 
@@ -280,10 +308,14 @@ export default function NotificationCenter() {
   }, [activeTab, notifications, visibleTabs, sortOrder, effectiveCategory])
 
   const filteredHistory = useMemo(() => {
-    if (effectiveHistoryCategory === 'system') return historyNotifications.filter(n => !n.meta?.groupId)
-    if (effectiveHistoryCategory) return historyNotifications.filter(n => n.meta?.groupId === effectiveHistoryCategory)
-    return historyNotifications;
-  }, [historyNotifications, effectiveHistoryCategory])
+    const tab = visibleTabs.find(t => t.id === activeHistoryTab)
+    let result = tab ? historyNotifications.filter(tab.filter) : historyNotifications
+    if (effectiveHistoryCategory === 'system') result = result.filter(n => !n.meta?.groupId)
+    else if (effectiveHistoryCategory) result = result.filter(n => n.meta?.groupId === effectiveHistoryCategory)
+    if (historySortOrder === 'oldest') return [...result].reverse()
+    if (historySortOrder === 'unread') return [...result].sort((a, b) => (a.isRead === b.isRead ? 0 : a.isRead ? 1 : -1))
+    return result;
+  }, [activeHistoryTab, historyNotifications, visibleTabs, historySortOrder, effectiveHistoryCategory])
 
   function handleMarkAllRead() {
     if (!userId || !effectiveCategory) return
@@ -296,15 +328,17 @@ export default function NotificationCenter() {
     }
   }
 
-  function handleMarkAllHistoryRead() {
-    if (!userId || !effectiveHistoryCategory) return
-    if (effectiveHistoryCategory === 'system') {
-      historyNotifications
-        .filter(n => !n.meta?.groupId && !n.isRead)
-        .forEach(n => useNotificationStore.getState().markRead(n.id))
-    } else {
-      useNotificationStore.getState().markReadForGroup(userId, effectiveHistoryCategory)
-    }
+  function handleDeleteHistoryCategory() {
+    if (!userId || !effectiveHistoryCategory || effectiveHistoryCategory === 'system') return
+    setDeleteHistoryConfirm(true)
+  }
+
+  function handleConfirmDeleteHistoryCategory() {
+    setDeleteHistoryConfirm(false)
+    const ids = historyNotifications
+      .filter(n => n.meta?.groupId === effectiveHistoryCategory)
+      .map(n => n.id)
+    useNotificationStore.getState().deleteByIds(ids)
   }
 
   function renderNotificationItem(n) {
@@ -407,18 +441,6 @@ export default function NotificationCenter() {
                 />
               </div>
             )}
-            {categories.length > 0 && (
-              <button
-                type="button"
-                onClick={handleMarkAllRead}
-                disabled={!selectedCategory?.hasUnread}
-                aria-label="將此分類全部標記已讀"
-                title="將此分類全部標記已讀"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
-              >
-                <CheckCheck size={18} strokeWidth={1.5} />
-              </button>
-            )}
             {visibleTabs.length > 1 && (
               <DropdownMenu
                 open={filterMenuOpen}
@@ -441,50 +463,88 @@ export default function NotificationCenter() {
                 </DropdownMenuContent>
               </DropdownMenu>
             )}
+            {categories.length > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAllRead}
+                disabled={!selectedCategory?.hasUnread}
+                aria-label="將此分類全部標記已讀"
+                title="將此分類全部標記已讀"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
+              >
+                <CheckCheck size={18} strokeWidth={1.5} />
+              </button>
+            )}
           </div>
         )}
 
-        {view === 'history' && historyCategories.length > 0 && (
+        {view === 'history' && (historyCategories.length > 0 || visibleTabs.length > 1) && (
           <div className="flex items-center gap-2 px-3 py-2">
-            <div className="min-w-0 flex-1">
-              <FilterSelect
-                id="history-category"
-                group={historyFilterSelectGroup}
-                value={effectiveHistoryCategory}
-                onChange={setActiveHistoryCategory}
-                groups={historyCategoryGroups}
-                ariaLabel="歷史通知分類"
-                className="h-11 w-full text-xs font-bold"
-                listClassName="z-[80] h-44"
-                triggerContent={(
-                  <span className="flex min-w-0 items-center gap-1.5">
-                    {selectedHistoryCategory ? (
-                      <span className="relative inline-flex shrink-0">
-                        {selectedHistoryCategory.key === 'system' ? (
-                          <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[22%] border border-line bg-white text-brand">
-                            <Megaphone size={11} strokeWidth={1.5} />
-                          </span>
-                        ) : (
-                          <ServiceLogo serviceId={selectedHistoryCategory.serviceId} size={20} />
-                        )}
-                        <UpdateDot show={anyHistoryCategoryUnread} className="h-2.5 w-2.5 -right-0.5 -top-0.5" />
-                      </span>
-                    ) : null}
-                    <span className="truncate">{selectedHistoryCategory ? selectedHistoryCategory.label : '全部歷史通知'}</span>
-                  </span>
-                )}
-              />
-            </div>
-            <button
-              type="button"
-              onClick={handleMarkAllHistoryRead}
-              disabled={!selectedHistoryCategory?.hasUnread}
-              aria-label="將此分類全部標記已讀"
-              title="將此分類全部標記已讀"
-              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
-            >
-              <CheckCheck size={18} strokeWidth={1.5} />
-            </button>
+            {historyCategories.length > 0 && (
+              <div className="min-w-0 flex-1">
+                <FilterSelect
+                  id="history-category"
+                  group={historyFilterSelectGroup}
+                  value={effectiveHistoryCategory}
+                  onChange={setActiveHistoryCategory}
+                  groups={historyCategoryGroups}
+                  ariaLabel="歷史通知分類"
+                  className="h-11 w-full text-xs font-bold"
+                  listClassName="z-[80] h-44"
+                  triggerContent={(
+                    <span className="flex min-w-0 items-center gap-1.5">
+                      {selectedHistoryCategory ? (
+                        <span className="relative inline-flex shrink-0">
+                          {selectedHistoryCategory.key === 'system' ? (
+                            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-[22%] border border-line bg-white text-brand">
+                              <Megaphone size={11} strokeWidth={1.5} />
+                            </span>
+                          ) : (
+                            <ServiceLogo serviceId={selectedHistoryCategory.serviceId} size={20} />
+                          )}
+                          <UpdateDot show={anyHistoryCategoryUnread} className="h-2.5 w-2.5 -right-0.5 -top-0.5" />
+                        </span>
+                      ) : null}
+                      <span className="truncate">{selectedHistoryCategory ? selectedHistoryCategory.label : '全部歷史通知'}</span>
+                    </span>
+                  )}
+                />
+              </div>
+            )}
+            {visibleTabs.length > 1 && (
+              <DropdownMenu
+                open={historyFilterMenuOpen}
+                onOpenChange={o => { setHistoryFilterMenuOpen(o); if (o) historyFilterSelectGroup.setOpenKey(null) }}
+              >
+                <DropdownMenuFilterTrigger
+                  active={activeHistoryTab !== 'all' || historySortOrder !== 'newest'}
+                  ariaLabel="篩選歷史通知"
+                  className="h-11 w-11"
+                />
+                <DropdownMenuContent className="h-44 w-64 p-0">
+                  <div className="flex h-full">
+                    <div className="flex-1 overflow-y-auto border-r border-line-subtle p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <DropdownMenuRadioSection label="顯示範圍" options={visibleTabs} value={activeHistoryTab} onValueChange={setActiveHistoryTab} hideSeparator />
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                      <DropdownMenuRadioSection label="排序" options={SORT_OPTIONS} value={historySortOrder} onValueChange={setHistorySortOrder} hideSeparator />
+                    </div>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+            {historyCategories.length > 0 && (
+              <button
+                type="button"
+                onClick={handleDeleteHistoryCategory}
+                disabled={!selectedHistoryCategory || selectedHistoryCategory.key === 'system'}
+                aria-label="刪除此分類的歷史通知"
+                title="刪除此分類的歷史通知"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-line text-ink-3 transition-colors hover:bg-raised hover:text-ink disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-ink-3"
+              >
+                <Trash2 size={18} strokeWidth={1.5} />
+              </button>
+            )}
           </div>
         )}
 
@@ -516,7 +576,7 @@ export default function NotificationCenter() {
                   className="py-10"
                 />
               ) : (
-                <div key={effectiveHistoryCategory} className="animate-fade-in-up space-y-2 px-3 py-2">
+                <div key={`${activeHistoryTab}-${historySortOrder}-${effectiveHistoryCategory}`} className="animate-fade-in-up space-y-2 px-3 py-2">
                   {filteredHistory.map(renderNotificationItem)}
                 </div>
               )}
@@ -536,6 +596,16 @@ export default function NotificationCenter() {
           )}
         </div>
       </DrawerContent>
+      {deleteHistoryConfirm && (
+        <ConfirmActionDialog
+          title="刪除歷史通知"
+          message={`確定要刪除「${selectedHistoryCategory?.label ?? ''}」的所有歷史通知嗎？刪除後無法復原。`}
+          confirmLabel="刪除"
+          danger
+          onConfirm={handleConfirmDeleteHistoryCategory}
+          onCancel={() => setDeleteHistoryConfirm(false)}
+        />
+      )}
     </Drawer>
   );
 }

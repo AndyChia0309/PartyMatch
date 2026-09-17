@@ -14,6 +14,7 @@ export const NOTIFICATION_CATEGORIES = {
   group_cancelled:           'group',
   group_renewal:             'group',
   member_left:               'group',
+  member_left_self:          'group',
   member_removed:            'group',
   member_confirmed_service:  'group',
   group_reviewed:            'group',
