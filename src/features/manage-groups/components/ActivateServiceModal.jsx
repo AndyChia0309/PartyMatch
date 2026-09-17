@@ -14,16 +14,14 @@ import { hasFilledServiceInfo, getServiceInfoSummary, isSharedCredentialsMethod 
 import { fetchGroupTransactions } from '../../../common/api/groupsApi'
 import { buildMemberRows } from '../../../common/utils/billingRows'
 
-function getActivationDateRange(billingCycle) {
-  const min = new Date()
-  const max = new Date()
-  if (billingCycle === 'yearly') {
-    max.setFullYear(max.getFullYear() + 1)
-  } else {
-    min.setMonth(min.getMonth() + 1)
-    max.setMonth(max.getMonth() + 2)
-  }
-  return { min: toISODate(min), max: toISODate(max) }
+function getActivationDateRange(baseline, billingCycle) {
+  const min = new Date(baseline)
+  min.setUTCHours(0, 0, 0, 0)
+  if (billingCycle === 'yearly') min.setFullYear(min.getFullYear() + 1)
+  else min.setMonth(min.getMonth() + 1)
+  const max = new Date(min)
+  max.setDate(max.getDate() + 30)
+  return { min, max }
 }
 
 export default function ActivateServiceModal({
@@ -40,8 +38,10 @@ export default function ActivateServiceModal({
   setBillingDate,
   loading = false,
 }) {
-  const nextDate = isOpen ? toISODate(group.nextBillingDate, '—') : ''
-  const { min: minBillingDate, max: maxBillingDate } = getActivationDateRange(group.billingCycle)
+  const baseline = isFirstActivation ? new Date() : group.nextBillingDate
+  const { min: minBillingDate, max: maxBillingDate } = getActivationDateRange(baseline, group.billingCycle)
+  const minBillingDateStr = toISODate(minBillingDate)
+  const maxBillingDateStr = toISODate(maxBillingDate)
   const service  = getServiceById(group.serviceId)
   const plan     = service?.plans.find(p => p.name === group.planName)
   const sharingMethod = service?.sharingMethod
@@ -89,10 +89,10 @@ export default function ActivateServiceModal({
 
         <div className="px-5 pt-5">
           <GroupOverviewContent
-            group={isFirstActivation ? { ...group, nextBillingDate: null } : group}
+            group={{ ...group, nextBillingDate: null }}
             service={service}
             plan={plan}
-            extraRows={isFirstActivation ? [] : [{ label: '下次扣款日', value: nextDate }]}
+            extraRows={isFirstActivation ? [] : [{ label: '上一期扣款日', value: toISODate(group.nextBillingDate, '—') }]}
             reviewsSection={
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -167,39 +167,37 @@ export default function ActivateServiceModal({
               </div>
             }
           />
-          {isFirstActivation && (
-            <div className="space-y-4 border-t border-line-subtle py-5">
-              <p className="flex items-center gap-2 text-lg font-black text-brand"><Calendar strokeWidth={1.5} size={16} />設定下次扣款日</p>
-              <span className="relative block">
-                <Input
-                  type="date"
-                  min={minBillingDate}
-                  max={maxBillingDate}
-                  value={billingDate}
-                  onChange={e => setBillingDate?.(e.target.value)}
-                  placeholder="請選擇下次扣款日"
-                />
-                {!billingDate && (
-                  <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-ink-4 can-hover:hidden">
-                    請選擇下次扣款日
-                  </span>
-                )}
-              </span>
-              <p className="text-xs text-ink-3">
-                {group.billingCycle === 'yearly'
-                  ? `請依外部平台實際啟用/扣款日期填寫，最早為今天，最晚不超過一個計費週期（${maxBillingDate}）。`
-                  : `月繳方案的下次扣款日至少要超過一個月後，最早為 ${minBillingDate}，最晚為 ${maxBillingDate}。`}
-                此日期由團主自行認定，成員如對日期有疑義可聯繫客服反映。
-              </p>
-            </div>
-          )}
+          <div className="space-y-4 border-t border-line-subtle py-5">
+            <p className="flex items-center gap-2 text-lg font-black text-brand"><Calendar strokeWidth={1.5} size={16} />設定下次扣款日</p>
+            <span className="relative block">
+              <Input
+                type="date"
+                min={minBillingDateStr}
+                max={maxBillingDateStr}
+                value={billingDate}
+                onChange={e => setBillingDate?.(e.target.value)}
+                placeholder="請選擇下次扣款日"
+              />
+              {!billingDate && (
+                <span className="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-sm text-ink-4 can-hover:hidden">
+                  請選擇下次扣款日
+                </span>
+              )}
+            </span>
+            <p className="text-xs text-ink-3">
+              {isFirstActivation
+                ? `請依外部平台實際啟用/扣款日期填寫，最早為 ${minBillingDateStr}，最晚為 ${maxBillingDateStr}。`
+                : `請依外部平台實際扣款日期填寫，最早為 ${minBillingDateStr}，最晚為 ${maxBillingDateStr}。`}
+              此日期由團主自行認定，成員如對日期有疑義可聯繫客服反映。
+            </p>
+          </div>
         </div>
       </div>
         </DialogBody>
         <DialogFooter>
           <Button
             onClick={onConfirm}
-            disabled={!allMembersChecked || (isFirstActivation && !billingDate)}
+            disabled={!allMembersChecked || !billingDate}
             loading={loading}
             className="flex-1 rounded-lg"
           >確認啟用</Button>

@@ -52,26 +52,26 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   const confirmDeadline = addHours(48)
 
   const isFirstActivation = !group.hasActivatedOnce;
-  let nextBillingDate = group.nextBillingDate
-  if (isFirstActivation) {
-    if (!requestedRaw) throw httpError(400, '請填寫下次扣款日')
+
+  const baseline = new Date(isFirstActivation ? Date.now() : group.nextBillingDate)
+  baseline.setUTCHours(0, 0, 0, 0)
+  const minAllowed = new Date(baseline)
+  if (group.billingCycle === 'yearly') minAllowed.setFullYear(minAllowed.getFullYear() + 1)
+  else minAllowed.setMonth(minAllowed.getMonth() + 1)
+  const maxAllowed = new Date(minAllowed)
+  maxAllowed.setDate(maxAllowed.getDate() + 30)
+
+  let nextBillingDate
+  if (requestedRaw) {
     const requested = new Date(requestedRaw)
     if (Number.isNaN(requested.getTime())) throw httpError(400, '日期格式不正確')
-
-    const minAllowed = new Date()
-    minAllowed.setUTCHours(0, 0, 0, 0)
-    const maxAllowed = new Date()
-    if (group.billingCycle === 'yearly') {
-      maxAllowed.setFullYear(maxAllowed.getFullYear() + 1)
-    } else {
-      minAllowed.setMonth(minAllowed.getMonth() + 1)
-      maxAllowed.setMonth(maxAllowed.getMonth() + 2)
-    }
-
     if (requested < minAllowed) throw httpError(400, `下次扣款日最早不能早於 ${formatDateSlash(minAllowed)}`)
     if (requested > maxAllowed) throw httpError(400, `下次扣款日最晚不能超過 ${formatDateSlash(maxAllowed)}`)
-
     nextBillingDate = requested
+  } else if (isFirstActivation) {
+    throw httpError(400, '請填寫下次扣款日')
+  } else {
+    nextBillingDate = minAllowed
   }
 
   const updated = await prisma.$transaction(async (tx) => {
@@ -81,7 +81,7 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
         status: 'confirming',
         hasActivatedOnce: true,
         activateDeadline: null,
-        ...(isFirstActivation && { nextBillingDate }),
+        nextBillingDate,
       },
       include: HOST_GROUP_INCLUDE,
     })
@@ -89,26 +89,22 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
       where: { groupId },
       data:  { confirmDeadline },
     })
-    if (isFirstActivation) {
-      await tx.subscription.updateMany({
-        where: { groupId },
-        data:  { nextBillingDate },
-      })
-    }
+    await tx.subscription.updateMany({
+      where: { groupId },
+      data:  { nextBillingDate },
+    })
     return updatedGroup
   });
 
-  if (isFirstActivation) {
-    const groupLabel = groupLabelOf(group)
-    const finalDateText = formatDateSlash(nextBillingDate)
-    notifyBatch([group.hostId, ...group.members.map(m => m.userId)].map(userId => ({
-      userId,
-      type:    'billing_date_confirmed',
-      title:   '下次扣款日已確定',
-      message: `「${groupLabel}」服務已啟用，下次扣款日確定為 ${finalDateText}。`,
-      meta:    { groupId, nextBillingDate: nextBillingDate.toISOString(), estimated: false },
-    })))
-  }
+  const groupLabel = groupLabelOf(group)
+  const finalDateText = formatDateSlash(nextBillingDate)
+  notifyBatch([group.hostId, ...group.members.map(m => m.userId)].map(userId => ({
+    userId,
+    type:    'billing_date_confirmed',
+    title:   '下次扣款日已確定',
+    message: `「${groupLabel}」服務已啟用，下次扣款日確定為 ${finalDateText}。`,
+    meta:    { groupId, nextBillingDate: nextBillingDate.toISOString(), estimated: false },
+  })))
 
   const groupLabelForActivation = groupLabelOf(group)
   notify({
@@ -136,6 +132,50 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   return updated
 }
 
+async function applyBillingDateAdjustment(group, requested, note) {
+  const current = new Date(group.nextBillingDate)
+  const resetConfirmations = group.status === 'confirming'
+  const newConfirmDeadline = addHours(48)
+
+  const ops = [
+    prisma.group.update({
+      where: { id: group.id },
+      data: {
+        nextBillingDate:           requested,
+        billingDateAdjustedAt:     new Date(),
+        billingDateAdjustmentNote: note,
+      },
+      include: HOST_GROUP_INCLUDE,
+    }),
+    prisma.subscription.updateMany({
+      where: { groupId: group.id },
+      data:  { nextBillingDate: requested },
+    }),
+  ]
+  // 確認期內日期異動屬於重大條件變更，已確認過的成員要重新確認才能繼續，避免他們的舊確認被套用在新日期上
+  if (resetConfirmations) {
+    ops.push(prisma.member.updateMany({
+      where: { groupId: group.id, confirmedAt: { not: null } },
+      data:  { confirmedAt: null, confirmDeadline: newConfirmDeadline },
+    }))
+  }
+
+  const [updated] = await prisma.$transaction(ops)
+
+  const groupLabel = groupLabelOf(group);
+  const oldDateText = formatDateSlash(current)
+  const newDateText = formatDateSlash(requested)
+  notifyBatch(group.members.map(m => ({
+    userId:  m.userId,
+    type:    'billing_date_adjusted',
+    title:   `${groupLabel} 下次扣款日已調整`,
+    message: `「${groupLabel}」的下次扣款日由 ${oldDateText} 調整為 ${newDateText}，原因：${note}。${resetConfirmations ? '如果你已經確認過服務，請針對新日期重新確認一次。' : ''}`,
+    meta:    { groupId: group.id, oldDate: current.toISOString(), nextBillingDate: requested.toISOString(), note },
+  })))
+
+  return updated
+}
+
 export async function adjustBillingDate({ groupId, hostId, nextBillingDate: requestedRaw, note: noteRaw }) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -156,36 +196,28 @@ export async function adjustBillingDate({ groupId, hostId, nextBillingDate: requ
   if (requested <= current) throw httpError(400, '新的扣款日只能比原本的日期晚')
   if (requested > maxAllowed) throw httpError(400, `最多只能延後 ${MAX_BILLING_DATE_ADJUST_DAYS} 天`)
 
-  const note = noteRaw.trim()
+  return applyBillingDateAdjustment(group, requested, noteRaw.trim())
+}
 
-  const [updated] = await prisma.$transaction([
-    prisma.group.update({
-      where: { id: groupId },
-      data: {
-        nextBillingDate:           requested,
-        billingDateAdjustedAt:     new Date(),
-        billingDateAdjustmentNote: note,
-      },
-      include: HOST_GROUP_INCLUDE,
-    }),
-    prisma.subscription.updateMany({
-      where: { groupId },
-      data:  { nextBillingDate: requested },
-    }),
-  ])
+// 管理員透過「聯繫客服」工單裁定的例外調整：不限狀態一定要 confirming（active 期間也能用）、
+// 不受一般調整的 7 天上限與每期一次限制，因為是仲裁例外而非常規操作
+export async function adminAdjustBillingDate({ groupId, nextBillingDate: requestedRaw, note: noteRaw }) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: { members: true, service: true },
+  })
+  if (!group) throw httpError(404, '群組不存在')
+  if (!['confirming', 'active'].includes(group.status)) throw httpError(400, `群組狀態為 ${group.status}，無法調整扣款日`)
+  if (!group.nextBillingDate) throw httpError(400, '這個群組目前沒有扣款日可以調整')
+  if (!noteRaw?.trim()) throw httpError(400, '請填寫調整原因')
 
-  const groupLabel = groupLabelOf(group);
-  const oldDateText = formatDateSlash(current)
-  const newDateText = formatDateSlash(requested)
-  notifyBatch(group.members.map(m => ({
-    userId:  m.userId,
-    type:    'billing_date_adjusted',
-    title:   `${groupLabel} 下次扣款日已調整`,
-    message: `「${groupLabel}」的下次扣款日由 ${oldDateText} 調整為 ${newDateText}，原因：${note}`,
-    meta:    { groupId, oldDate: current.toISOString(), nextBillingDate: requested.toISOString(), note },
-  })))
+  const requested = new Date(requestedRaw)
+  if (Number.isNaN(requested.getTime())) throw httpError(400, '日期格式不正確')
 
-  return updated
+  const current = new Date(group.nextBillingDate)
+  if (requested <= current) throw httpError(400, '新的扣款日只能比原本的日期晚')
+
+  return applyBillingDateAdjustment(group, requested, noteRaw.trim())
 }
 
 async function tryReleaseEscrow(tx, groupId, hostId) {
@@ -703,13 +735,6 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   if (group.status !== 'full')
     throw httpError(400, `群組狀態為 ${group.status}，無法鎖定（需為 full）`);
 
-  let nextBillingDate = group.nextBillingDate;
-  if (!group.hasActivatedOnce || !nextBillingDate) {
-    nextBillingDate = new Date();
-    if (group.billingCycle === 'yearly') nextBillingDate.setFullYear(nextBillingDate.getFullYear() + 1)
-    else nextBillingDate.setMonth(nextBillingDate.getMonth() + 1)
-  }
-
   const serviceInfoDeadline = new Date();
   serviceInfoDeadline.setHours(serviceInfoDeadline.getHours() + 24)
 
@@ -723,16 +748,11 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
       data: {
         status: 'pending_confirmation',
         serviceInfoDeadline,
-        nextBillingDate,
         billingDateAdjustedAt:     null,
         billingDateAdjustmentNote: null,
         ...(sharedCredentials !== undefined && { sharedCredentials }),
       },
       include: HOST_GROUP_INCLUDE,
-    }),
-    prisma.subscription.updateMany({
-      where: { groupId },
-      data:  { nextBillingDate },
     }),
   ])
 
@@ -922,10 +942,6 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     })
   }
 
-  const base = new Date(group.nextBillingDate ?? new Date())
-  if (group.billingCycle === 'yearly') base.setFullYear(base.getFullYear() + 1)
-  else base.setMonth(base.getMonth() + 1)
-
   let serviceInfoDeadline = null
   if (!hasDropouts) {
     serviceInfoDeadline = new Date();
@@ -969,17 +985,11 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
       await tx.subscription.deleteMany({ where: { groupId, userId: { in: leavingUserIds } } });
     }
 
-    await tx.subscription.updateMany({
-      where: { groupId, userId: { in: renewSet } },
-      data:  { nextBillingDate: base },
-    });
-
     return tx.group.update({
       where: { id: groupId },
       data:  {
         status: nextStatus,
         currentMembers: renewingMembers.length,
-        nextBillingDate: base,
         serviceInfoDeadline,
         escrowTokens: { increment: seatCost * renewSet.length },
         currentCycle: newCycle,
@@ -1019,15 +1029,6 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     })))
     return updated
   }
-
-  const estimatedDateText = formatDateSlash(base)
-  notifyBatch([group.hostId, ...renewSet].map(userId => ({
-    userId,
-    type:    'billing_date_confirmed',
-    title:   `${groupLabel} 預估下次扣款日`,
-    message: `「${groupLabel}」新一期目前預估下次扣款日為 ${estimatedDateText}，實際日期會在團主啟用服務時重新確認。`,
-    meta:    { groupId, nextBillingDate: base.toISOString(), estimated: true },
-  })))
 
   notifyBatch(renewSet.map(userId => ({
     userId,

@@ -7,9 +7,9 @@ export function getInfoRows(group) {
   return [
     { label: '群組狀態', badge: group.status },
     { label: '建立日期', value: group.createdAt?.slice(0, 10).replace(/-/g, '/') ?? '—' },
-    ...(group.nextBillingDate ? [{
+    ...(group.nextBillingDate && !canReportServiceIssue(group.status) ? [{
       label: '下次扣款',
-      value: `${group.nextBillingDate.slice(0, 10).replace(/-/g, '/')}${canReportServiceIssue(group.status) ? '（預估）' : ''}`,
+      value: group.nextBillingDate.slice(0, 10).replace(/-/g, '/'),
     }] : []),
     {
       label: '每位價格',

@@ -23,10 +23,10 @@ import { createPlatformReport } from '../../../common/api/platformReportsApi'
 import { useEvidenceUpload } from '../../../common/utils/hooks'
 import { toast, dismissToast } from '../../../common/utils/toast'
 import ActivateServiceModal from './ActivateServiceModal'
+import AdjustBillingDateModal from './AdjustBillingDateModal'
 import ReportServiceIssueModal from './ReportServiceIssueModal'
 import ReportPlatformIssueModal from '../../group/components/ReportPlatformIssueModal'
 import LockGroupCredentialsModal from './LockGroupCredentialsModal'
-import AdjustBillingDateModal from './AdjustBillingDateModal'
 import { buildMembersPanel } from './host-group-view/buildMembersPanel'
 import { buildApplicationsPanel } from './host-group-view/buildApplicationsPanel'
 import { buildReviewHistoryPanel } from './host-group-view/buildReviewHistoryPanel'
@@ -231,10 +231,10 @@ export default function HostGroupView(
   const isFirstActivation = !group.hasActivatedOnce;
 
   async function handleActivateConfirm() {
-    if (isFirstActivation && !activateBillingDate) return
+    if (!activateBillingDate) return
     setActivating(true)
     try {
-      await onActivate?.(isFirstActivation ? activateBillingDate : null)
+      await onActivate?.(activateBillingDate)
       setShowActivate(false)
       setMemberChecks({})
       setActivateBillingDate('')

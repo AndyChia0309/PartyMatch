@@ -92,8 +92,8 @@ function HostedGroupCard({
             {collectionState}
           </StatCell>
         ) : group.status === 'pending_confirmation' || group.status === 'pending_activation' ? (
-          <StatCell label="預估下次扣款">
-            {toISODate(group.nextBillingDate, '—')}
+          <StatCell label="下次扣款">
+            啟用後確定
           </StatCell>
         ) : (
           <StatCell label="下次扣款">

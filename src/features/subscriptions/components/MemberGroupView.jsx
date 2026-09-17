@@ -19,6 +19,7 @@ import { buildCredentialsPanel } from './member-group-view/buildCredentialsPanel
 import { usePlatformReportForm } from '../hooks/usePlatformReportForm'
 import { useDisputeForm } from '../hooks/useDisputeForm'
 import { getServiceById } from '../../../common/utils/serviceUtils'
+import { toISODate } from '../../../common/utils/date'
 import { getSharingMethodConfig, hasFilledServiceInfo, isSharedCredentialsMethod, serviceHasProfileField } from '../../../common/utils/serviceInfoFields'
 import { useMemberStore } from '../../../common/stores/useMemberStore'
 import { useGroupStore } from '../../../common/stores/useGroupStore'
@@ -283,7 +284,9 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     ) : canConfirm ? (
       <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
         <Clock size={15} strokeWidth={1.5} />
-        服務已啟用，請確認是否正常
+        {group.billingDateAdjustedAt
+          ? `下次扣款日已調整為 ${toISODate(group.nextBillingDate)}，請重新確認服務是否正常`
+          : '服務已啟用，請確認是否正常'}
         {myMember?.confirmDeadline && (
           <>，剩餘 <CountdownText deadline={myMember.confirmDeadline} /></>
         )}

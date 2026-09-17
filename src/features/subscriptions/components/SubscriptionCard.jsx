@@ -44,8 +44,10 @@ function SubscriptionCard({ sub, hasPendingUpdate, onViewGroup }) {
         <StatCell label="群組人數">{memberCount} 人</StatCell>
         {isActive ? (
           <StatCell label="下期收費">{toISODate(sub.nextBillingDate, '—')}</StatCell>
+        ) : isPreBillingLock ? (
+          <StatCell label="下次扣款">啟用後確定</StatCell>
         ) : showsBillingDate ? (
-          <StatCell label={isPreBillingLock ? '預估下次扣款' : '下次扣款'}>{toISODate(sub.nextBillingDate, '—')}</StatCell>
+          <StatCell label="下次扣款">{toISODate(sub.nextBillingDate, '—')}</StatCell>
         ) : (
           <StatCell label="加入日期">{sub.joinedAt ?? '—'}</StatCell>
         )}
