@@ -209,6 +209,9 @@ export default function GroupDetailModal() {
         setFreshGroupId(null)
       } else if (gId) {
         useGroupStore.getState().refreshGroup(gId).catch(console.error)
+        useMemberStore.getState().init().catch(console.error)
+        useApplicationStore.getState().init().catch(console.error)
+        useSubscriptionStore.getState().init().catch(console.error)
       }
       pushGroupUrl(gId)
       if (e.detail?.openCredentials) setAutoOpenCredentials(true)
@@ -400,7 +403,7 @@ export default function GroupDetailModal() {
         useGroupStore.getState().refreshGroup(group.id).catch(console.error)
       } else if (code === 'REAPPLY_COOLDOWN') {
         const cooldownEnds = err?.response?.data?.cooldownEnds
-        toast(cooldownEnds ? <span>請等待 <CountdownText deadline={cooldownEnds} /> 後再重新申請</span> : msg, 'error')
+        toast(cooldownEnds ? <span>剩餘 <CountdownText deadline={cooldownEnds} /> 後可重新申請</span> : msg, 'error')
       } else if (code === 'CREDIT_SCORE_TOO_LOW') {
         toast('信用分數不足，無法申請此群組', 'error')
       } else {
