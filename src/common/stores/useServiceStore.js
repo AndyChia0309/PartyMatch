@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { SERVICES } from '../data/serviceCatalog'
 import { readAllServices } from '../api/servicesApi'
+import { resolveMonthlyPrice } from '../utils/pricingUtils'
 
 export const useServiceStore = create((set, get) => ({
   services: [...SERVICES],
@@ -31,11 +32,11 @@ export const useServiceStore = create((set, get) => ({
               if (!localPlan) {
                 console.warn(`[serviceStore] "${apiService.id}" 的方案「${p.name}」在本地 catalog 找不到對應項目，將不會有 description/features 文案`)
               }
+              const mergedPlan = { ...(localPlan ?? {}), ...p }
               return {
-                ...(localPlan ?? {}),
-                ...p,
-                maxSeats:     p.maxSeats     ?? p.maxMembers ?? 0,
-                monthlyPrice: p.monthlyPrice ?? p.totalMonthlyFee ?? 0,
+                ...mergedPlan,
+                maxSeats:     mergedPlan.maxSeats ?? mergedPlan.maxMembers ?? 0,
+                monthlyPrice: resolveMonthlyPrice(mergedPlan),
               }
             })
           }

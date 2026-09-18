@@ -1,10 +1,22 @@
 import { describe, it, expect } from 'vitest'
-import { calcPricePerSeat, calcDisplayPrice, calcDisplayCycle } from '../src/common/utils/pricingUtils'
+import { calcPricePerSeat, calcDisplayPrice, calcDisplayCycle, resolveMonthlyPrice } from '../src/common/utils/pricingUtils'
+
+describe('resolveMonthlyPrice', () => {
+  it('支援前端 catalog 與後端 API 的金額欄位別名', () => {
+    expect(resolveMonthlyPrice({ monthlyPrice: 300 })).toBe(300)
+    expect(resolveMonthlyPrice({ monthlyFee: 300 })).toBe(300)
+    expect(resolveMonthlyPrice({ totalMonthlyFee: 300 })).toBe(300)
+  })
+})
 
 describe('calcPricePerSeat', () => {
   it('無條件進位分攤到每個席位', () => {
     expect(calcPricePerSeat({ monthlyPrice: 300 }, 2)).toBe(150)
     expect(calcPricePerSeat({ monthlyPrice: 100 }, 3)).toBe(34);
+  })
+
+  it('可用 production API 回傳的 monthlyFee 分攤席位', () => {
+    expect(calcPricePerSeat({ monthlyFee: 380 }, 2)).toBe(190)
   })
 })
 

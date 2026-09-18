@@ -1,5 +1,9 @@
+export function resolveMonthlyPrice(plan) {
+  return Number(plan?.monthlyPrice ?? plan?.monthlyFee ?? plan?.totalMonthlyFee ?? 0)
+}
+
 export function calcPricePerSeat(plan, seats) {
-  return Math.ceil(plan.monthlyPrice / seats)
+  return Math.ceil(resolveMonthlyPrice(plan) / seats)
 }
 
 export function calcDisplayPrice(pricePerSeat, billingCycle) {

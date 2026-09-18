@@ -288,11 +288,14 @@ async function resolvePlanPricing(serviceId, planName) {
   if (!service) return null
   const plan = service.plans.find(p => p.name === planName)
   if (!plan) return null
+  const maxMembers = Number(plan.maxMembers ?? plan.maxSeats)
+  const totalMonthlyFee = Number(plan.totalMonthlyFee ?? plan.monthlyFee ?? plan.monthlyPrice)
+  if (!Number.isFinite(maxMembers) || maxMembers < 2 || !Number.isFinite(totalMonthlyFee) || totalMonthlyFee <= 0) return null
   return {
     planId:          plan.id,
     planName:        plan.name,
-    maxMembers:      plan.maxMembers,
-    totalMonthlyFee: plan.totalMonthlyFee,
+    maxMembers,
+    totalMonthlyFee,
     currency:        plan.currency ?? 'TWD',
     billingCycle:    plan.name.includes('年繳') ? 'yearly' : 'monthly',
   }

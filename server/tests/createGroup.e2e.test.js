@@ -66,6 +66,27 @@ describe('建立群組（POST /groups）', () => {
     expect(groupState.perSeatMonthlyFee.toString()).toBe('100')
   });
 
+  it('接受 production 服務目錄使用 monthlyFee 欄位作為方案月費', async () => {
+    const host = await createUser({ name: '團主' })
+    const service = await prisma.service.create({
+      data: {
+        id: `svc-monthly-fee-${Date.now()}`,
+        name: 'Production 欄位服務',
+        category: 'other',
+        plans: [{ id: 'plan-monthly-fee', name: 'Production 方案', maxMembers: 2, monthlyFee: 380, currency: 'TWD' }],
+      },
+    })
+
+    const res = await request(app)
+      .post('/api/groups')
+      .set('Authorization', authHeader(host))
+      .send({ serviceId: service.id, planName: 'Production 方案' })
+
+    expect(res.status).toBe(201)
+    expect(res.body.maxMembers).toBe(2)
+    expect(res.body.perSeatMonthlyFee).toBe(190)
+  })
+
   it('maxMembers 可在方案人數範圍內自訂，超出範圍會被拒絕', async () => {
     const host = await createUser({ name: '團主' })
     const service = await createService()

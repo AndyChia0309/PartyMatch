@@ -1,8 +1,11 @@
+import { resolveMonthlyPrice } from './pricingUtils'
+
 export function resolvePlanDisplayPrice(plan, usdToTwdRate) {
+  const monthlyPrice = resolveMonthlyPrice(plan)
   if (plan.billingCycle !== 'yearly') {
-    return { amount: plan.monthlyPrice, cycle: 'monthly' }
+    return { amount: monthlyPrice, cycle: 'monthly' }
   }
   if (plan.yearlyPrice) return { amount: plan.yearlyPrice, cycle: 'yearly' }
   if (plan.yearlyPriceUsd) return { amount: Math.round(plan.yearlyPriceUsd * usdToTwdRate), cycle: 'yearly' }
-  return { amount: plan.monthlyPrice * 12, cycle: 'yearly' }
+  return { amount: monthlyPrice * 12, cycle: 'yearly' }
 }
