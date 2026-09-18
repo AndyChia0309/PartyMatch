@@ -264,6 +264,7 @@ model Member {
   extractionCommentId         String?
   serviceInfoIssueNote        String?
   serviceInfoIssueEvidenceUrl String?
+  serviceInfoIssueDeadline    DateTime?
   disputeEvidenceUrl          String?
   confirmedAt                 DateTime?
   confirmDeadline             DateTime?

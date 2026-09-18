@@ -55,11 +55,11 @@ export const useMemberStore = create((set, get) => ({
     const prior = get().members.find(m => m.id === memberId) ?? null
     set(s => ({
       members: s.members.map(m => m.id === memberId
-        ? { ...m, serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null }
+        ? { ...m, serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null, serviceInfoIssueDeadline: null }
         : m),
     }));
     try {
-      const res = await patchMember(memberId, { serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null })
+      const res = await patchMember(memberId, { serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null, serviceInfoIssueDeadline: null })
       if (res?._groupAdvanced) {
         useGroupStore.getState().setGroupStatus(groupId, res._groupAdvanced);
       }

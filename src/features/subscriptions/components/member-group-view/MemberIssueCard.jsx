@@ -8,7 +8,7 @@ import EvidenceLink from '../../../../components/ui/EvidenceLink'
 import { formatDisputeReason } from '../../../../common/utils/memberGroupDisplay'
 
 export default function MemberIssueCard(
-  { viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, issueNote, evidenceUrl, disputeDeadline, isDisputeEscalated }
+  { viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, issueNote, evidenceUrl, issueDeadline, disputeDeadline, isDisputeEscalated }
 ) {
   const [expanded, setExpanded] = useState(false)
   const isServiceIssueOnly = !disputeDeadline
@@ -28,7 +28,12 @@ export default function MemberIssueCard(
           {header}
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink">{viewerName}</p>
-            <p className="text-xs text-danger-text">問題回報處理中</p>
+            <p className="text-xs text-danger-text">
+              問題回報處理中
+              {issueDeadline && (
+                <>，剩餘 <CountdownText deadline={issueDeadline} /></>
+              )}
+            </p>
           </div>
         </div>
         <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">

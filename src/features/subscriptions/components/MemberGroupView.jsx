@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  AlertTriangle, Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, Undo2,
+  AlertTriangle, Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, ShieldAlert, Undo2,
 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
@@ -13,6 +13,7 @@ import ReviewUserModal from './ReviewUserModal'
 import FillServiceInfoModal from './FillServiceInfoModal'
 import DisputeModal from './DisputeModal'
 import ReportPlatformIssueModal from '../../group/components/ReportPlatformIssueModal'
+import ReportFalseIssueModal from './ReportFalseIssueModal'
 import { buildMembersPanel } from './member-group-view/buildMembersPanel'
 import { buildPaymentsPanel } from './member-group-view/buildPaymentsPanel'
 import { buildCredentialsPanel } from './member-group-view/buildCredentialsPanel'
@@ -28,6 +29,7 @@ import { useAuthStore } from '../../../common/stores/useAuthStore'
 import { useNotificationStore } from '../../../common/stores/useNotificationStore'
 import { useReviewStore } from '../../../common/stores/useReviewStore'
 import { fetchGroupTokenTransactions } from '../../../common/api/tokensApi'
+import { createPlatformReport } from '../../../common/api/platformReportsApi'
 import { toast } from '../../../common/utils/toast'
 import { suppressNextToast } from '../../../common/utils/notificationToast'
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
@@ -40,6 +42,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [withdrawConfirm, setWithdrawConfirm] = useState(false)
   const [showFillInfo, setShowFillInfo] = useState(false)
+  const [showReportFalseIssue, setShowReportFalseIssue] = useState(false)
   const [fillValues, setFillValues] = useState({})
   const [fillLoading, setFillLoading] = useState(false)
   const [confirmLoading, setConfirmLoading] = useState(false)
@@ -213,15 +216,43 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     }
   }
 
-  const fillInfoCta = (needsFillInfo || hasServiceInfoIssue) && (
+  async function handleReportFalseIssue(note) {
+    try {
+      await createPlatformReport({ groupId: group.id, description: `團主回報的問題：${myMember?.serviceInfoIssueNote ?? ''}\n\n我認為這筆回報不實，說明：${note}` })
+      toast('已送出，平台客服會盡快協助處理', 'success')
+      setShowReportFalseIssue(false)
+    } catch (err) {
+      toast(err?.message ?? '送出失敗，請稍後再試', 'error')
+    }
+  }
+
+  const fillInfoCta = hasServiceInfoIssue ? (
+    <div className="grid grid-cols-2 gap-2 p-2">
+      <Button
+        variant="destructive"
+        onClick={openFillInfoModal}
+        className="rounded-lg shadow-button"
+      >
+        <ClipboardEdit strokeWidth={1.5} size={15} />
+        修正帳號資訊
+      </Button>
+      <Button
+        variant="ghost"
+        onClick={() => setShowReportFalseIssue(true)}
+        className="rounded-lg border border-danger/60 text-danger-text hover:bg-danger-subtle"
+      >
+        <ShieldAlert strokeWidth={1.5} size={15} />
+        不實回報
+      </Button>
+    </div>
+  ) : needsFillInfo && (
     <div className="py-2">
       <Button
-        variant={hasServiceInfoIssue ? 'destructive' : 'default'}
         onClick={openFillInfoModal}
         className="w-full rounded-lg shadow-button"
       >
         <ClipboardEdit strokeWidth={1.5} size={15} />
-        {hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}
+        {isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}
       </Button>
     </div>
   );
@@ -272,7 +303,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     hasServiceInfoIssue ? (
       <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
         <AlertTriangle size={15} strokeWidth={1.5} />
-        帳號資訊有問題，請點擊「修正帳號資訊」
+        帳號資訊有問題，請修正或提出不實回報
       </div>
     ) : needsFillInfo ? (
       <div className="flex items-center justify-center gap-2 bg-brand-subtle px-6 py-3 text-sm font-extrabold text-brand">
@@ -380,6 +411,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         onTogglePassword: () => setShowPassword(v => !v),
         issueNote: myMember?.serviceInfoIssueNote,
         evidenceUrl: myMember?.disputeEvidenceUrl ?? myMember?.serviceInfoIssueEvidenceUrl,
+        issueDeadline: myMember?.serviceInfoIssueDeadline,
         disputeDeadline: myMember?.disputeDeadline,
         isDisputeEscalated,
         isSharedCredentials,
@@ -410,6 +442,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
             userPresenceStatus: m.userPresenceStatus,
             hasServiceInfo: m.hasServiceInfo ?? (m.serviceInfo != null),
             hasServiceInfoIssue: m.hasServiceInfoIssue ?? !!m.serviceInfoIssueNote,
+            serviceInfoIssueDeadline: m.serviceInfoIssueDeadline,
           })),
       })
     }
@@ -464,7 +497,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showFillInfo && !dispute.show && !confirmDialog && !reviewPrompt && !platformReport.show && (
+      ) : !showFillInfo && !showReportFalseIssue && !dispute.show && !confirmDialog && !reviewPrompt && !platformReport.show && (
       <GroupModalShell
         onClose={onClose}
         group={group}
@@ -510,6 +543,12 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         viewerName={myMember?.userName}
         hasServiceInfoIssue={hasServiceInfoIssue}
         issueNote={myMember?.serviceInfoIssueNote}
+      />
+      <ReportFalseIssueModal
+        isOpen={showReportFalseIssue}
+        issueNote={myMember?.serviceInfoIssueNote}
+        onClose={() => setShowReportFalseIssue(false)}
+        onSubmit={handleReportFalseIssue}
       />
       <ReportPlatformIssueModal
         isOpen={platformReport.show}

@@ -20,6 +20,7 @@ const patchMemberSchema = z.object({
   serviceInfo:                 z.any().optional(),
   serviceInfoIssueNote:        z.string().nullable().optional(),
   serviceInfoIssueEvidenceUrl: z.string().nullable().optional(),
+  serviceInfoIssueDeadline:    z.null().optional(),
 })
 
 router.get('/', requireAuth, async (req, res, next) => {
@@ -100,6 +101,8 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
     const isHost  = existing.group.hostId === req.user.id
     if (!isOwner && !isHost) return res.status(403).json({ message: '無操作權限' })
     if (req.body.serviceInfoIssueNote !== undefined && !(isOwner && req.body.serviceInfoIssueNote === null))
+      return res.status(403).json({ message: '請透過問題回報的功能操作' })
+    if (req.body.serviceInfoIssueDeadline !== undefined && !isOwner)
       return res.status(403).json({ message: '請透過問題回報的功能操作' })
 
     const member = await prisma.member.update({

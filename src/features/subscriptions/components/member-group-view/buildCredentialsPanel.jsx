@@ -1,6 +1,7 @@
 import { KeyRound } from 'lucide-react'
 import { Avatar } from '../../../../components/ui/avatar'
 import { PresenceDot } from '../../../../common/layout/components/navShared'
+import CountdownText from '../../../../components/ui/primitives/CountdownText'
 import CredentialCommentsSection from '../../../../components/ui/group/CredentialCommentsSection'
 import MemberIssueCard from './MemberIssueCard'
 import { CredentialsValue, CredentialsPrivacyNote, MemberProvidedCredentialsValue } from './SharedCredentialsValue'
@@ -8,7 +9,7 @@ import { CredentialsValue, CredentialsPrivacyNote, MemberProvidedCredentialsValu
 export function buildCredentialsPanel(
   {
     group, viewerName, viewerAvatarInitial, viewerAvatarColor, viewerPresenceStatus, showPassword, onTogglePassword,
-    issueNote, evidenceUrl, disputeDeadline, memberProfiles, otherMembersStatus, isSharedCredentials, hasExtracted, memberServiceInfo, memberServiceFields, isDisputeEscalated,
+    issueNote, evidenceUrl, issueDeadline, disputeDeadline, memberProfiles, otherMembersStatus, isSharedCredentials, hasExtracted, memberServiceInfo, memberServiceFields, isDisputeEscalated,
     autoScrollToComments, onAutoScrollToCommentsDone,
   }
 ) {
@@ -60,7 +61,7 @@ export function buildCredentialsPanel(
       {!memberProfiles?.length && otherMembersStatus?.length > 0 && (
         <div className="mt-3 space-y-2">
           <p className="text-xs font-semibold text-ink-3">其他成員狀態</p>
-          {otherMembersStatus.map(({ id, userName, userAvatarInitial, userAvatarColor, userPresenceStatus, hasServiceInfo, hasServiceInfoIssue }) => (
+          {otherMembersStatus.map(({ id, userName, userAvatarInitial, userAvatarColor, userPresenceStatus, hasServiceInfo, hasServiceInfoIssue, serviceInfoIssueDeadline }) => (
             <div key={id} className="flex items-center gap-3 rounded-lg border border-line p-2.5">
               <span className="relative inline-block shrink-0">
                 <Avatar initial={userAvatarInitial} color={userAvatarColor} size="sm" />
@@ -70,7 +71,7 @@ export function buildCredentialsPanel(
                 <p className="text-sm font-semibold text-ink">{userName}</p>
                 <p className={`text-xs ${hasServiceInfoIssue ? 'text-danger-text' : hasServiceInfo ? 'text-success-text' : 'text-ink-4'}`}>
                   {hasServiceInfoIssue
-                    ? '問題回報處理中'
+                    ? (<>問題回報處理中{serviceInfoIssueDeadline && (<>，剩餘 <CountdownText deadline={serviceInfoIssueDeadline} /></>)}</>)
                     : hasServiceInfo
                       ? (isSharedCredentials ? '已成功提取帳號' : '已填寫帳號資訊')
                       : (isSharedCredentials ? '尚未提取帳號' : '尚未填寫帳號')}
@@ -89,6 +90,7 @@ export function buildCredentialsPanel(
           viewerPresenceStatus={viewerPresenceStatus}
           issueNote={issueNote}
           evidenceUrl={evidenceUrl}
+          issueDeadline={issueDeadline}
           disputeDeadline={disputeDeadline}
           isDisputeEscalated={isDisputeEscalated}
         />

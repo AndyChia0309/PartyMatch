@@ -455,6 +455,7 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
   const trimmedNote = note.trim()
   const groupLabel = groupLabelOf(group)
   const deadline = addHours(48)
+  const serviceInfoIssueDeadline = addHours(24)
 
   const updated = await prisma.$transaction(async (tx) => {
     if (group.status === 'pending_activation') {
@@ -468,6 +469,7 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
       where: { id: member.id },
       data:  {
         serviceInfoIssueNote: trimmedNote,
+        serviceInfoIssueDeadline,
         ...(evidenceUrl ? { serviceInfoIssueEvidenceUrl: evidenceUrl } : {}),
       },
     })
@@ -533,7 +535,7 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
 
     await tx.member.update({
       where: { id: member.id },
-      data:  { serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null },
+      data:  { serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null, serviceInfoIssueDeadline: null },
     })
 
     // 撤銷回報時若全員已填完，代表「全部完成」這個狀態本來就已經達成過，
@@ -1048,7 +1050,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
 
     await tx.member.updateMany({
       where: { groupId, userId: { in: renewSet } },
-      data:  { serviceInfo: null, extractionStartedAt: null, extractionNotificationId: null, extractionCommentId: null, serviceInfoIssueNote: null, confirmedAt: null, confirmDeadline: null, disputeDeadline: null, disputeEscalatedAt: null },
+      data:  { serviceInfo: null, extractionStartedAt: null, extractionNotificationId: null, extractionCommentId: null, serviceInfoIssueNote: null, serviceInfoIssueDeadline: null, confirmedAt: null, confirmDeadline: null, disputeDeadline: null, disputeEscalatedAt: null },
     });
 
     if (hasDropouts) {

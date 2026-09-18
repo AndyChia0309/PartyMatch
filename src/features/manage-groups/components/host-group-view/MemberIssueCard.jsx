@@ -94,7 +94,12 @@ export default function MemberIssueCard(
           <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink">{m.userName}</p>
-            <p className="text-xs text-danger-text">問題回報處理中</p>
+            <p className="text-xs text-danger-text">
+              問題回報處理中
+              {m.serviceInfoIssueDeadline && (
+                <>，剩餘 <CountdownText deadline={m.serviceInfoIssueDeadline} /></>
+              )}
+            </p>
           </div>
         </div>
       ) : (
