@@ -12,8 +12,6 @@ import { useSubscriptionStore } from '../stores/useSubscriptionStore'
 import { useModalStackStore } from '../stores/useModalStackStore'
 import { toast, dismissToast } from '../utils/toast'
 import { getNotificationToastId } from '../utils/notificationToast'
-import { getServiceById } from '../utils/serviceUtils'
-import { isSharedCredentialsMethod } from '../utils/serviceInfoFields'
 
 const getGroupById = (id) => useGroupStore.getState().getById(id)
 const getCurrentUser = () => useAuthStore.getState().user
@@ -150,15 +148,18 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
 
   if (notification.type === 'service_info_issue' && notification.meta?.groupId) {
     withReservedModal(() => useGroupStore.getState().init({ all: true }).finally(() => {
-      const grp = getGroupById(notification.meta.groupId)
-      const isSharedCredentials = isSharedCredentialsMethod(getServiceById(grp?.serviceId)?.sharingMethod)
-      navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId, isSharedCredentials ? { openCredentials: true } : undefined)
+      navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId, { openCredentials: true })
     }));
     return
   }
 
   if (notification.type === 'service_info_issue_resolved' && notification.meta?.groupId) {
-    withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId))
+    withReservedModal(() => Promise.all([
+      useGroupStore.getState().init({ all: true }),
+      useMemberStore.getState().init(),
+    ]).finally(() => {
+      navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId, { openCredentials: true })
+    }));
     return
   }
 

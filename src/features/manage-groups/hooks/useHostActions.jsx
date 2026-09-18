@@ -12,6 +12,7 @@ import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
 import { PANEL_OPENED_EVENT, broadcastPanelOpened } from '../../../common/utils/panelBroadcast'
+import ServiceLogo from '../../../components/ui/ServiceLogo'
 
 const getGroupById     = (id)      => useGroupStore.getState().getById(id);
 const getGroupsByHostId = (hostId) => useGroupStore.getState().getByHostId(hostId)
@@ -434,9 +435,18 @@ async function handleApprove(appId) {
   }
 
   async function handleWithdrawServiceInfoIssue(member) {
+    const group = getGroupById(member.groupId)
+    const groupLabel = group?.planName ?? group?.serviceName ?? '群組'
     try {
       await useGroupStore.getState().withdrawServiceInfoIssue(member.groupId, member.id)
-      toast('已撤銷問題回報')
+      toast(
+        <span className="flex min-w-0 items-baseline gap-1 overflow-hidden whitespace-nowrap">
+          <span className="min-w-0 truncate">{groupLabel}</span>
+          <span className="shrink-0">已撤銷問題回報</span>
+        </span>,
+        'success',
+        { icon: group?.serviceId ? <ServiceLogo serviceId={group.serviceId} size={20} /> : undefined }
+      )
       refreshGroups();
     } catch (err) {
       toast(err?.message ?? '撤銷失敗，請稍後再試', 'error')

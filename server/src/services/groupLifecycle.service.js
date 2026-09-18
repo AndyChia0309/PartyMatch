@@ -498,11 +498,9 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
     meta:    { groupId },
   })
 
-  if (group.sharedCredentials) {
-    prisma.credentialComment.create({
-      data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出問題回報，請協助處理！` },
-    }).catch(console.error)
-  }
+  prisma.credentialComment.create({
+    data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出問題回報，請協助處理！` },
+  }).catch(console.error)
 
   return updated
 }
@@ -526,7 +524,7 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
 
   const groupLabel = groupLabelOf(group)
 
-  const advancedToActivation = await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
       where: { id: dispute.id, status: 'pending' },
       data:  { status: 'withdrawn_by_host', resolvedAt: new Date() },
@@ -538,7 +536,9 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
       data:  { serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null },
     })
 
-    return tryAdvanceToActivation(tx, groupId)
+    // 撤銷回報時若全員已填完，代表「全部完成」這個狀態本來就已經達成過，
+    // 只是被這筆問題回報打斷，不算新事件，不重複發送「全部完成」通知
+    await tryAdvanceToActivation(tx, groupId)
   })
 
   notify({
@@ -546,14 +546,6 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
     type:    'service_info_issue_resolved',
     title:   `${groupLabel} 問題回報已撤銷`,
     message: `團主已撤銷針對「${groupLabel}」你帳號資訊的問題回報。`,
-    meta:    { groupId },
-  })
-
-  if (advancedToActivation) notify({
-    userId:  group.hostId,
-    type:    'all_service_info_filled',
-    title:   `${groupLabel} 成員已全部完成填寫`,
-    message: `「${groupLabel}」群組所有成員都已填寫帳號資訊，可以前往啟用服務了。`,
     meta:    { groupId },
   })
 

@@ -128,6 +128,11 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
 
       const allMembers = await prisma.member.findMany({ where: { groupId: existing.groupId } })
       const allFilled  = allMembers.every(m => m.serviceInfo != null && !m.serviceInfoIssueNote);
+      // 這位成員原本就有待處理的問題回報、且其他成員早就填寫完成，
+      // 代表「全部完成」這個狀態本來就已經達成過，只是被這筆問題回報打斷，
+      // 這次只是恢復原狀，不算新事件，不重複發送「全部完成」通知
+      const isReturnToAllFilled = !!existing.serviceInfoIssueNote &&
+        allMembers.filter(m => m.id !== existing.id).every(m => m.serviceInfo != null && !m.serviceInfoIssueNote)
 
       if (!allFilled) {
         notify({
@@ -150,13 +155,15 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           }))
           groupAdvancedStatus = 'pending_activation'
 
-          notify({
-            userId:  existing.group.hostId,
-            type:    'all_service_info_filled',
-            title:   isSharedCredentials ? `${groupLabel} 成員已全部完成提取` : `${groupLabel} 成員已全部完成填寫`,
-            message: `「${groupLabel}」群組所有成員都已${isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}，可以前往啟用服務了。`,
-            meta:    { groupId: existing.groupId },
-          });
+          if (!isReturnToAllFilled) {
+            notify({
+              userId:  existing.group.hostId,
+              type:    'all_service_info_filled',
+              title:   isSharedCredentials ? `${groupLabel} 成員已全部完成提取` : `${groupLabel} 成員已全部完成填寫`,
+              message: `「${groupLabel}」群組所有成員都已${isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}，可以前往啟用服務了。`,
+              meta:    { groupId: existing.groupId },
+            });
+          }
         } catch (err) {
           if (err.statusCode !== 409)
             throw err;

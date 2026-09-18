@@ -343,6 +343,24 @@ export default function App() {
         }
       },
     }
+    const openServiceInfoIssueAction = {
+      label: '前往查看',
+      run:   (meta) => {
+        if (!meta?.groupId) return
+        Promise.all([
+          useGroupStore.getState().init({ all: true }),
+          useMemberStore.getState().init(),
+        ]).finally(() => {
+          const grp = useGroupStore.getState().getById(meta.groupId)
+          const userId = useAuthStore.getState().user?.id
+          if (grp && grp.hostId === userId) {
+            window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openMemberInfo: true, scrollToComments: true } }))
+          } else {
+            window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId, openCredentials: true, scrollToComments: true } }))
+          }
+        })
+      },
+    }
     const openBillingAction = {
       label: '前往查收',
       run:   (meta) => {
@@ -374,6 +392,8 @@ export default function App() {
       fill_service_info:             openGroupAction,
       escrow_released:               openBillingAction,
       service_review_reminder:       openReviewAction,
+      service_info_issue:            openServiceInfoIssueAction,
+      service_info_issue_resolved:   openServiceInfoIssueAction,
     }
     const TOAST_ICON_TYPES = new Set([
       'group_chat_opened', 'fill_service_info', 'member_confirmed_service', 'escrow_released',
