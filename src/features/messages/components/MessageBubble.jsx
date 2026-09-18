@@ -58,7 +58,7 @@ export default function MessageBubble({ msg, userId, hostId, groupMembers, conve
       return (
         <div className="flex justify-center">
           <div className="w-72 rounded-2xl border border-line bg-surface p-4 shadow-card">
-            <p className="mb-2 text-xs font-semibold text-ink-2">{isSharedCredentials ? '帳號資訊提取進度' : '服務帳號填寫進度'}</p>
+            <p className="mb-2 text-xs font-semibold text-ink-2">{isSharedCredentials ? '帳號資訊提取進度' : '帳號資訊填寫進度'}</p>
             <div className="space-y-2">
               {groupMembers.map(m => (
                 <div key={m.id} className="flex items-center gap-2">
@@ -88,7 +88,7 @@ export default function MessageBubble({ msg, userId, hostId, groupMembers, conve
                 }}
                 className="mt-3 h-auto w-full rounded-lg px-3 py-1.5 text-xs"
               >
-                {isSharedCredentials ? '提取帳號資訊' : '填寫服務帳號'}
+                {isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}
               </Button>
             )}
           </div>

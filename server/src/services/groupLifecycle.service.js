@@ -49,6 +49,7 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
   if (group.status !== 'pending_activation') throw httpError(400, `群組狀態為 ${group.status}，無法啟用（需為 pending_activation）`)
+  if (group.members.some(m => m.serviceInfoIssueNote)) throw httpError(400, '有成員的帳號資訊尚待處理，請先協助修正後再啟用服務')
 
   const confirmDeadline = addHours(48)
 
@@ -258,6 +259,47 @@ async function tryReleaseEscrow(tx, groupId, hostId) {
   return group.escrowTokens
 }
 
+async function tryAdvanceToActivation(tx, groupId) {
+  const members = await tx.member.findMany({ where: { groupId } })
+  const allClear = members.length > 0 && members.every(m => m.serviceInfo != null && !m.serviceInfoIssueNote)
+  if (!allClear) return false
+
+  const claimed = await tx.group.updateMany({
+    where: { id: groupId, status: 'pending_confirmation' },
+    data:  { status: 'pending_activation', activateDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000) },
+  })
+  return claimed.count > 0
+}
+
+function notifyEscrowReleased(group, hostId) {
+  const groupLabel = groupLabelOf(group)
+  notify({
+    userId:  hostId,
+    type:    'escrow_released',
+    title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
+    message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
+    meta:    { groupId: group.id },
+  })
+  const memberUserIds = (group.members ?? []).map(m => m.userId)
+  if (memberUserIds.length > 0) {
+    notifyBatch(memberUserIds.map(userId => ({
+      userId,
+      type:    'escrow_released_member',
+      title:   `${groupLabel} 確認期結束，服務正式啟用`,
+      message: `「${groupLabel}」確認期已結束，服務已正式啟用。`,
+      meta:    { groupId: group.id },
+    })))
+  }
+
+  notifyBatch([hostId, ...memberUserIds].map(userId => ({
+    userId,
+    type:    'service_review_reminder',
+    title:   `${groupLabel} 服務已正式啟用，快給彼此一個評價吧`,
+    message: `「${groupLabel}」確認期已結束，歡迎為這次的合購夥伴留下評價。`,
+    meta:    { groupId: group.id },
+  })))
+}
+
 export async function confirmService({ groupId, userId }) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -305,23 +347,7 @@ export async function confirmService({ groupId, userId }) {
     return { group: null, released: false }
   }
 
-  notify({
-    userId:  group.host.id,
-    type:    'escrow_released',
-    title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-    message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
-    meta:    { groupId },
-  });
-  const otherMemberUserIds = group.members.map(m => m.userId).filter(id => id !== userId);
-  if (otherMemberUserIds.length > 0) {
-    notifyBatch(otherMemberUserIds.map(memberUserId => ({
-      userId:  memberUserId,
-      type:    'escrow_released_member',
-      title:   `${groupLabel} 確認期結束，服務正式啟用`,
-      message: `「${groupLabel}」確認期已結束，服務已正式啟用。`,
-      meta:    { groupId },
-    })))
-  }
+  notifyEscrowReleased(group, group.host.id)
   notifyGroupConversation(groupId, member.userId, `確認期結束，代管款項已撥款給團主。`).catch(console.error)
 
   const finalGroup = await prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE });
@@ -409,6 +435,135 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   return updated
 }
 
+export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, evidenceUrl }) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      members: { include: { user: { select: { id: true, name: true } } } },
+      service: { select: { name: true } },
+    },
+  })
+  if (!group) throw httpError(404, '群組不存在')
+  if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
+  if (group.status !== 'pending_confirmation' && group.status !== 'pending_activation')
+    throw httpError(400, `群組狀態為 ${group.status}，無法提出問題回報`)
+
+  const member = group.members.find(m => m.id === memberId)
+  if (!member) throw httpError(404, '找不到成員')
+  if (member.serviceInfoIssueNote) throw httpError(400, '這位成員已經有待處理的問題回報')
+
+  const trimmedNote = note.trim()
+  const groupLabel = groupLabelOf(group)
+  const deadline = addHours(48)
+
+  const updated = await prisma.$transaction(async (tx) => {
+    if (group.status === 'pending_activation') {
+      await claimGroupStatus(tx, groupId, {
+        fromStatus: 'pending_activation',
+        data:       { status: 'pending_confirmation', activateDeadline: null },
+      })
+    }
+
+    await tx.member.update({
+      where: { id: member.id },
+      data:  {
+        serviceInfoIssueNote: trimmedNote,
+        ...(evidenceUrl ? { serviceInfoIssueEvidenceUrl: evidenceUrl } : {}),
+      },
+    })
+
+    await tx.dispute.create({
+      data: {
+        groupId,
+        memberId:             member.id,
+        raisedByUserId:       hostId,
+        hostId:               group.hostId,
+        planNameSnapshot:     groupLabel,
+        reason:               trimmedNote,
+        evidenceUrl:          evidenceUrl ?? null,
+        seatCostSnapshot:     computeSeatCost(group),
+        escrowTokensSnapshot: group.escrowTokens,
+        deadline,
+      },
+    })
+
+    return tx.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
+  })
+
+  notify({
+    userId:  member.userId,
+    type:    'service_info_issue',
+    title:   `${groupLabel} 帳號資訊需要修正`,
+    message: `團主在「${groupLabel}」發現帳號資訊問題，請前往修正。`,
+    meta:    { groupId },
+  })
+
+  if (group.sharedCredentials) {
+    prisma.credentialComment.create({
+      data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出問題回報，請協助處理！` },
+    }).catch(console.error)
+  }
+
+  return updated
+}
+
+export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      members: { include: { user: { select: { id: true, name: true } } } },
+      service: { select: { name: true } },
+    },
+  })
+  if (!group) throw httpError(404, '群組不存在')
+  if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
+
+  const member = group.members.find(m => m.id === memberId && m.serviceInfoIssueNote)
+  if (!member) throw httpError(400, '找不到待處理的問題回報')
+
+  const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId, status: 'pending' } })
+  if (!dispute) throw httpError(400, '找不到進行中的問題回報')
+
+  const groupLabel = groupLabelOf(group)
+
+  const advancedToActivation = await prisma.$transaction(async (tx) => {
+    const claimed = await tx.dispute.updateMany({
+      where: { id: dispute.id, status: 'pending' },
+      data:  { status: 'withdrawn_by_host', resolvedAt: new Date() },
+    })
+    if (claimed.count === 0) throw httpError(409, '這筆問題回報已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
+
+    await tx.member.update({
+      where: { id: member.id },
+      data:  { serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null },
+    })
+
+    return tryAdvanceToActivation(tx, groupId)
+  })
+
+  notify({
+    userId:  member.userId,
+    type:    'service_info_issue_resolved',
+    title:   `${groupLabel} 問題回報已撤銷`,
+    message: `團主已撤銷針對「${groupLabel}」你帳號資訊的問題回報。`,
+    meta:    { groupId },
+  })
+
+  if (advancedToActivation) notify({
+    userId:  group.hostId,
+    type:    'all_service_info_filled',
+    title:   `${groupLabel} 成員已全部完成填寫`,
+    message: `「${groupLabel}」群組所有成員都已填寫帳號資訊，可以前往啟用服務了。`,
+    meta:    { groupId },
+  })
+
+  prisma.credentialComment.create({
+    data: { groupId, authorId: hostId, content: `已撤銷對 ${member.user.name} 的問題回報` },
+  }).catch(console.error)
+
+  return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
+}
+
 async function applyDisputeWithdrawal({ group, member, dispute }) {
   const groupLabel = groupLabelOf(group)
 
@@ -446,15 +601,7 @@ async function applyDisputeWithdrawal({ group, member, dispute }) {
     meta:    { groupId: group.id },
   });
 
-  if (releasedAmount != null) {
-    notify({
-      userId:  group.hostId,
-      type:    'escrow_released',
-      title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-      message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
-      meta:    { groupId: group.id },
-    })
-  }
+  if (releasedAmount != null) notifyEscrowReleased(group, group.hostId)
 
   prisma.credentialComment.create({
     data: {
@@ -543,15 +690,7 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
     meta:    { groupId },
   });
 
-  if (releasedAmount != null) {
-    notify({
-      userId:  group.hostId,
-      type:    'escrow_released',
-      title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-      message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
-      meta:    { groupId },
-    })
-  }
+  if (releasedAmount != null) notifyEscrowReleased(group, group.hostId)
 
   prisma.credentialComment.create({
     data: {
@@ -733,10 +872,10 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     {
       userId:  m.userId,
       type:    'fill_service_info',
-      title:   isSharedCredentials ? `請提取${groupLabel}帳號資訊` : `請填寫${groupLabel}帳號資訊`,
+      title:   isSharedCredentials ? `請提取${groupLabel}帳號資訊` : '請填寫帳號資訊',
       message: isSharedCredentials
-        ? `「${groupLabel}」群組已鎖定，請進入提取帳號資訊並完成付款。`
-        : `「${groupLabel}」群組已鎖定，請進入填寫服務帳號並完成付款。`,
+        ? `「${groupLabel}」群組已鎖定，請進入提取帳號資訊。`
+        : `「${groupLabel}」群組已鎖定，請進入填寫帳號資訊。`,
       meta:    { groupId },
     },
   ]))
@@ -762,11 +901,12 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
   if (!dispute)
     throw httpError(400, '找不到進行中的申訴');
 
-  const seatCost = computeSeatCost(group);
-  const memberRefundAmount = winner === 'member' ? seatCost : 0
   const groupLabel = groupLabelOf(group)
   const trimmedReason = reason.trim()
   const resolutionType = winner === 'member' ? 'member_wins' : 'host_wins'
+
+  const seatCost = computeSeatCost(group);
+  const memberRefundAmount = winner === 'member' ? seatCost : 0
   const confirmDeadline = addHours(48);
 
   const releasedAmount = await prisma.$transaction(async (tx) => {
@@ -821,15 +961,7 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
     return tryReleaseEscrow(tx, groupId, group.hostId)
   });
 
-  if (releasedAmount != null) {
-    notify({
-      userId:  group.hostId,
-      type:    'escrow_released',
-      title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-      message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
-      meta:    { groupId },
-    })
-  }
+  if (releasedAmount != null) notifyEscrowReleased(group, group.hostId)
 
   const memberMessage = winner === 'member'
     ? `你對「${groupLabel}」回報的問題已確認，本期費用已退還至你的PM幣餘額。`
@@ -972,7 +1104,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
       userId,
       type:    'group_renewal',
       title:   `${groupLabel} 新一期已開始`,
-      message: `「${groupLabel}」開始新一期，團主正在補齊名額，補滿後會重新鎖定群組並通知你填寫最新服務帳號資訊。`,
+      message: `「${groupLabel}」開始新一期，團主正在補齊名額，補滿後會重新鎖定群組並通知你填寫最新帳號資訊。`,
       meta:    { groupId },
     })))
     return updated
@@ -982,7 +1114,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     userId,
     type:    'group_renewal',
     title:   '新一期已開始',
-    message: `「${groupLabel}」群組開始新一期，請前往填寫最新服務帳號資訊。`,
+    message: `「${groupLabel}」群組開始新一期，請前往填寫最新帳號資訊。`,
     meta:    { groupId },
   })))
 

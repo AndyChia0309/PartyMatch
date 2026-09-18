@@ -90,7 +90,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
     const existing = await prisma.member.findUnique({
       where: { id: req.params.id },
       include: {
-        group: { select: { hostId: true, planName: true, sharedCredentials: true, service: { select: { name: true } } } },
+        group: { select: { hostId: true, status: true, planName: true, sharedCredentials: true, service: { select: { name: true } } } },
         user:  { select: { name: true } },
       },
     })
@@ -99,6 +99,8 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
     const isOwner = existing.userId === req.user.id
     const isHost  = existing.group.hostId === req.user.id
     if (!isOwner && !isHost) return res.status(403).json({ message: '無操作權限' })
+    if (req.body.serviceInfoIssueNote !== undefined && !(isOwner && req.body.serviceInfoIssueNote === null))
+      return res.status(403).json({ message: '請透過問題回報的功能操作' })
 
     const member = await prisma.member.update({
       where: { id: req.params.id },
@@ -119,22 +121,22 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           groupId:  existing.groupId,
           authorId: existing.userId,
           content:  isSharedCredentials
-            ? (existing.serviceInfoIssueNote ? '已處理帳號問題，重新送出帳號資訊' : '已成功提取帳號資訊')
-            : (existing.serviceInfoIssueNote ? '已處理帳號問題，重新填寫服務帳號' : '已填寫服務帳號'),
+            ? (existing.serviceInfoIssueNote ? '已處理問題回報，重新送出帳號資訊' : '已成功提取帳號資訊')
+            : (existing.serviceInfoIssueNote ? '已處理問題回報，重新填寫帳號資訊' : '已填寫帳號資訊'),
         },
       }).catch(console.error)
 
       const allMembers = await prisma.member.findMany({ where: { groupId: existing.groupId } })
-      const allFilled  = allMembers.every(m => m.serviceInfo != null);
+      const allFilled  = allMembers.every(m => m.serviceInfo != null && !m.serviceInfoIssueNote);
 
       if (!allFilled) {
         notify({
           userId:  existing.group.hostId,
           type:    'service_info_filled',
-          title:   isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫服務帳號`,
+          title:   isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫帳號資訊`,
           message: isSharedCredentials
             ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
-            : `${memberName} 已填寫「${groupLabel}」群組的服務帳號資訊。`,
+            : `${memberName} 已填寫「${groupLabel}」群組的帳號資訊。`,
           meta:    { groupId: existing.groupId },
         })
       }
@@ -152,33 +154,13 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
             userId:  existing.group.hostId,
             type:    'all_service_info_filled',
             title:   isSharedCredentials ? `${groupLabel} 成員已全部完成提取` : `${groupLabel} 成員已全部完成填寫`,
-            message: `「${groupLabel}」群組所有成員都已${isSharedCredentials ? '提取帳號資訊' : '填寫服務帳號'}，可以前往啟用服務了。`,
+            message: `「${groupLabel}」群組所有成員都已${isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}，可以前往啟用服務了。`,
             meta:    { groupId: existing.groupId },
           });
         } catch (err) {
           if (err.statusCode !== 409)
             throw err;
         }
-      }
-    }
-
-    if (isHost && req.body.serviceInfoIssueNote) {
-      notify({
-        userId:  existing.userId,
-        type:    'service_info_issue',
-        title:   `${groupLabel} 服務帳號需要修正`,
-        message: `團主在「${groupLabel}」發現服務帳號問題，請前往修正。`,
-        meta:    { groupId: existing.groupId },
-      })
-
-      if (existing.group.sharedCredentials) {
-        prisma.credentialComment.create({
-          data: {
-            groupId:  existing.groupId,
-            authorId: req.user.id,
-            content:  `已回報 ${existing.user?.name ?? '成員'} 的帳號問題，請協助處理！`,
-          },
-        }).catch(console.error)
       }
     }
 

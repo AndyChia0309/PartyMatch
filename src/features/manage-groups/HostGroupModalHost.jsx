@@ -18,6 +18,7 @@ export default function HostGroupModalHost() {
     autoOpenBilling, setAutoOpenBilling,
     autoOpenMemberInfo, setAutoOpenMemberInfo,
     autoOpenMembers, setAutoOpenMembers,
+    autoOpenReview, setAutoOpenReview,
     autoExpandMemberId, setAutoExpandMemberId,
     autoScrollToComments, setAutoScrollToComments,
     setRenewalModalGroupId,
@@ -32,6 +33,7 @@ export default function HostGroupModalHost() {
     handleEndGroup,
     handleApprove,
     handleReportServiceInfoIssue,
+    handleWithdrawServiceInfoIssue,
     handleResolveDispute,
     handleEscalateDispute,
     handleReject,
@@ -48,9 +50,10 @@ export default function HostGroupModalHost() {
     <>
       <GroupViewModal
         isOpen={!!viewGroupId}
-        onClose={() => { setViewGroupId(null); setAutoOpenLockGroup(false); setAutoOpenActivate(false); setAutoOpenApplications(false); setAutoOpenBilling(false); setAutoOpenMemberInfo(false); setAutoOpenMembers(false); setAutoExpandMemberId(null); setAutoScrollToComments(false); refreshGroups() }}
+        onClose={() => { setViewGroupId(null); setAutoOpenLockGroup(false); setAutoOpenActivate(false); setAutoOpenApplications(false); setAutoOpenBilling(false); setAutoOpenMemberInfo(false); setAutoOpenMembers(false); setAutoOpenReview(false); setAutoExpandMemberId(null); setAutoScrollToComments(false); refreshGroups() }}
         groupId={viewGroupId}
         onReportServiceInfoIssue={handleReportServiceInfoIssue}
+        onWithdrawServiceInfoIssue={handleWithdrawServiceInfoIssue}
         onResolveDispute={handleResolveDispute}
         onEscalateDispute={handleEscalateDispute}
         onActivate={handleActivate}
@@ -69,6 +72,7 @@ export default function HostGroupModalHost() {
         autoOpenBilling={autoOpenBilling}
         autoOpenMemberInfo={autoOpenMemberInfo}
         autoOpenMembers={autoOpenMembers}
+        autoOpenReview={autoOpenReview}
         autoExpandMemberId={autoExpandMemberId}
         autoScrollToComments={autoScrollToComments}
         onAutoScrollToCommentsDone={() => setAutoScrollToComments(false)}

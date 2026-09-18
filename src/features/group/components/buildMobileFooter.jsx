@@ -36,7 +36,7 @@ function renderCTA({
           })
         }}
       >
-        {hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫服務帳號'}
+        {hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}
       </Button>
     </div>
   )

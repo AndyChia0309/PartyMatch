@@ -72,6 +72,7 @@ function hasPendingMemberAction(sub, hasUnseenCredentialComment = false) {
   const isConfirmingLike = sub.groupStatus === 'confirming' || (sub.groupStatus === 'disputed' && !sub.serviceInfoIssueNote)
   if (isConfirmingLike && !sub.confirmedAt) return true
   if (sub.groupStatus === 'disputed' && sub.serviceInfoIssueNote) return true
+  if (sub.groupStatus === 'pending_confirmation' && sub.serviceInfoIssueNote) return true
   if (sub.groupStatus === 'pending_confirmation' && !sub.serviceInfoIssueNote) {
     const sharingMethod = getServiceById(sub.serviceId)?.sharingMethod
     if (!hasFilledServiceInfo(sub.serviceInfo, sharingMethod, sub.serviceId)) return true

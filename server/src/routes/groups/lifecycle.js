@@ -18,6 +18,12 @@ const disputeSchema = z.object({
   evidenceUrl: z.string().min(1),
 })
 
+const serviceInfoIssueSchema = z.object({
+  memberId:    z.string().min(1),
+  note:        z.string().trim().min(1).max(500),
+  evidenceUrl: z.string().min(1).optional(),
+})
+
 const adjustBillingDateSchema = z.object({
   nextBillingDate: z.string(),
   note:            z.string().trim().min(1).max(300),
@@ -70,6 +76,34 @@ router.post('/:id/confirm', requireAuth, async (req, res, next) => {
   try {
     const { group, released } = await groupLifecycleService.confirmService({ groupId: req.params.id, userId: req.user.id })
     res.json({ group: group ? maskGroupHost(group) : null, released })
+  } catch (err) { next(err) }
+});
+
+router.post('/:id/service-info-issue', requireAuth, validate(serviceInfoIssueSchema), async (req, res, next) => {
+  try {
+    const updated = await groupLifecycleService.reportServiceInfoIssue({
+      groupId:     req.params.id,
+      hostId:      req.user.id,
+      memberId:    req.body.memberId,
+      note:        req.body.note,
+      evidenceUrl: req.body.evidenceUrl,
+    })
+    res.json(maskGroupHost(updated))
+  } catch (err) { next(err) }
+});
+
+const withdrawServiceInfoIssueSchema = z.object({
+  memberId: z.string().min(1),
+})
+
+router.post('/:id/service-info-issue/withdraw', requireAuth, validate(withdrawServiceInfoIssueSchema), async (req, res, next) => {
+  try {
+    const updated = await groupLifecycleService.withdrawServiceInfoIssue({
+      groupId:  req.params.id,
+      hostId:   req.user.id,
+      memberId: req.body.memberId,
+    })
+    res.json(maskGroupHost(updated))
   } catch (err) { next(err) }
 });
 

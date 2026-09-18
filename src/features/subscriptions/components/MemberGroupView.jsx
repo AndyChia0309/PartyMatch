@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, Undo2,
+  AlertTriangle, Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, Undo2,
 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
@@ -29,12 +29,13 @@ import { useNotificationStore } from '../../../common/stores/useNotificationStor
 import { useReviewStore } from '../../../common/stores/useReviewStore'
 import { fetchGroupTokenTransactions } from '../../../common/api/tokensApi'
 import { toast } from '../../../common/utils/toast'
+import { suppressNextToast } from '../../../common/utils/notificationToast'
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
 
 const DISPUTE_COOLDOWN_MINUTES = 1
 
-export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone, loading = false }) {
+export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoOpenReview, autoScrollToComments, onAutoScrollToCommentsDone, loading = false }) {
   const [activePanel, setActivePanel] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [withdrawConfirm, setWithdrawConfirm] = useState(false)
@@ -57,6 +58,11 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     // eslint-disable-next-line react-hooks/set-state-in-effect
     if (autoOpenCredentials) setActivePanel('credentials')
   }, [autoOpenCredentials]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (autoOpenReview) setReviewPrompt({ closeOnDone: false })
+  }, [autoOpenReview]);
 
   useEffect(() => {
     if (activePanel !== 'payments' && !confirmDialog) return
@@ -109,7 +115,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
   const memberFlags = getMemberGroupFlags({ status: group.status, sub, myMember, hasServiceInfo, hasServiceInfoIssue })
   const {
-    isPaymentRelevant, showMessagesButton, needsFillInfo, waitingForOthers,
+    isPaymentRelevant, showMessagesButton, needsFillInfo, waitingForOthers, waitingForActivation,
     canConfirm, isDisputeRaiser, isDisputeEscalated, canLeaveGroup, showReviewHostButton,
   } = memberFlags
   const canViewCredentials  = isPaymentRelevant;
@@ -161,6 +167,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       setConfirmServiceAgreed(false)
       if (res.released) {
         useSubscriptionStore.getState().init().catch(console.error)
+        suppressNextToast('escrow_released_member', group.id)
         toast('確認完成，款項已撥付給團主！', 'success')
         setReviewPrompt({ closeOnDone: true })
       } else {
@@ -214,7 +221,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         className="w-full rounded-lg shadow-button"
       >
         <ClipboardEdit strokeWidth={1.5} size={15} />
-        {hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫帳號'}
+        {hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'}
       </Button>
     </div>
   );
@@ -263,13 +270,14 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
   const headerBannerLive = (
     hasServiceInfoIssue ? (
-      <div className="flex items-center justify-center bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
+      <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        <AlertTriangle size={15} strokeWidth={1.5} />
         帳號資訊有問題，請點擊「修正帳號資訊」
       </div>
     ) : needsFillInfo ? (
       <div className="flex items-center justify-center gap-2 bg-brand-subtle px-6 py-3 text-sm font-extrabold text-brand">
         <Clock size={15} strokeWidth={1.5} />
-        {isSharedCredentials ? '請提取帳號資訊' : '請填寫服務帳號'}
+        {isSharedCredentials ? '請提取帳號資訊' : '請填寫帳號資訊'}
         {group.serviceInfoDeadline && (
           <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
         )}
@@ -277,7 +285,15 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     ) : waitingForOthers ? (
       <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
         <CheckCircle2 size={15} strokeWidth={1.5} />
-        {isSharedCredentials ? '已提取帳號資訊，等待其他成員完成' : '已填寫服務帳號，等待其他成員完成填寫'}
+        {isSharedCredentials ? '已提取帳號資訊，請等候其他成員' : '已填寫帳號資訊，請等候其他成員'}
+      </div>
+    ) : waitingForActivation ? (
+      <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
+        <Clock size={15} strokeWidth={1.5} />
+        請耐心等候團主啟用服務
+        {group.activateDeadline && (
+          <>，剩餘 <CountdownText deadline={group.activateDeadline} /></>
+        )}
       </div>
     ) : canConfirm ? (
       <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
@@ -286,9 +302,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
           ? '扣款日期已調整，請確認服務'
           : '服務已啟用，請確認是否正常'}
         {myMember?.confirmDeadline && (
-          group.billingDateAdjustedAt
-            ? <> 剩餘 <CountdownText deadline={myMember.confirmDeadline} /></>
-            : <>，剩餘 <CountdownText deadline={myMember.confirmDeadline} /></>
+          <>，剩餘 <CountdownText deadline={myMember.confirmDeadline} /></>
         )}
       </div>
     ) : isDisputeEscalated ? (

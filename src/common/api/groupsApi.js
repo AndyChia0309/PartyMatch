@@ -36,6 +36,14 @@ export async function cancelGroupApi(id) {
   return client.post(`/groups/${id}/cancel`)
 }
 
+export async function reportServiceInfoIssueApi(id, { memberId, note, evidenceUrl }) {
+  return client.post(`/groups/${id}/service-info-issue`, { memberId, note, evidenceUrl })
+}
+
+export async function withdrawServiceInfoIssueApi(id, memberId) {
+  return client.post(`/groups/${id}/service-info-issue/withdraw`, { memberId })
+}
+
 export async function disputeGroupApi(id, { reason, evidenceUrl }) {
   return client.post(`/groups/${id}/dispute`, { reason, evidenceUrl })
 }

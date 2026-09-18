@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { AlertTriangle, CheckCircle2, ChevronDown } from 'lucide-react'
+import { AlertTriangle, CheckCircle2, ChevronDown, Undo2 } from 'lucide-react'
 import { AvatarWithPresence } from '../../../../components/ui/avatar'
 import { Button } from '../../../../components/ui/button'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../../components/ui/collapsible'
@@ -32,11 +32,12 @@ function renderFilledInfoDetail(serviceInfo, sharingMethod, serviceId) {
 export default function MemberIssueCard(
   {
     m, filled, sharingMethod, serviceId, isSharedCredentials, canReportServiceIssue, onOpenServiceIssue,
-    canResolve, onResolveDispute, onEscalateDispute, autoExpand = false,
+    canResolve, onResolveDispute, onEscalateDispute, canWithdrawServiceInfoIssue, onWithdrawServiceInfoIssue, autoExpand = false,
   }
 ) {
   const [expanded, setExpanded] = useState(autoExpand)
   const [responseModal, setResponseModal] = useState(null)
+  const [withdrawing, setWithdrawing] = useState(false)
   const cardRef = useRef(null)
   const evidenceUrl = m.disputeEvidenceUrl ?? m.serviceInfoIssueEvidenceUrl
   const hasIssue = !!m.serviceInfoIssueNote
@@ -56,15 +57,24 @@ export default function MemberIssueCard(
     setResponseModal(null)
   }
 
+  async function handleWithdraw() {
+    setWithdrawing(true)
+    try {
+      await onWithdrawServiceInfoIssue?.(m)
+    } finally {
+      setWithdrawing(false)
+    }
+  }
+
   return (
     <div ref={cardRef} className="relative rounded-lg border border-line p-3">
       {showReportButton && (
         <Button
           variant="ghost"
           onClick={() => onOpenServiceIssue(m)}
-          className="absolute right-3 top-3 h-auto rounded-lg border border-warning/60 px-2.5 py-1 text-xs text-warning-text hover:bg-warning-subtle"
+          className="absolute right-3 top-3 h-auto rounded-lg border border-danger/60 px-2.5 py-1 text-xs text-danger-text hover:bg-danger-subtle"
         >
-          <AlertTriangle strokeWidth={1.5} size={11} /> 帳號問題
+          <AlertTriangle strokeWidth={1.5} size={11} /> 問題回報
         </Button>
       )}
       <Collapsible open={expanded} onOpenChange={setExpanded}>
@@ -75,7 +85,7 @@ export default function MemberIssueCard(
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink">{m.userName}</p>
                 <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
-                  <span>{m.disputeEscalatedAt ? '平台介入處理中' : '帳號問題待處理'}</span>
+                  <span>{m.disputeDeadline ? (m.disputeEscalatedAt ? '平台介入處理中' : '問題回報待處理') : '問題回報處理中'}</span>
                   {m.disputeDeadline && (
                     <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
                   )}
@@ -108,7 +118,7 @@ export default function MemberIssueCard(
               )}
               {filled && !m.confirmedAt && !m.confirmDeadline && (
                 <p className="flex items-center gap-1 text-xs text-success-text">
-                  <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已填寫服務帳號'}
+                  <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已填寫帳號資訊'}
                 </p>
               )}
             </div>
@@ -149,6 +159,19 @@ export default function MemberIssueCard(
             className="rounded-lg text-xs"
           >
             不實回報
+          </Button>
+        </div>
+      )}
+      {canWithdrawServiceInfoIssue && (
+        <div className="mt-2">
+          <Button
+            variant="destructive"
+            onClick={handleWithdraw}
+            loading={withdrawing}
+            className="w-full rounded-lg text-xs"
+          >
+            <Undo2 strokeWidth={1.5} size={12} />
+            撤銷回報
           </Button>
         </div>
       )}

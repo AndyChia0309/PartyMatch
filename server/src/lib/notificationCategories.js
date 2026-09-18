@@ -18,6 +18,7 @@ export const NOTIFICATION_CATEGORIES = {
   member_removed:            'group',
   member_confirmed_service:  'group',
   group_reviewed:            'group',
+  service_review_reminder:   'group',
 
   fill_service_info:             'billing',
   service_info_filled:           'billing',
@@ -43,6 +44,7 @@ export const ALWAYS_SEND_NOTIFICATION_TYPES = [
   'dispute_withdrawn',
   'dispute_escalated',
   'service_info_issue',
+  'service_info_issue_resolved',
   'account_reactivated',
   'platform_report_resolved',
   'system',

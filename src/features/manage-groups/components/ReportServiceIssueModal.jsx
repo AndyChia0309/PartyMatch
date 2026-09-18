@@ -26,11 +26,11 @@ export default function ReportServiceIssueModal({
         <DialogHeader>
           <div className="flex min-w-0 items-center gap-2.5">
             <AlertTriangle strokeWidth={1.5} size={18} className="shrink-0 text-warning-text" />
-            <DialogTitle className="truncate text-base">帳號問題</DialogTitle>
+            <DialogTitle className="truncate text-base">問題回報</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogDescription>帳號問題</DialogDescription>
+        <DialogDescription>問題回報</DialogDescription>
         <DialogBody>
       {member && (
         <div className="animate-step-slide-up flex-1 min-h-0 overflow-y-auto p-5 space-y-4">
@@ -42,7 +42,7 @@ export default function ReportServiceIssueModal({
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-semibold text-ink-2">說明帳號問題</label>
+            <label className="mb-1.5 block text-xs font-semibold text-ink-2">說明問題回報</label>
             <Textarea
               rows={3}
               autoFocus

@@ -57,6 +57,7 @@ enum DisputeStatus {
   resolved_by_host
   adjudicated
   withdrawn_by_member
+  withdrawn_by_host
 }
 
 enum DisputeResolutionType {
@@ -95,8 +96,10 @@ enum NotificationType {
   member_left_self
   member_removed
   service_info_issue
+  service_info_issue_resolved
   escrow_released
   escrow_released_member
+  service_review_reminder
   dispute_raised
   dispute_resolved
   dispute_resolved_by_host

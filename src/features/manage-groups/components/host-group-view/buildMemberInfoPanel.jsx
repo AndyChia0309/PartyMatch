@@ -6,7 +6,7 @@ import { hasFilledServiceInfo, isSharedCredentialsMethod } from '../../../../com
 import { parseHostCredentials } from '../../../../common/utils/hostCredentialFields'
 
 export function buildMemberInfoPanel(
-  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onResolveDispute, onEscalateDispute, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone }
+  { groupId, hostId, groupStatus, members, sharingMethod, sharedCredentials, serviceId, canReportServiceIssue, onOpenServiceIssue, onWithdrawServiceInfoIssue, onResolveDispute, onEscalateDispute, showPassword, onTogglePassword, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone }
 ) {
   const parsedCredentials = parseHostCredentials(sharedCredentials, serviceId)
   const isSharedCredentials = isSharedCredentialsMethod(sharingMethod)
@@ -53,6 +53,7 @@ export function buildMemberInfoPanel(
           <div className="space-y-2">
             {members.map(m => {
               const canResolve = groupStatus === 'disputed' && !!m.serviceInfoIssueNote && !m.disputeEscalatedAt
+              const canWithdrawServiceInfoIssue = groupStatus === 'pending_confirmation' && !!m.serviceInfoIssueNote && !m.disputeDeadline
               return (
                 <MemberIssueCard
                   key={m.id}
@@ -66,6 +67,8 @@ export function buildMemberInfoPanel(
                   canResolve={canResolve}
                   onResolveDispute={onResolveDispute}
                   onEscalateDispute={onEscalateDispute}
+                  canWithdrawServiceInfoIssue={canWithdrawServiceInfoIssue}
+                  onWithdrawServiceInfoIssue={onWithdrawServiceInfoIssue}
                   autoExpand={m.id === autoExpandMemberId}
                 />
               )

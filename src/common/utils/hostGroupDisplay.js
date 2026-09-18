@@ -22,22 +22,25 @@ export function hostGroupNeedsAttention(group, { pendingAppCount = 0, hasUnseenS
     hasUnseenCredentialComment
 }
 
-export function getHostStatusBadge(status, needsCredentialsOnLock) {
+export function getHostStatusBadge(status, needsCredentialsOnLock, hasServiceIssue) {
+  if (hasServiceIssue && status === 'pending_confirmation') return { variant: 'disputed', label: '問題處理中' }
   if (status === 'full') return { variant: 'full', label: '等待鎖定' }
   if (status === 'pending_confirmation' && needsCredentialsOnLock) return { variant: 'pending_confirmation', label: '成員提取中' }
   return undefined
 }
 
-export function getHostPendingBadge(status, needsCredentialsOnLock) {
+export function getHostPendingBadge(status, needsCredentialsOnLock, hasServiceIssue) {
+  if (hasServiceIssue && status === 'pending_confirmation') return { text: '問題處理中', color: 'danger' }
   if (status === 'pending_confirmation') return { text: needsCredentialsOnLock ? '成員提取中' : '成員填寫中' }
   if (status === 'disputed') return { text: '請至帳號資訊查看問題回報內容', color: 'danger' }
   return undefined
 }
 
-export function getHostGroupStatusLabel(status) {
+export function getHostGroupStatusLabel(status, hasServiceIssue) {
   if (isHistoryGroup({ status })) return '已結束'
   if (status === 'recruiting') return '招募中'
   if (status === 'full') return '已滿員'
+  if (hasServiceIssue && status === 'pending_confirmation') return '問題處理中'
   if (status === 'pending_confirmation') return '處理中'
   if (status === 'pending_activation') return '待啟用服務'
   if (status === 'confirming') return '確認期中'

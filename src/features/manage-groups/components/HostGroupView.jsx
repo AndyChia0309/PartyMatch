@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
-import { Banknote, CheckCircle2, ClipboardList, Clock, Headset, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, Users } from 'lucide-react'
+import { AlertTriangle, Banknote, CheckCircle2, ClipboardList, Clock, Headset, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, Users } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
 import CountdownText from '../../../components/ui/primitives/CountdownText'
 import GroupModalShell from '../../../components/ui/group/GroupModalShell'
 import GroupModalSideBarItem from '../../../components/ui/group/GroupModalSideBarItem'
 import ReviewUserModal from '../../subscriptions/components/ReviewUserModal'
+import BatchReviewModal from './host-group-view/BatchReviewModal'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
 import { canReportServiceIssue } from '../../../common/utils/groupStatus'
@@ -34,17 +35,19 @@ import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
 export default function HostGroupView(
-  { group, members, applications, onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
+  { group, members, applications, onReportServiceInfoIssue, onWithdrawServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoOpenReview, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
   const [removingMember, setRemovingMember]               = useState(null)
   const [activePanel, setActivePanel]                     = useState(null);
   const [headerStatus, setHeaderStatus]                    = useState(group.status);
+  const [headerHasServiceIssue, setHeaderHasServiceIssue]  = useState(() => members.some(m => m.serviceInfoIssueNote));
   const [panelTick, setPanelTick]                          = useState(0);
   const [dataSyncTick, setDataSyncTick]                     = useState(0);
   const [showReviewHistory, setShowReviewHistory]         = useState(false)
   const [reviewTargetMember, setReviewTargetMember]        = useState(null)
+  const [showBatchReview, setShowBatchReview]               = useState(false)
   const [showLockGroupConfirm, setShowLockGroupConfirm] = useState(false)
   const [checkingLock, setCheckingLock]                   = useState(false)
   const [showCancelConfirm, setShowCancelConfirm]         = useState(false)
@@ -80,6 +83,11 @@ export default function HostGroupView(
   }, [autoOpenLockGroup]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    if (autoOpenReview) setShowBatchReview(true)
+  }, [autoOpenReview])
+
+  useEffect(() => {
     function onOpenHostGroup(e) {
       if ((e.detail?.groupId ?? e.detail?.openGroupId) !== group.id) return
       if (e.detail?.openApplications) {
@@ -98,6 +106,10 @@ export default function HostGroupView(
       if (e.detail?.openMemberInfo) {
         setPanelTick(t => t + 1);
         setActivePanel('memberInfo')
+        return
+      }
+      if (e.detail?.openReview) {
+        setShowBatchReview(true)
         return
       }
       if (e.detail?.openLockGroup || e.detail?.openActivate || e.detail?.openBilling) return
@@ -132,6 +144,7 @@ export default function HostGroupView(
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeaderStatus(group.status)
+    setHeaderHasServiceIssue(members.some(m => m.serviceInfoIssueNote))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel, panelTick, dataSyncTick])
 
@@ -335,13 +348,20 @@ export default function HostGroupView(
   )
 
   const pendingConfirmationBanner = headerStatus === 'pending_confirmation' && (
-    <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
-      <Clock size={15} strokeWidth={1.5} />
-      {needsCredentialsOnLock ? '等待成員提取帳號資訊' : '等待成員填寫服務帳號資訊'}
-      {group.serviceInfoDeadline && (
-        <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
-      )}
-    </div>
+    headerHasServiceIssue ? (
+      <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        <AlertTriangle size={15} strokeWidth={1.5} />
+        請至帳號資訊查看問題回報內容
+      </div>
+    ) : (
+      <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
+        <Clock size={15} strokeWidth={1.5} />
+        {needsCredentialsOnLock ? '等待成員提取帳號資訊' : '等待成員填寫帳號資訊'}
+        {group.serviceInfoDeadline && (
+          <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
+        )}
+      </div>
+    )
   )
 
   const confirmingBanner = headerStatus === 'confirming' && (
@@ -440,6 +460,7 @@ export default function HostGroupView(
         serviceId: group.serviceId,
         canReportServiceIssue: canReportServiceIssue(frozenMemberInfo.status),
         onOpenServiceIssue: m => { setServiceIssueMember(m); setServiceIssueNote(m.serviceInfoIssueNote ?? '') },
+        onWithdrawServiceInfoIssue: m => onWithdrawServiceInfoIssue?.(m)?.finally(() => setDataSyncTick(t => t + 1)),
         onResolveDispute: (memberId, note) => onResolveDispute?.(group.id, memberId, note)?.finally(() => setDataSyncTick(t => t + 1)),
         onEscalateDispute: (memberId, note) => onEscalateDispute?.(group.id, memberId, note)?.finally(() => setDataSyncTick(t => t + 1)),
         showPassword,
@@ -535,14 +556,14 @@ export default function HostGroupView(
     )
   }
 
-  const pendingBadge = getHostPendingBadge(group.status, needsCredentialsOnLock)
+  const pendingBadge = getHostPendingBadge(group.status, needsCredentialsOnLock, members.some(m => m.serviceInfoIssueNote))
 
   return (
     <>
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && !showAdjustBillingDate && (
+      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && !showAdjustBillingDate && !showBatchReview && (
       <GroupModalShell
         onClose={onClose}
         group={group}
@@ -552,7 +573,7 @@ export default function HostGroupView(
         headerBanner={lockGroupBanner || activateBanner || pendingConfirmationBanner || confirmingBanner || disputedBanner || undefined}
         centeredCta={lockGroupCta || activateCta || renewalCta || undefined}
         extraInfoRows={[]}
-        statusBadgeOverride={getHostStatusBadge(headerStatus, needsCredentialsOnLock)}
+        statusBadgeOverride={getHostStatusBadge(headerStatus, needsCredentialsOnLock, headerHasServiceIssue)}
         pendingBadge={pendingBadge?.text}
         pendingBadgeColor={pendingBadge?.color}
         subPanel={activePanel ? buildSubPanel() : null}
@@ -619,6 +640,7 @@ export default function HostGroupView(
         onSubmit={() => {
           if (!serviceIssueNote.trim() || !serviceIssueMember) return
           onReportServiceInfoIssue?.(serviceIssueMember, serviceIssueNote.trim(), serviceIssueEvidence.key || undefined)
+            ?.finally(() => setDataSyncTick(t => t + 1))
           setServiceIssueMember(null)
           setServiceIssueNote('')
           serviceIssueEvidence.reset()
@@ -635,6 +657,13 @@ export default function HostGroupView(
           subtitle={`${group.serviceName} · ${group.planName}`}
           onSubmit={({ rating, comment }) => submitReview({ groupId: group.id, revieweeId: reviewTargetMember.userId, rating, comment })}
           onClose={() => setReviewTargetMember(null)}
+        />
+      )}
+      {showBatchReview && (
+        <BatchReviewModal
+          groupId={group.id}
+          members={members}
+          onClose={() => setShowBatchReview(false)}
         />
       )}
       <ReportPlatformIssueModal

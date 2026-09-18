@@ -76,6 +76,7 @@ export const NOTIFICATION_META = {
   group_renewal:            { icon: RefreshCw,      iconColor: 'text-success', link: '/my-subscriptions' },
   upcoming_renewal:         { icon: CalendarClock,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   service_info_issue:       { icon: AlertTriangle,  iconColor: 'text-danger',  link: '/my-subscriptions' },
+  service_info_issue_resolved: { icon: CheckCircle2, iconColor: 'text-success', link: '/my-subscriptions' },
   group_ended:              { icon: Flag,           iconColor: 'text-ink-3',   link: '/explore' },
   member_removed:           { icon: UserMinus,      iconColor: 'text-danger',  link: '/explore' },
   member_left:              { icon: LogOut,         iconColor: 'text-ink-3',   link: '/manage-groups' },
@@ -87,6 +88,7 @@ export const NOTIFICATION_META = {
   dispute_resolved_by_host: { icon: ShieldCheck,    iconColor: 'text-success', link: '/my-subscriptions' },
   dispute_withdrawn:        { icon: Undo2,          iconColor: 'text-ink-3',   link: '/manage-groups' },
   dispute_escalated:        { icon: AlertTriangle,  iconColor: 'text-danger',  link: '/manage-groups' },
+  service_review_reminder:  { icon: Star,           iconColor: 'text-success', link: '/manage-groups' },
   billing_date_confirmed:   { icon: CalendarCheck,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   billing_date_adjusted:    { icon: CalendarClock,  iconColor: 'text-ink-3',   link: '/my-subscriptions' },
   member_confirmed_service: { icon: CheckCircle2,   iconColor: 'text-success', link: '/manage-groups' },
@@ -152,6 +154,11 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
       const isSharedCredentials = isSharedCredentialsMethod(getServiceById(grp?.serviceId)?.sharingMethod)
       navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId, isSharedCredentials ? { openCredentials: true } : undefined)
     }));
+    return
+  }
+
+  if (notification.type === 'service_info_issue_resolved' && notification.meta?.groupId) {
+    withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId))
     return
   }
 
@@ -343,6 +350,19 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
 
   if (notification.type === 'escrow_released_member' && notification.meta?.groupId) {
     withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, notification.meta.groupId))
+    return
+  }
+
+  if (notification.type === 'service_review_reminder' && notification.meta?.groupId) {
+    const gId = notification.meta.groupId
+    const grp = getGroupById(gId)
+    if (grp && grp.hostId === userId) {
+      withReservedModal(() => useGroupStore.getState().init({ all: true }).finally(() => {
+        openHostGroup(gId, { openReview: true })
+      }))
+    } else {
+      withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, gId, { openReview: true }))
+    }
     return
   }
 

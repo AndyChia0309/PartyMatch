@@ -20,10 +20,13 @@ function HostedGroupCard({
   hasPendingUpdate,
   onViewGroup,
 }) {
-  const displayStatus = getRenewalAwareStatus(group.status, group.nextBillingDate)
+  const hasServiceIssue = members.some(m => m.serviceInfoIssueNote)
+  const displayStatus = hasServiceIssue && group.status === 'pending_confirmation'
+    ? 'disputed'
+    : getRenewalAwareStatus(group.status, group.nextBillingDate)
   const isSharedCredentials = isSharedCredentialsMethod(getServiceById(group.serviceId)?.sharingMethod)
 
-  const collectionState = getHostGroupStatusLabel(group.status)
+  const collectionState = getHostGroupStatusLabel(group.status, hasServiceIssue)
 
   const collectionHighlight = {
     '服務中':    'text-success-text',
@@ -46,7 +49,7 @@ function HostedGroupCard({
         badge={
           <StatusBadge
             status={displayStatus}
-            label={getHostStatusBadge(group.status, isSharedCredentials)?.label}
+            label={getHostStatusBadge(group.status, isSharedCredentials, hasServiceIssue)?.label}
           />
         }
         serviceId={group.serviceId}
@@ -126,5 +129,6 @@ export default memo(HostedGroupCard, (prev, next) =>
   prev.paymentCount === next.paymentCount &&
   prev.hasPendingUpdate === next.hasPendingUpdate &&
   prev.members.length === next.members.length &&
+  prev.members.filter(m => m.serviceInfoIssueNote).length === next.members.filter(m => m.serviceInfoIssueNote).length &&
   prev.onViewGroup === next.onViewGroup
 )

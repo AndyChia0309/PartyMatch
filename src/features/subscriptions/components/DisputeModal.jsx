@@ -5,7 +5,7 @@ import { Textarea } from '../../../components/ui/input'
 import EvidenceAttachmentField from '../../../components/ui/EvidenceAttachmentField'
 
 const DISPUTE_REASON_OPTIONS = [
-  '服務帳號未提供或有誤',
+  '帳號資訊未提供或有誤',
   '服務尚未啟用',
   '服務品質與描述不符',
   '團主已讀不回、無法聯繫',

@@ -8,6 +8,8 @@ import {
   activateGroupApi,
   confirmGroupApi,
   cancelGroupApi,
+  reportServiceInfoIssueApi,
+  withdrawServiceInfoIssueApi,
   disputeGroupApi,
   withdrawDisputeApi,
   resolveDisputeApi,
@@ -135,6 +137,22 @@ export const useGroupStore = create((set, get) => ({
   adjustBillingDate: async (id, payload) => {
     const updated = await adjustBillingDateApi(id, payload)
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    return updated
+  },
+
+  reportServiceInfoIssue: async (id, payload) => {
+    const updated = await reportServiceInfoIssueApi(id, payload)
+    set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    const { useMemberStore } = await import('./useMemberStore');
+    useMemberStore.getState().init().catch(console.error)
+    return updated
+  },
+
+  withdrawServiceInfoIssue: async (id, memberId) => {
+    const updated = await withdrawServiceInfoIssueApi(id, memberId)
+    set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    const { useMemberStore } = await import('./useMemberStore');
+    useMemberStore.getState().init().catch(console.error)
     return updated
   },
 

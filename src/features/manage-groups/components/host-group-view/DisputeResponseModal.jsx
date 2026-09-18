@@ -9,7 +9,7 @@ const MODE_CONFIG = {
   resolve: {
     icon: Check,
     title: '問題處理完成',
-    description: '確認這名成員回報的問題已經處理完成，群組會回到確認期讓所有人重新確認服務。',
+    description: '確認這名成員的問題已經處理完成。',
     placeholder: '處理備註（選填），會留在群組帳號資訊留言區',
     required: false,
     submitLabel: '確認處理完成',

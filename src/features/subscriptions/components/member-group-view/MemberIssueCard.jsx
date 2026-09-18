@@ -25,7 +25,7 @@ export default function MemberIssueCard(
             <div className="min-w-0 flex-1">
               <p className="text-sm font-semibold text-ink">{viewerName}</p>
               <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
-                <span>{isDisputeEscalated ? '平台介入處理中' : '帳號問題待處理'}</span>
+                <span>{isDisputeEscalated ? '平台介入處理中' : '問題回報處理中'}</span>
                 {disputeDeadline && (
                   <span>剩餘 <CountdownText deadline={disputeDeadline} /></span>
                 )}

@@ -350,6 +350,19 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openBilling: true } }))
       },
     }
+    const openReviewAction = {
+      label: '前往評價',
+      run:   (meta) => {
+        if (!meta?.groupId) return
+        const grp = useGroupStore.getState().getById(meta.groupId)
+        const userId = useAuthStore.getState().user?.id
+        if (grp && grp.hostId === userId) {
+          window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openReview: true } }))
+        } else {
+          window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: meta.groupId, openReview: true } }))
+        }
+      },
+    }
     const INSTANT_TOAST_ACTIONS = {
       credential_extraction_started: openMemberInfoAction,
       member_confirmed_service:      openMemberInfoAction,
@@ -360,11 +373,12 @@ export default function App() {
       credential_comment:            openCredentialsOrMemberInfoAction,
       fill_service_info:             openGroupAction,
       escrow_released:               openBillingAction,
+      service_review_reminder:       openReviewAction,
     }
     const TOAST_ICON_TYPES = new Set([
       'group_chat_opened', 'fill_service_info', 'member_confirmed_service', 'escrow_released',
       'dispute_raised', 'dispute_resolved_by_host', 'dispute_escalated', 'dispute_resolved', 'dispute_withdrawn',
-      'group_renewal', 'upcoming_renewal', 'group_reviewed', 'service_info_issue',
+      'group_renewal', 'upcoming_renewal', 'group_reviewed', 'service_info_issue', 'service_info_issue_resolved', 'service_review_reminder',
       'credential_extraction_started', 'payment_reminder', 'service_info_deadline_passed', 'group_ended',
       'group_created', 'credential_comment',
     ])

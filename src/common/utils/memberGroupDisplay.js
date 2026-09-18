@@ -17,6 +17,7 @@ export function getGroupFooterAction({ activeUserId, isHost, isWaitingMembers, n
 
 export function getSubscriptionBadgeStatus(sub) {
   const status = sub.groupStatus ?? sub.status;
+  if (status === 'pending_confirmation' && sub.serviceInfoIssueNote) return 'disputed'
   const effectiveStatus = status === 'disputed' && !sub.serviceInfoIssueNote ? 'confirming' : status;
   return isEffectivelyActive(effectiveStatus, sub.confirmedAt) ? 'active' : effectiveStatus
 }
@@ -50,6 +51,7 @@ export function getMemberGroupFlags({ status, sub, myMember, hasServiceInfo, has
   const isConfirmingLike = status === 'confirming' || (isDisputed && !isDisputeRaiser);
   const needsFillInfo = !!sub && isPaymentRelevant && !hasServiceInfo && status === 'pending_confirmation'
   const waitingForOthers = !!sub && hasServiceInfo && status === 'pending_confirmation'
+  const waitingForActivation = !!sub && status === 'pending_activation'
   const canConfirm = isConfirmingLike && !!myMember && !myMember.confirmedAt
   const alreadyConfirmed = isConfirmingLike && !!myMember?.confirmedAt
 
@@ -58,6 +60,7 @@ export function getMemberGroupFlags({ status, sub, myMember, hasServiceInfo, has
     showMessagesButton: isPaymentRelevant && status !== 'ended',
     needsFillInfo,
     waitingForOthers,
+    waitingForActivation,
     canConfirm,
     alreadyConfirmed,
     isDisputed,
@@ -80,12 +83,14 @@ export function formatDisputeReason(issueNote) {
 }
 
 export function getMemberGroupBadges({ status, sub, isSharedCredentials, flags }) {
-  const { hasServiceInfoIssue, needsFillInfo, waitingForOthers, canConfirm, isDisputed, isDisputeRaiser, isDisputeEscalated, alreadyConfirmed } = flags
+  const { hasServiceInfoIssue, needsFillInfo, waitingForOthers, waitingForActivation, canConfirm, isDisputed, isDisputeRaiser, isDisputeEscalated, alreadyConfirmed } = flags
 
   const statusBadgeOverride =
+    hasServiceInfoIssue && status === 'pending_confirmation' ? { variant: 'disputed', label: '問題處理中' } :
     alreadyConfirmed ? { variant: 'active' } :
     canConfirm && isDisputed ? 'confirming' :
     waitingForOthers ? { variant: 'active', label: isSharedCredentials ? '已提取完成' : '已填寫完成' } :
+    waitingForActivation ? { variant: 'active', label: '等待團主啟用' } :
     status === 'recruiting' && !!sub ? 'member_joined' :
     status === 'full' ? { variant: 'full', label: '等待鎖定' } :
     status === 'pending_confirmation' ? { variant: 'pending_confirmation', label: isSharedCredentials ? '帳號提取中' : '資料填寫中' } :
@@ -93,8 +98,9 @@ export function getMemberGroupBadges({ status, sub, isSharedCredentials, flags }
 
   const pendingBadge =
     hasServiceInfoIssue ? '帳號資訊有問題' :
-    needsFillInfo       ? (isSharedCredentials ? '請提取帳號資訊' : '請填寫服務帳號以完成加入流程') :
+    needsFillInfo       ? (isSharedCredentials ? '請提取帳號資訊' : '請填寫帳號資訊以完成加入流程') :
     waitingForOthers    ? '已填寫完成' :
+    waitingForActivation ? '請耐心等候團主啟用服務' :
     canConfirm           ? '確認期進行中，請確認服務' :
     isDisputeEscalated    ? DISPUTE_ESCALATED_BANNER_TEXT :
     isDisputeRaiser      ? DISPUTED_BANNER_TEXT :
@@ -107,6 +113,7 @@ export function getMemberGroupBadges({ status, sub, isSharedCredentials, flags }
     (status === 'recruiting' && !!sub) ? 'success' :
     hasServiceInfoIssue ? 'danger' :
     waitingForOthers ? 'success' :
+    waitingForActivation ? 'success' :
     canConfirm ? 'brand' :
     isDisputeRaiser ? 'danger' :
     undefined

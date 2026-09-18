@@ -12,10 +12,10 @@ const GROUP_POLL_INTERVAL_MS = 15000
 
 export default function GroupViewModal({
   isOpen, onClose, groupId,
-  onReportServiceInfoIssue, onResolveDispute, onEscalateDispute, onActivate, onLockGroup, onCancelGroup, onRemoveMember,
+  onReportServiceInfoIssue, onWithdrawServiceInfoIssue, onResolveDispute, onEscalateDispute, onActivate, onLockGroup, onCancelGroup, onRemoveMember,
   onLeaveGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds,
   autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers,
-  autoExpandMemberId, onOpenRenewal, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone,
+  autoOpenReview, autoExpandMemberId, onOpenRenewal, autoOpenCredentials, autoScrollToComments, onAutoScrollToCommentsDone,
 }) {
   const groups       = useGroupStore(s => s.groups);
   const allMembers   = useMemberStore(s => s.members)
@@ -75,6 +75,7 @@ export default function GroupViewModal({
       loading={dataRefreshing}
       group={group} members={members} applications={applications}
       onReportServiceInfoIssue={onReportServiceInfoIssue}
+      onWithdrawServiceInfoIssue={onWithdrawServiceInfoIssue}
       onResolveDispute={onResolveDispute}
       onEscalateDispute={onEscalateDispute}
       onRemoveMember={onRemoveMember}
@@ -88,11 +89,12 @@ export default function GroupViewModal({
       autoOpenBilling={autoOpenBilling}
       autoOpenMemberInfo={autoOpenMemberInfo}
       autoOpenMembers={autoOpenMembers}
+      autoOpenReview={autoOpenReview}
       autoExpandMemberId={autoExpandMemberId}
       autoScrollToComments={autoScrollToComments}
       onAutoScrollToCommentsDone={onAutoScrollToCommentsDone}
       onOpenRenewal={onOpenRenewal}
     />
   )
-  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentials={autoOpenCredentials} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={onAutoScrollToCommentsDone} />
+  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentials={autoOpenCredentials} autoOpenReview={autoOpenReview} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={onAutoScrollToCommentsDone} />
 }

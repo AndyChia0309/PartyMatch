@@ -26,7 +26,7 @@ export default function FillServiceInfoModal(
 ) {
   const [showPassword, setShowPassword] = useState(false)
   const isSharedCredentials = isSharedCredentialsMethod(sharingMethod)
-  const modalTitle = hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫服務帳號'
+  const modalTitle = hasServiceInfoIssue ? '修正帳號資訊' : isSharedCredentials ? '提取帳號資訊' : '填寫帳號資訊'
   const hasProfileField = sharingMethodConfig.fields.some(({ key }) => key === 'memberProfileName')
   const issueBanner = hasServiceInfoIssue && (
     <div className="rounded-lg bg-danger-subtle px-3 py-2 text-sm text-danger-text">

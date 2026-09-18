@@ -28,7 +28,6 @@ const updateApplicationStatus      = (id, status) => useApplicationStore.getStat
 const getMembersByGroupId        = (gid)    => useMemberStore.getState().getByGroupId(gid)
 const isUserGroupMember          = (uid, gid) => useMemberStore.getState().isMember(uid, gid)
 const removeMember               = (id)     => useMemberStore.getState().remove(id)
-const updateMember               = (id, p)  => useMemberStore.getState().update(id, p)
 
 const getSubscriptionByUserAndGroup   = (uid, gid) => useSubscriptionStore.getState().getByUserAndGroup(uid, gid)
 const removeSubscription              = (id)     => useSubscriptionStore.getState().removeLocal(id)
@@ -69,11 +68,12 @@ export function useHostActions(activeUser, { manageModal = true } = {}) {
   const [autoOpenBilling, setAutoOpenBilling]             = useState(false)
   const [autoOpenMemberInfo, setAutoOpenMemberInfo]       = useState(false)
   const [autoOpenMembers, setAutoOpenMembers]             = useState(false)
+  const [autoOpenReview, setAutoOpenReview]               = useState(false)
   const [autoExpandMemberId, setAutoExpandMemberId]       = useState(null)
   const [autoScrollToComments, setAutoScrollToComments]   = useState(false)
   const [renewalModalGroupId, setRenewalModalGroupId]     = useState(null)
 
-  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers, expandMemberId, scrollToComments }) {
+  function applyOpenHostGroup({ groupId, openGroupId, openLockGroup, openActivate, openApplications, openBilling, openMemberInfo, openMembers, openReview, expandMemberId, scrollToComments }) {
     const gId = groupId ?? openGroupId
     if (!gId) return
     window.dispatchEvent(new CustomEvent('pm:close-group-detail'))
@@ -84,6 +84,7 @@ export function useHostActions(activeUser, { manageModal = true } = {}) {
     setAutoOpenBilling(!!openBilling)
     setAutoOpenMemberInfo(!!openMemberInfo)
     setAutoOpenMembers(!!openMembers)
+    setAutoOpenReview(!!openReview)
     setAutoExpandMemberId(expandMemberId ?? null)
     setAutoScrollToComments(!!scrollToComments)
     broadcastPanelOpened('host-group')
@@ -106,6 +107,7 @@ export function useHostActions(activeUser, { manageModal = true } = {}) {
       setAutoOpenBilling(false)
       setAutoOpenMemberInfo(false)
       setAutoOpenMembers(false)
+      setAutoOpenReview(false)
       setAutoExpandMemberId(null)
       setAutoScrollToComments(false)
     }
@@ -426,9 +428,19 @@ async function handleApprove(appId) {
     removeError(appId)
   }
 
-  function handleReportServiceInfoIssue(member, note, evidenceUrl) {
-    updateMember(member.id, { serviceInfoIssueNote: note, serviceInfoIssueEvidenceUrl: evidenceUrl ?? null })
+  async function handleReportServiceInfoIssue(member, note, evidenceUrl) {
+    await useGroupStore.getState().reportServiceInfoIssue(member.groupId, { memberId: member.id, note, evidenceUrl })
     refreshGroups();
+  }
+
+  async function handleWithdrawServiceInfoIssue(member) {
+    try {
+      await useGroupStore.getState().withdrawServiceInfoIssue(member.groupId, member.id)
+      toast('已撤銷問題回報')
+      refreshGroups();
+    } catch (err) {
+      toast(err?.message ?? '撤銷失敗，請稍後再試', 'error')
+    }
   }
 
   async function handleReject(appId) {
@@ -489,6 +501,7 @@ async function handleApprove(appId) {
     autoOpenBilling, setAutoOpenBilling,
     autoOpenMemberInfo, setAutoOpenMemberInfo,
     autoOpenMembers, setAutoOpenMembers,
+    autoOpenReview, setAutoOpenReview,
     autoExpandMemberId, setAutoExpandMemberId,
     autoScrollToComments, setAutoScrollToComments,
     renewalModalGroupId, setRenewalModalGroupId,
@@ -505,6 +518,7 @@ async function handleApprove(appId) {
     handleEndGroup,
     handleApprove,
     handleReportServiceInfoIssue,
+    handleWithdrawServiceInfoIssue,
     handleResolveDispute,
     handleEscalateDispute,
     handleReject,
