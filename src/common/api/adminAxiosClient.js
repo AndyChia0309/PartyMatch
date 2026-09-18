@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getApiBaseUrl } from './apiBaseUrl'
 
 export const adminTokenManager = {
   get:    ()          => localStorage.getItem('pm_admin_access_token'),
@@ -29,7 +30,7 @@ function scheduleProactiveRefresh(token) {
 }
 
 const adminClient = axios.create({
-  baseURL:         import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3001/api',
+  baseURL:         getApiBaseUrl(),
   timeout:         15_000,
   headers:         { 'Content-Type': 'application/json' },
   withCredentials: true,

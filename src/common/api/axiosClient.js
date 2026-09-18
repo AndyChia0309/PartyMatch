@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getApiBaseUrl } from './apiBaseUrl'
 
 export const tokenManager = {
   get:    ()          => localStorage.getItem('pm_access_token'),
@@ -28,10 +29,8 @@ function scheduleProactiveRefresh(token) {
   _refreshTimer = setTimeout(() => { refreshAccessToken().catch(() => {}) }, delay)
 }
 
-const defaultApiBaseUrl = `http://${window.location.hostname}:3001/api`;
-
 const client = axios.create({
-  baseURL:         import.meta.env.VITE_API_BASE_URL ?? defaultApiBaseUrl,
+  baseURL:         getApiBaseUrl(),
   timeout:         15_000,
   headers:         { 'Content-Type': 'application/json' },
   withCredentials: true,
