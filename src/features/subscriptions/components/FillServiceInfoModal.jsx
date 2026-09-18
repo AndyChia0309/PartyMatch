@@ -36,7 +36,7 @@ export default function FillServiceInfoModal(
 
   return (
     <Dialog open={isOpen} onOpenChange={v => { if (!v) onClose() }}>
-      <DialogContent variant="panel" maxWidth="max-w-lg" instant>
+      <DialogContent variant="panel" maxWidth="max-w-md" instant>
         <DialogHeader>
           <div className="flex min-w-0 items-center gap-2.5">
             <ClipboardEdit strokeWidth={1.5} size={18} className="shrink-0 text-brand" />
@@ -46,7 +46,7 @@ export default function FillServiceInfoModal(
         </DialogHeader>
         <DialogDescription>{modalTitle}</DialogDescription>
         {sharingMethodConfig.notice && (
-          <div className="flex items-center justify-center bg-warning-subtle px-6 py-3 text-center text-sm font-extrabold text-warning-text">
+          <div className="bg-warning-subtle px-6 py-3 text-left text-sm font-extrabold text-warning-text">
             {sharingMethodConfig.bannerNotice ?? sharingMethodConfig.notice}
           </div>
         )}
