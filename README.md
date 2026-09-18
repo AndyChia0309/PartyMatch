@@ -50,6 +50,7 @@
 ## 完整文件索引
 
 - [專案簡介](docs/product/product-overview.md) — 專案定位、解決的問題、角色設計
+- [UI/UX 前期製作文件](docs/uiux/README.md) — 資訊架構、使用者流程、角色旅程與畫面狀態矩陣
 - [架構總覽](docs/architecture/architecture.md) — 分層結構與技術棧選型理由
 - [重要技術決策](docs/adr/README.md) — Zustand vs Redux、Polling vs WebSocket 等關鍵取捨為什麼這樣選
 - [群組狀態機](docs/flows/group-state-machine.md) — 一個群組會經過哪些狀態
