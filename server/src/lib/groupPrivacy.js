@@ -9,9 +9,13 @@ export function maskGroupListSensitiveFields(groups) {
 }
 
 export function maskMemberSensitiveFields(member, { isHost, isSelf }) {
-  if (isHost || isSelf) return member
+  const hasServiceInfo = member.serviceInfo != null
+  const hasServiceInfoIssue = !!member.serviceInfoIssueNote
+  if (isHost || isSelf) return { ...member, hasServiceInfo, hasServiceInfoIssue }
   return {
     ...member,
+    hasServiceInfo,
+    hasServiceInfoIssue,
     serviceInfo: member.serviceInfo?.memberProfileName
       ? { memberProfileName: member.serviceInfo.memberProfileName }
       : undefined,

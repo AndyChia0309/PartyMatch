@@ -288,9 +288,9 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         {isSharedCredentials ? '已提取帳號資訊，請等候其他成員' : '已填寫帳號資訊，請等候其他成員'}
       </div>
     ) : waitingForActivation ? (
-      <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
+      <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
         <Clock size={15} strokeWidth={1.5} />
-        請耐心等候團主啟用服務
+        請等候團主啟用服務
         {group.activateDeadline && (
           <>，剩餘 <CountdownText deadline={group.activateDeadline} /></>
         )}
@@ -400,6 +400,17 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
             isSelf: m.userId === currentUser?.id,
           }))
           : [],
+        otherMembersStatus: members
+          .filter(m => m.userId !== currentUser?.id)
+          .map(m => ({
+            id: m.id,
+            userName: m.userName,
+            userAvatarInitial: m.userAvatarInitial,
+            userAvatarColor: m.userAvatarColor,
+            userPresenceStatus: m.userPresenceStatus,
+            hasServiceInfo: m.hasServiceInfo ?? (m.serviceInfo != null),
+            hasServiceInfoIssue: m.hasServiceInfoIssue ?? !!m.serviceInfoIssueNote,
+          })),
       })
     }
 
