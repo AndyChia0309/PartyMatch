@@ -41,7 +41,9 @@ export default function MemberIssueCard(
   const cardRef = useRef(null)
   const evidenceUrl = m.disputeEvidenceUrl ?? m.serviceInfoIssueEvidenceUrl
   const hasIssue = !!m.serviceInfoIssueNote
+  const isServiceIssueOnly = hasIssue && !m.disputeDeadline
   const showReportButton = canReportServiceIssue && filled && !hasIssue
+  const showTopRightSlot = showReportButton || canWithdrawServiceInfoIssue
   const { types: issueTypes, detail: issueDetail } = formatDisputeReason(m.serviceInfoIssueNote)
 
   useEffect(() => {
@@ -77,73 +79,105 @@ export default function MemberIssueCard(
           <AlertTriangle strokeWidth={1.5} size={11} /> 問題回報
         </Button>
       )}
-      <Collapsible open={expanded} onOpenChange={setExpanded}>
-        {hasIssue ? (
-          <CollapsibleTrigger asChild>
-            <button type="button" className={`flex w-full items-center gap-3 text-left ${showReportButton ? 'pr-24' : ''}`}>
+      {canWithdrawServiceInfoIssue && (
+        <Button
+          variant="ghost"
+          onClick={handleWithdraw}
+          disabled={withdrawing}
+          className="absolute right-3 top-3 h-auto rounded-lg border border-danger/60 px-2.5 py-1 text-xs text-danger-text hover:bg-danger-subtle"
+        >
+          <Undo2 strokeWidth={1.5} size={11} /> {withdrawing ? '處理中…' : '撤銷回報'}
+        </Button>
+      )}
+      {isServiceIssueOnly ? (
+        <div className={`flex items-center gap-3 ${showTopRightSlot ? 'pr-24' : ''}`}>
+          <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-ink">{m.userName}</p>
+            <p className="text-xs text-danger-text">問題回報處理中</p>
+          </div>
+        </div>
+      ) : (
+        <Collapsible open={expanded} onOpenChange={setExpanded}>
+          {hasIssue ? (
+            <CollapsibleTrigger asChild>
+              <button type="button" className={`flex w-full items-center gap-3 text-left ${showTopRightSlot ? 'pr-24' : ''}`}>
+                <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold text-ink">{m.userName}</p>
+                  <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
+                    <span>{m.disputeEscalatedAt ? '平台介入處理中' : '問題回報待處理'}</span>
+                    <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
+                  </p>
+                </div>
+                <ChevronDown size={16} strokeWidth={1.5} className={`shrink-0 text-ink-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+              </button>
+            </CollapsibleTrigger>
+          ) : (
+            <div className={`flex items-center gap-3 ${showTopRightSlot ? 'pr-24' : ''}`}>
               <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-semibold text-ink">{m.userName}</p>
-                <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
-                  <span>{m.disputeDeadline ? (m.disputeEscalatedAt ? '平台介入處理中' : '問題回報待處理') : '問題回報處理中'}</span>
-                  {m.disputeDeadline && (
-                    <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
-                  )}
-                </p>
+                {!filled && (
+                  <p className={`text-xs ${isSharedCredentials && m.extractionStartedAt ? 'text-info-text' : 'text-ink-4'}`}>
+                    {isSharedCredentials
+                      ? (m.extractionStartedAt ? '成員已查看帳號資訊' : '尚未提取帳號')
+                      : '尚未填寫帳號'}
+                  </p>
+                )}
+                {filled && m.confirmedAt && (
+                  <p className="flex items-center gap-1 text-xs text-success-text">
+                    <CheckCircle2 size={11} strokeWidth={1.5} /> 已確認服務
+                  </p>
+                )}
+                {filled && !m.confirmedAt && m.confirmDeadline && (
+                  <p className="flex items-center gap-1 text-xs text-info-text">
+                    <CheckCircle2 size={11} strokeWidth={1.5} /> 確認期剩餘 <CountdownText deadline={m.confirmDeadline} />
+                  </p>
+                )}
+                {filled && !m.confirmedAt && !m.confirmDeadline && (
+                  <p className="flex items-center gap-1 text-xs text-success-text">
+                    <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已填寫帳號資訊'}
+                  </p>
+                )}
               </div>
-              <ChevronDown size={16} strokeWidth={1.5} className={`shrink-0 text-ink-4 transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-          </CollapsibleTrigger>
-        ) : (
-          <div className={`flex items-center gap-3 ${showReportButton ? 'pr-24' : ''}`}>
-            <AvatarWithPresence initial={m.userAvatarInitial} color={m.userAvatarColor} size="sm" presenceStatus={m.userPresenceStatus} dotClassName="h-2.5 w-2.5" />
-            <div className="min-w-0 flex-1">
-              <p className="text-sm font-semibold text-ink">{m.userName}</p>
-              {!filled && (
-                <p className={`text-xs ${isSharedCredentials && m.extractionStartedAt ? 'text-info-text' : 'text-ink-4'}`}>
-                  {isSharedCredentials
-                    ? (m.extractionStartedAt ? '成員已查看帳號資訊' : '尚未提取帳號')
-                    : '尚未填寫帳號'}
-                </p>
-              )}
-              {filled && m.confirmedAt && (
-                <p className="flex items-center gap-1 text-xs text-success-text">
-                  <CheckCircle2 size={11} strokeWidth={1.5} /> 已確認服務
-                </p>
-              )}
-              {filled && !m.confirmedAt && m.confirmDeadline && (
-                <p className="flex items-center gap-1 text-xs text-info-text">
-                  <CheckCircle2 size={11} strokeWidth={1.5} /> 確認期剩餘 <CountdownText deadline={m.confirmDeadline} />
-                </p>
-              )}
-              {filled && !m.confirmedAt && !m.confirmDeadline && (
-                <p className="flex items-center gap-1 text-xs text-success-text">
-                  <CheckCircle2 size={11} strokeWidth={1.5} /> {isSharedCredentials ? '已成功提取帳號' : '已填寫帳號資訊'}
-                </p>
-              )}
             </div>
-          </div>
-        )}
-        {filled && (
-          <div className="mt-2 rounded-lg border border-line px-3 py-2">
-            {renderFilledInfoDetail(m.serviceInfo, sharingMethod, serviceId)}
-          </div>
-        )}
-        {hasIssue && (
-          <CollapsibleContent>
-            <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
-              <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題類型：</span>{issueTypes}</p>
-              {issueDetail && (
-                <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{issueDetail}</p>
-              )}
-              <EvidenceLink
-                url={evidenceUrl}
-                className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
-              />
+          )}
+          {filled && (
+            <div className="mt-2 rounded-lg border border-line px-3 py-2">
+              {renderFilledInfoDetail(m.serviceInfo, sharingMethod, serviceId)}
             </div>
-          </CollapsibleContent>
-        )}
-      </Collapsible>
+          )}
+          {hasIssue && (
+            <CollapsibleContent>
+              <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
+                <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題類型：</span>{issueTypes}</p>
+                {issueDetail && (
+                  <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{issueDetail}</p>
+                )}
+                <EvidenceLink
+                  url={evidenceUrl}
+                  className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
+                />
+              </div>
+            </CollapsibleContent>
+          )}
+        </Collapsible>
+      )}
+      {isServiceIssueOnly && filled && (
+        <div className="mt-2 rounded-lg border border-line px-3 py-2">
+          {renderFilledInfoDetail(m.serviceInfo, sharingMethod, serviceId)}
+        </div>
+      )}
+      {isServiceIssueOnly && (
+        <div className="mt-2 w-full space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
+          <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">問題說明：</span>{m.serviceInfoIssueNote}</p>
+          <EvidenceLink
+            url={evidenceUrl}
+            className="flex w-fit items-center gap-1 text-xs font-medium text-brand underline hover:text-brand/80"
+          />
+        </div>
+      )}
       {canResolve && (
         <div className="mt-2 grid grid-cols-2 gap-2">
           <Button
@@ -159,19 +193,6 @@ export default function MemberIssueCard(
             className="rounded-lg text-xs"
           >
             不實回報
-          </Button>
-        </div>
-      )}
-      {canWithdrawServiceInfoIssue && (
-        <div className="mt-2">
-          <Button
-            variant="destructive"
-            onClick={handleWithdraw}
-            loading={withdrawing}
-            className="w-full rounded-lg text-xs"
-          >
-            <Undo2 strokeWidth={1.5} size={12} />
-            撤銷回報
           </Button>
         </div>
       )}

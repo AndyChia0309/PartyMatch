@@ -25,7 +25,7 @@ export default function ReportServiceIssueModal({
       <DialogContent variant="panel" maxWidth="max-w-sm" instant>
         <DialogHeader>
           <div className="flex min-w-0 items-center gap-2.5">
-            <AlertTriangle strokeWidth={1.5} size={18} className="shrink-0 text-warning-text" />
+            <AlertTriangle strokeWidth={1.5} size={18} className="shrink-0 text-danger-text" />
             <DialogTitle className="truncate text-base">問題回報</DialogTitle>
           </div>
           <DialogCloseButton />
@@ -64,11 +64,12 @@ export default function ReportServiceIssueModal({
         </DialogBody>
         <DialogFooter>
           <Button
+            variant="destructive"
             onClick={onSubmit}
             disabled={!note.trim() || evidenceUploading}
-            className="flex-1 rounded-lg bg-warning hover:bg-warning hover:opacity-90"
+            className="flex-1 rounded-lg"
           >
-            發送通知
+            提交回報
           </Button>
         </DialogFooter>
       </DialogContent>
