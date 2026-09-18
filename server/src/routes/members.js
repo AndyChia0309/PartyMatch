@@ -128,20 +128,22 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
 
       const allMembers = await prisma.member.findMany({ where: { groupId: existing.groupId } })
       const allFilled  = allMembers.every(m => m.serviceInfo != null && !m.serviceInfoIssueNote);
-      // 這位成員原本就有待處理的問題回報、且其他成員早就填寫完成，
-      // 代表「全部完成」這個狀態本來就已經達成過，只是被這筆問題回報打斷，
-      // 這次只是恢復原狀，不算新事件，不重複發送「全部完成」通知
-      const isReturnToAllFilled = !!existing.serviceInfoIssueNote &&
+      const hadIssue = !!existing.serviceInfoIssueNote
+      const isReturnToAllFilled = hadIssue &&
         allMembers.filter(m => m.id !== existing.id).every(m => m.serviceInfo != null && !m.serviceInfoIssueNote)
 
-      if (!allFilled) {
+      if (!allFilled || hadIssue) {
         notify({
           userId:  existing.group.hostId,
           type:    'service_info_filled',
-          title:   isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫帳號資訊`,
-          message: isSharedCredentials
-            ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
-            : `${memberName} 已填寫「${groupLabel}」群組的帳號資訊。`,
+          title:   hadIssue
+            ? `${groupLabel} 已修正帳號資訊問題回報`
+            : (isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫帳號資訊`),
+          message: hadIssue
+            ? `${memberName} 已修正「${groupLabel}」群組的帳號資訊問題回報。`
+            : (isSharedCredentials
+              ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
+              : `${memberName} 已填寫「${groupLabel}」群組的帳號資訊。`),
           meta:    { groupId: existing.groupId },
         })
       }
