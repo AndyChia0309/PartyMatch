@@ -8,7 +8,7 @@
 
 合購 Netflix、Spotify 等訂閱服務，過去多半仰賴社群貼文湊團、私訊交換帳號密碼、再自行轉帳對帳，任一環節出狀況都難以妥善處理。PartyMatch 將整段流程整合至單一平台：從媒合夥伴、審核加入，到金流代管、服務啟用與確認、續訂，各階段皆有明確的角色分工與狀態追蹤，並提供申訴與裁定機制處理糾紛，讓陌生人之間的合購交易不必仰賴單方信任。
 
-了解更多請見[專案簡介](docs/product/product-overview.md)。
+了解更多請見[專案詳情](docs/product/product-overview.md)。
 
 **Demo**：[PartyMatch線上Demo](https://partymatch.ykk910309.workers.dev)
 
@@ -49,7 +49,7 @@
 
 ## 完整文件索引
 
-- [專案簡介](docs/product/product-overview.md) — 專案定位、解決的問題、角色設計
+- [專案詳情](docs/product/product-overview.md) — 專案定位、解決的問題、角色設計
 - [UI/UX 前期製作文件](docs/uiux/README.md) — 資訊架構、使用者流程、角色旅程與畫面狀態矩陣
 - [架構總覽](docs/architecture/architecture.md) — 分層結構與技術棧選型理由
 - [重要技術決策](docs/adr/README.md) — Zustand vs Redux、Polling vs WebSocket 等關鍵取捨為什麼這樣選
