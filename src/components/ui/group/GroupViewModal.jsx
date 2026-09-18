@@ -96,5 +96,5 @@ export default function GroupViewModal({
       onOpenRenewal={onOpenRenewal}
     />
   )
-  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentials={autoOpenCredentials} autoOpenReview={autoOpenReview} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={onAutoScrollToCommentsDone} />
+  return <MemberGroupView loading={dataRefreshing} group={group} onLeaveGroup={onLeaveGroup} onClose={onClose} autoOpenCredentialsTick={autoOpenCredentials ? 1 : 0} autoOpenReviewTick={autoOpenReview ? 1 : 0} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={onAutoScrollToCommentsDone} />
 }

@@ -53,8 +53,8 @@ export default function GroupDetailModal() {
   const [cancelConfirm, setCancelConfirm]       = useState(false)
   const [cancelling, setCancelling]             = useState(false)
   const [applying, setApplying]                 = useState(false)
-  const [autoOpenCredentials, setAutoOpenCredentials] = useState(false)
-  const [autoOpenReview, setAutoOpenReview] = useState(false)
+  const [autoOpenCredentialsTick, setAutoOpenCredentialsTick] = useState(0)
+  const [autoOpenReviewTick, setAutoOpenReviewTick] = useState(0)
   const [autoScrollToComments, setAutoScrollToComments] = useState(false)
   const picksScrollRef = useRef(null)
   const picksObserverRef = useRef(null)
@@ -182,8 +182,6 @@ export default function GroupDetailModal() {
 
   function resetSubViews() {
     resetApply()
-    setAutoOpenCredentials(false)
-    setAutoOpenReview(false)
     setAutoScrollToComments(false)
     setShowMembers(false); setLeaveConfirm(false); setCancelConfirm(false)
   }
@@ -216,8 +214,8 @@ export default function GroupDetailModal() {
         useSubscriptionStore.getState().init().catch(console.error)
       }
       pushGroupUrl(gId)
-      if (e.detail?.openCredentials) setAutoOpenCredentials(true)
-      if (e.detail?.openReview) setAutoOpenReview(true)
+      if (e.detail?.openCredentials) setAutoOpenCredentialsTick(t => t + 1)
+      if (e.detail?.openReview) setAutoOpenReviewTick(t => t + 1)
       if (e.detail?.scrollToComments) setAutoScrollToComments(true)
       broadcastPanelOpened('group-detail')
     }
@@ -538,7 +536,7 @@ export default function GroupDetailModal() {
       {leaving ? (
         <GroupModalShell loading onClose={handleClose} group={group} service={service} plan={plan} desktopAsideTop={isDesktop ? true : undefined} />
       ) : (membershipRefreshing ? loadingGuess.isMember : isMember && !isHost) ? (
-        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentials={autoOpenCredentials} autoOpenReview={autoOpenReview} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={() => setAutoScrollToComments(false)} />
+        <MemberGroupView loading={membershipRefreshing} group={group} onLeaveGroup={handleLeave} onClose={handleClose} autoOpenCredentialsTick={autoOpenCredentialsTick} autoOpenReviewTick={autoOpenReviewTick} autoScrollToComments={autoScrollToComments} onAutoScrollToCommentsDone={() => setAutoScrollToComments(false)} />
       ) : membershipRefreshing ? (
         <GroupModalShell
           loading

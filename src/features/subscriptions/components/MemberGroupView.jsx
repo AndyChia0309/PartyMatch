@@ -35,7 +35,7 @@ import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUT
 
 const DISPUTE_COOLDOWN_MINUTES = 1
 
-export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentials, autoOpenReview, autoScrollToComments, onAutoScrollToCommentsDone, loading = false }) {
+export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpenCredentialsTick, autoOpenReviewTick, autoScrollToComments, onAutoScrollToCommentsDone, loading = false }) {
   const [activePanel, setActivePanel] = useState(null);
   const [leaveConfirm, setLeaveConfirm] = useState(false)
   const [withdrawConfirm, setWithdrawConfirm] = useState(false)
@@ -55,14 +55,14 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
   const [panelViewTick, setPanelViewTick] = useState(0)
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (autoOpenCredentials) setActivePanel('credentials')
-  }, [autoOpenCredentials]);
+    if (autoOpenCredentialsTick) selectPanel('credentials')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpenCredentialsTick]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    if (autoOpenReview) setReviewPrompt({ closeOnDone: false })
-  }, [autoOpenReview]);
+    if (autoOpenReviewTick) setReviewPrompt({ closeOnDone: false })
+  }, [autoOpenReviewTick]);
 
   useEffect(() => {
     if (activePanel !== 'payments' && !confirmDialog) return
