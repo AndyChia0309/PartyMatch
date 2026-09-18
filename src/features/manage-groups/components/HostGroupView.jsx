@@ -143,10 +143,10 @@ export default function HostGroupView(
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setHeaderStatus(group.status)
-    setHeaderHasServiceIssue(members.some(m => m.serviceInfoIssueNote))
+    setHeaderStatus(useGroupStore.getState().getById(group.id)?.status ?? group.status)
+    setHeaderHasServiceIssue(useMemberStore.getState().members.some(m => m.groupId === group.id && m.serviceInfoIssueNote))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePanel, panelTick, dataSyncTick])
+  }, [activePanel, panelTick, dataSyncTick, group.id])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -161,16 +161,10 @@ export default function HostGroupView(
   useEffect(() => {
     if (activePanel !== 'memberInfo')
       return;
-    let active = true
-    Promise.all([
-      useGroupStore.getState().refreshGroup(group.id).catch(console.error),
-      useMemberStore.getState().init().catch(console.error),
-    ]).finally(() => {
-      if (!active) return
-      setFrozenMemberInfo({
-        status:  useGroupStore.getState().getById(group.id)?.status ?? group.status,
-        members: useMemberStore.getState().members.filter(m => m.groupId === group.id),
-      })
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setFrozenMemberInfo({
+      status:  useGroupStore.getState().getById(group.id)?.status ?? group.status,
+      members: useMemberStore.getState().members.filter(m => m.groupId === group.id),
     })
     const user = useAuthStore.getState().getProfile()
     if (user) {
@@ -178,7 +172,6 @@ export default function HostGroupView(
         .filter(n => n.type === 'service_info_filled' && n.userId === user.id && n.meta?.groupId === group.id && !n.isRead)
         .forEach(n => useNotificationStore.getState().markRead(n.id))
     }
-    return () => { active = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePanel, group.id, panelTick, dataSyncTick])
 
@@ -214,6 +207,7 @@ export default function HostGroupView(
   const [memberChecks, setMemberChecks]             = useState({})
   const [serviceIssueMember, setServiceIssueMember] = useState(null)
   const [serviceIssueNote, setServiceIssueNote]     = useState('')
+  const [submittingServiceIssue, setSubmittingServiceIssue] = useState(false)
   const [activating, setActivating]                 = useState(false)
   const serviceIssueEvidence = useEvidenceUpload(uploadServiceIssueEvidence)
   const platformReportEvidence = useEvidenceUpload(uploadPlatformReportEvidence)
@@ -624,7 +618,9 @@ export default function HostGroupView(
       <ReportServiceIssueModal
         member={serviceIssueMember}
         sharingMethod={serviceDef?.sharingMethod}
+        submitting={submittingServiceIssue}
         onClose={() => {
+          if (submittingServiceIssue) return
           setServiceIssueMember(null)
           setServiceIssueNote('')
           serviceIssueEvidence.reset()
@@ -637,13 +633,20 @@ export default function HostGroupView(
         evidenceProgress={serviceIssueEvidence.progress}
         onEvidenceSelect={serviceIssueEvidence.onSelect}
         onRemoveEvidence={serviceIssueEvidence.onRemove}
-        onSubmit={() => {
-          if (!serviceIssueNote.trim() || !serviceIssueMember) return
-          onReportServiceInfoIssue?.(serviceIssueMember, serviceIssueNote.trim(), serviceIssueEvidence.key || undefined)
-            ?.finally(() => setDataSyncTick(t => t + 1))
-          setServiceIssueMember(null)
-          setServiceIssueNote('')
-          serviceIssueEvidence.reset()
+        onSubmit={async () => {
+          if (!serviceIssueNote.trim() || !serviceIssueMember || submittingServiceIssue) return
+          setSubmittingServiceIssue(true)
+          try {
+            await onReportServiceInfoIssue?.(serviceIssueMember, serviceIssueNote.trim(), serviceIssueEvidence.key || undefined)
+            setDataSyncTick(t => t + 1)
+            setServiceIssueMember(null)
+            setServiceIssueNote('')
+            serviceIssueEvidence.reset()
+          } catch (err) {
+            toast(err?.message ?? '送出失敗，請稍後再試', 'error')
+          } finally {
+            setSubmittingServiceIssue(false)
+          }
         }}
       />
       {reviewTargetMember && (

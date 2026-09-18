@@ -9,6 +9,7 @@ import { getServiceInfoSummary } from '../../../common/utils/serviceInfoFields'
 export default function ReportServiceIssueModal({
   member,
   sharingMethod,
+  submitting = false,
   onClose,
   note,
   setNote,
@@ -66,10 +67,10 @@ export default function ReportServiceIssueModal({
           <Button
             variant="destructive"
             onClick={onSubmit}
-            disabled={!note.trim() || evidenceUploading}
+            disabled={!note.trim() || evidenceUploading || submitting}
             className="flex-1 rounded-lg"
           >
-            提交回報
+            {submitting ? '送出中…' : '提交回報'}
           </Button>
         </DialogFooter>
       </DialogContent>
