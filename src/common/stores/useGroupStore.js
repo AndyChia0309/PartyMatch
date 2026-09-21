@@ -10,6 +10,7 @@ import {
   cancelGroupApi,
   reportServiceInfoIssueApi,
   withdrawServiceInfoIssueApi,
+  extendServiceInfoDeadlineApi,
   disputeGroupApi,
   withdrawDisputeApi,
   resolveDisputeApi,
@@ -150,6 +151,14 @@ export const useGroupStore = create((set, get) => ({
 
   withdrawServiceInfoIssue: async (id, memberId) => {
     const updated = await withdrawServiceInfoIssueApi(id, memberId)
+    const { useMemberStore } = await import('./useMemberStore');
+    await useMemberStore.getState().init()
+    set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))
+    return updated
+  },
+
+  extendServiceInfoDeadline: async (id) => {
+    const updated = await extendServiceInfoDeadlineApi(id)
     const { useMemberStore } = await import('./useMemberStore');
     await useMemberStore.getState().init()
     set(s => ({ groups: mergeGroupUpdate(s.groups, id, updated) }))

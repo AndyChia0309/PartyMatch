@@ -1,5 +1,6 @@
 import { daysUntil } from '../../../common/utils/date'
 import { getServiceById } from '../../../common/utils/serviceUtils'
+import { isRecruitingLike } from '../../../common/utils/groupStatus'
 
 function calcScore(group, conditions) {
   let score = 0
@@ -20,7 +21,7 @@ export function matchGroups(groups, conditions) {
   const { services = [], selectedPlans = {}, keyword, minPrice, maxPrice, minRating, groupAge } = conditions
 
   const filtered = groups.filter(g => {
-    if (g.status !== 'recruiting') return false
+    if (!isRecruitingLike(g.status)) return false
     if (g.openSeats <= 0) return false
     if (services.length > 0 && !services.includes(g.serviceId)) return false
     const wantedPlan = selectedPlans[g.serviceId]

@@ -69,7 +69,7 @@ router.post('/', requireAuth, validate(addMemberSchema), async (req, res, next) 
     ])
     if (!group) return res.status(404).json({ message: '群組不存在' })
     if (group.hostId !== req.user.id) return res.status(403).json({ message: '僅團主可操作' })
-    if (group.status !== 'recruiting') return res.status(400).json({ message: '群組非招募中，無法手動加入成員' })
+    if (!['recruiting', 'replacement_recruiting'].includes(group.status)) return res.status(400).json({ message: '群組非招募中，無法手動加入成員' })
     if (!targetUser) return res.status(404).json({ message: '使用者不存在' })
 
     const seatCost = computeSeatCost(group)
@@ -101,9 +101,9 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
     const isHost  = existing.group.hostId === req.user.id
     if (!isOwner && !isHost) return res.status(403).json({ message: '無操作權限' })
     if (req.body.serviceInfoIssueNote !== undefined && !(isOwner && req.body.serviceInfoIssueNote === null))
-      return res.status(403).json({ message: '請透過問題回報的功能操作' })
+      return res.status(403).json({ message: '請透過回報問題的功能操作' })
     if (req.body.serviceInfoIssueDeadline !== undefined && !isOwner)
-      return res.status(403).json({ message: '請透過問題回報的功能操作' })
+      return res.status(403).json({ message: '請透過回報問題的功能操作' })
 
     const member = await prisma.member.update({
       where: { id: req.params.id },
@@ -124,8 +124,8 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           groupId:  existing.groupId,
           authorId: existing.userId,
           content:  isSharedCredentials
-            ? (existing.serviceInfoIssueNote ? '已處理問題回報，重新送出帳號資訊' : '已成功提取帳號資訊')
-            : (existing.serviceInfoIssueNote ? '已處理問題回報，重新填寫帳號資訊' : '已填寫帳號資訊'),
+            ? (existing.serviceInfoIssueNote ? '已處理回報問題，重新送出帳號資訊' : '已成功提取帳號資訊')
+            : (existing.serviceInfoIssueNote ? '已處理回報問題，重新填寫帳號資訊' : '已填寫帳號資訊'),
         },
       }).catch(console.error)
 
@@ -140,10 +140,10 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
           userId:  existing.group.hostId,
           type:    'service_info_filled',
           title:   hadIssue
-            ? `${groupLabel} 已修正帳號資訊問題回報`
+            ? `${groupLabel} 已修正帳號資訊回報問題`
             : (isSharedCredentials ? `${groupLabel} 有成員已提取帳號資訊` : `${groupLabel} 有成員已填寫帳號資訊`),
           message: hadIssue
-            ? `${memberName} 已修正「${groupLabel}」群組的帳號資訊問題回報。`
+            ? `${memberName} 已修正「${groupLabel}」群組的帳號資訊回報問題。`
             : (isSharedCredentials
               ? `${memberName} 已確認取得「${groupLabel}」群組的帳號資訊。`
               : `${memberName} 已填寫「${groupLabel}」群組的帳號資訊。`),
@@ -155,7 +155,7 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
         try {
           const activateDeadline = new Date(Date.now() + 24 * 60 * 60 * 1000)
           await prisma.$transaction(tx => claimGroupStatus(tx, existing.groupId, {
-            fromStatus: 'pending_confirmation',
+            fromStatus: ['pending_confirmation', 'info_overdue'],
             data:       { status: 'pending_activation', activateDeadline },
           }))
           groupAdvancedStatus = 'pending_activation'

@@ -48,7 +48,8 @@ export async function activateGroup({ groupId, hostId, nextBillingDate: requeste
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-  if (group.status !== 'pending_activation') throw httpError(400, `群組狀態為 ${group.status}，無法啟用（需為 pending_activation）`)
+  if (!['pending_activation', 'activation_overdue'].includes(group.status))
+    throw httpError(400, `群組狀態為 ${group.status}，無法啟用（需為 pending_activation 或 activation_overdue）`)
   if (group.members.some(m => m.serviceInfoIssueNote)) throw httpError(400, '有成員的帳號資訊尚待處理，請先協助修正後再啟用服務')
 
   const confirmDeadline = addHours(48)
@@ -265,7 +266,7 @@ async function tryAdvanceToActivation(tx, groupId) {
   if (!allClear) return false
 
   const claimed = await tx.group.updateMany({
-    where: { id: groupId, status: 'pending_confirmation' },
+    where: { id: groupId, status: { in: ['pending_confirmation', 'info_overdue'] } },
     data:  { status: 'pending_activation', activateDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000) },
   })
   return claimed.count > 0
@@ -354,6 +355,28 @@ export async function confirmService({ groupId, userId }) {
   return { group: { ...finalGroup, escrowTokens: 0 }, released: true }
 }
 
+export async function remindActivation({ groupId, userId }) {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: { members: { include: { user: { select: { name: true } } } }, service: { select: { name: true } } },
+  })
+  if (!group) throw httpError(404, '群組不存在')
+  if (group.status !== 'activation_overdue') throw httpError(400, `群組狀態為 ${group.status}，無法提醒團主啟用`)
+  const member = group.members.find(m => m.userId === userId)
+  if (!member) throw httpError(403, '你不是此群組成員')
+
+  const groupLabel = groupLabelOf(group)
+  notify({
+    userId:  group.hostId,
+    type:    'group_activation_expired',
+    title:   `${groupLabel} 成員反映服務已可使用，請盡快啟用`,
+    message: `${member.user?.name ?? '成員'}反映「${groupLabel}」的服務已經可以使用了，請盡快點擊啟用服務。`,
+    meta:    { groupId },
+  })
+
+  return { ok: true }
+}
+
 export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -363,7 +386,8 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     },
   })
   if (!group) throw httpError(404, '群組不存在')
-  if (group.status !== 'confirming' && group.status !== 'disputed') throw httpError(400, `群組狀態為 ${group.status}，不在確認期`)
+  if (!['confirming', 'disputed', 'activation_overdue'].includes(group.status))
+    throw httpError(400, `群組狀態為 ${group.status}，不在確認期`)
 
   const member = group.members.find(m => m.userId === userId)
   if (!member)
@@ -382,9 +406,9 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   const trimmedReason = reason.trim()
 
   const updated = await prisma.$transaction(async (tx) => {
-    if (group.status === 'confirming') {
+    if (group.status === 'confirming' || group.status === 'activation_overdue') {
       await claimGroupStatus(tx, groupId, {
-        fromStatus: 'confirming',
+        fromStatus: group.status,
         data:       { status: 'disputed' },
       });
     }
@@ -428,7 +452,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     data: {
       groupId,
       authorId: member.userId,
-      content:  `已提出問題回報：${reason.trim()}`.slice(0, 500),
+      content:  `已提出回報問題：${reason.trim()}`.slice(0, 500),
     },
   }).catch(console.error);
 
@@ -445,12 +469,12 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-  if (group.status !== 'pending_confirmation' && group.status !== 'pending_activation')
-    throw httpError(400, `群組狀態為 ${group.status}，無法提出問題回報`)
+  if (!['pending_confirmation', 'pending_activation', 'info_overdue'].includes(group.status))
+    throw httpError(400, `群組狀態為 ${group.status}，無法提出回報問題`)
 
   const member = group.members.find(m => m.id === memberId)
   if (!member) throw httpError(404, '找不到成員')
-  if (member.serviceInfoIssueNote) throw httpError(400, '這位成員已經有待處理的問題回報')
+  if (member.serviceInfoIssueNote) throw httpError(400, '這位成員已經有待處理的回報問題')
 
   const trimmedNote = note.trim()
   const groupLabel = groupLabelOf(group)
@@ -462,6 +486,12 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
       await claimGroupStatus(tx, groupId, {
         fromStatus: 'pending_activation',
         data:       { status: 'pending_confirmation', activateDeadline: null },
+      })
+    }
+    if (group.status === 'info_overdue') {
+      await claimGroupStatus(tx, groupId, {
+        fromStatus: 'info_overdue',
+        data:       { status: 'pending_confirmation', serviceInfoDeadline: addHours(24) },
       })
     }
 
@@ -501,7 +531,7 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
   })
 
   prisma.credentialComment.create({
-    data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出問題回報，請協助處理！` },
+    data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出回報問題，請協助處理！` },
   }).catch(console.error)
 
   return updated
@@ -519,10 +549,10 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
 
   const member = group.members.find(m => m.id === memberId && m.serviceInfoIssueNote)
-  if (!member) throw httpError(400, '找不到待處理的問題回報')
+  if (!member) throw httpError(400, '找不到待處理的回報問題')
 
   const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId, status: 'pending' } })
-  if (!dispute) throw httpError(400, '找不到進行中的問題回報')
+  if (!dispute) throw httpError(400, '找不到進行中的回報問題')
 
   const groupLabel = groupLabelOf(group)
 
@@ -531,7 +561,7 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
       where: { id: dispute.id, status: 'pending' },
       data:  { status: 'withdrawn_by_host', resolvedAt: new Date() },
     })
-    if (claimed.count === 0) throw httpError(409, '這筆問題回報已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
+    if (claimed.count === 0) throw httpError(409, '這筆回報問題已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
 
     await tx.member.update({
       where: { id: member.id },
@@ -539,21 +569,46 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
     })
 
     // 撤銷回報時若全員已填完，代表「全部完成」這個狀態本來就已經達成過，
-    // 只是被這筆問題回報打斷，不算新事件，不重複發送「全部完成」通知
+    // 只是被這筆回報問題打斷，不算新事件，不重複發送「全部完成」通知
     await tryAdvanceToActivation(tx, groupId)
   })
 
   notify({
     userId:  member.userId,
     type:    'service_info_issue_resolved',
-    title:   `${groupLabel} 問題回報已撤銷`,
-    message: `團主已撤銷針對「${groupLabel}」你帳號資訊的問題回報。`,
+    title:   `${groupLabel} 回報問題已撤銷`,
+    message: `團主已撤銷針對「${groupLabel}」你帳號資訊的回報問題。`,
     meta:    { groupId },
   })
 
   prisma.credentialComment.create({
-    data: { groupId, authorId: hostId, content: `已撤銷對 ${member.user.name} 的問題回報` },
+    data: { groupId, authorId: hostId, content: `已撤銷對 ${member.user.name} 的回報問題` },
   }).catch(console.error)
+
+  return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
+}
+
+export async function extendServiceInfoDeadline({ groupId, hostId }) {
+  const group = await prisma.group.findUnique({ where: { id: groupId }, include: { members: true } })
+  if (!group) throw httpError(404, '群組不存在')
+  if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
+  if (group.status !== 'info_overdue') throw httpError(400, `群組狀態為 ${group.status}，無法延長期限`)
+
+  const serviceInfoDeadline = addHours(24)
+  await prisma.$transaction(tx => claimGroupStatus(tx, groupId, {
+    fromStatus: 'info_overdue',
+    data:       { status: 'pending_confirmation', serviceInfoDeadline },
+  }))
+
+  const groupLabel = groupLabelOf(group)
+  const unfinishedMembers = group.members.filter(m => m.serviceInfo == null || m.serviceInfoIssueNote)
+  notifyBatch(unfinishedMembers.map(m => ({
+    userId:  m.userId,
+    type:    'fill_service_info',
+    title:   `${groupLabel} 團主已延長帳號資訊填寫期限`,
+    message: `團主已將「${groupLabel}」的帳號資訊填寫期限延長，請盡快完成。`,
+    meta:    { groupId },
+  })))
 
   return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
 }
@@ -590,8 +645,8 @@ async function applyDisputeWithdrawal({ group, member, dispute }) {
   notify({
     userId:  group.hostId,
     type:    'dispute_withdrawn',
-    title:   `${groupLabel} ${member.user.name}已撤銷問題回報`,
-    message: `${member.user.name} 已撤銷針對「${groupLabel}」的問題回報。`,
+    title:   `${groupLabel} ${member.user.name}已撤銷回報問題`,
+    message: `${member.user.name} 已撤銷針對「${groupLabel}」的回報問題。`,
     meta:    { groupId: group.id },
   });
 
@@ -601,7 +656,7 @@ async function applyDisputeWithdrawal({ group, member, dispute }) {
     data: {
       groupId:  group.id,
       authorId: member.userId,
-      content:  `${member.user.name} 已撤銷問題回報`,
+      content:  `${member.user.name} 已撤銷回報問題`,
     },
   }).catch(console.error)
 
@@ -618,7 +673,7 @@ export async function withdrawDispute({ groupId, userId }) {
 
   const member = group.members.find(m => m.userId === userId)
   if (!member) throw httpError(403, '你不是此群組成員');
-  if (!member.serviceInfoIssueNote) throw httpError(400, '你目前沒有進行中的問題回報')
+  if (!member.serviceInfoIssueNote) throw httpError(400, '你目前沒有進行中的回報問題')
 
   const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId: member.id, status: 'pending' } })
   if (!dispute) throw httpError(400, '找不到進行中的申訴')
@@ -734,8 +789,8 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   notifyBatch([group.hostId, disputeMember.userId].map(userId => ({
     userId,
     type:    'dispute_escalated',
-    title:   `${groupLabel} 問題回報已由平台接管`,
-    message: `「${groupLabel}」的問題回報已由平台客服接管處理，請耐心等候。`,
+    title:   `${groupLabel} 回報問題已由平台接管`,
+    message: `「${groupLabel}」的回報問題已由平台客服接管處理，請耐心等候。`,
     meta:    { groupId },
   })))
 
@@ -743,7 +798,7 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
     data: {
       groupId,
       authorId: hostId,
-      content:  `${disputeMember.user.name}的問題回報將由平台介入處理，理由：${trimmedNote}`.slice(0, 500),
+      content:  `${disputeMember.user.name}的回報問題將由平台介入處理，理由：${trimmedNote}`.slice(0, 500),
     },
   }).catch(console.error)
 
@@ -1022,7 +1077,7 @@ export async function renewGroup({ groupId, hostId, renewingUserIds }) {
     serviceInfoDeadline.setHours(serviceInfoDeadline.getHours() + 24)
   }
 
-  const nextStatus = hasDropouts ? 'recruiting' : 'pending_confirmation'
+  const nextStatus = hasDropouts ? 'replacement_recruiting' : 'pending_confirmation'
 
   const updated = await prisma.$transaction(async (tx) => {
     await claimGroupStatus(tx, groupId, {

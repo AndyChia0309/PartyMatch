@@ -8,6 +8,7 @@ import { useFavoriteStore } from '../../common/stores/useFavoriteStore'
 import { useGroupStore } from '../../common/stores/useGroupStore'
 import { useMemberStore } from '../../common/stores/useMemberStore'
 import { useDeferWhileModalOpen } from '../../common/utils/hooks'
+import { isRecruitingLike } from '../../common/utils/groupStatus'
 import ExploreGroupCard from '../explore/components/ExploreGroupCard'
 
 export default function FavoritesPage() {
@@ -34,7 +35,7 @@ export default function FavoritesPage() {
     return favorites
       .filter(f => f.userId === activeUser.id)
       .map(f => byId.get(f.groupId))
-      .filter(g => g && g.status === 'recruiting' && g.openSeats > 0);
+      .filter(g => g && isRecruitingLike(g.status) && g.openSeats > 0);
   }, [activeUser, favorites, allGroups])
 
   const memberGroupIds = useMemo(

@@ -8,8 +8,6 @@ import { notify, notifyBatch } from './shared.js'
 import { maskAvatar } from '../../lib/avatarVisibility.js'
 import { maskGroupListSensitiveFields, maskGroupDetailSensitiveFields, resolveGroupMemberEvidenceUrls, HOST_PUBLIC_SELECT } from '../../lib/groupPrivacy.js'
 import { computeSeatCost, toPlainGroup } from '../../utils/pricing.js'
-import { refundEscrow } from '../../services/membershipLifecycle.service.js'
-import { adjustCreditScore } from '../../utils/creditScore.js'
 import { allMembersSettled } from '../../services/groupLifecycle.service.js'
 
 const router = Router()
@@ -47,7 +45,7 @@ const createGroupSchema = z.object({
 }));
 
 const updateGroupSchema = z.object({
-  status:          z.enum(['recruiting','full','pending_confirmation','pending_activation','active','confirming','disputed','cancelled','ended']).optional(),
+  status:          z.enum(['recruiting','full','pending_confirmation','info_overdue','pending_activation','activation_overdue','active','confirming','disputed','replacement_recruiting','cancelled','ended']).optional(),
   billingCycle:    z.enum(['monthly', 'yearly']).optional(),
   nextBillingDate: z.string().optional(),
 })
@@ -115,9 +113,11 @@ router.get('/', optionalAuth, async (req, res, next) => {
       return
     }
 
+    const statusFilter = status === 'recruiting' ? { in: ['recruiting', 'replacement_recruiting'] } : status
+
     const groups = await prisma.group.findMany({
       where: {
-        ...(status !== 'all' && { status }),
+        ...(status !== 'all' && { status: statusFilter }),
         ...(serviceId && { serviceId }),
         ...(q && {
           OR: [
@@ -187,76 +187,42 @@ router.get('/:id', optionalAuth, async (req, res, next) => {
     }
 
     if (group.status === 'pending_confirmation' && group.serviceInfoDeadline && new Date(group.serviceInfoDeadline) <= new Date()) {
-      const stalled = group.members.filter(m => m.serviceInfo == null)
-      if (stalled.length > 0) {
-        const seatCost = computeSeatCost(group)
-        const removed = await prisma.$transaction(async (tx) => {
-          const claimed = await tx.group.updateMany({
-            where: { id: group.id, status: 'pending_confirmation' },
-            data:  { status: 'recruiting', serviceInfoDeadline: null, currentMembers: { decrement: stalled.length } },
-          });
-          if (claimed.count === 0)
-            return [];
-
-          let remainingEscrow = group.escrowTokens
-          for (const m of stalled) {
-            const refundAmount = Math.min(seatCost, remainingEscrow)
-            remainingEscrow -= refundAmount
-            await tx.member.delete({ where: { id: m.id } })
-            await refundEscrow(tx, { userId: m.userId, groupId: group.id, amount: refundAmount, note: '逾期未完成帳號資訊填寫，自動移出群組並退款' })
-            await adjustCreditScore(tx, { userId: m.userId, delta: -10, reason: '被移除出群組', groupId: group.id });
-            await tx.application.updateMany({
-              where: { groupId: group.id, userId: m.userId, status: 'approved' },
-              data:  { status: 'removed', activeKey: null },
-            })
-          }
-          return stalled
+      const claimed = await prisma.group.updateMany({
+        where: { id: group.id, status: 'pending_confirmation', serviceInfoDeadline: { lte: new Date() } },
+        data:  { status: 'info_overdue' },
+      });
+      if (claimed.count > 0) {
+        const groupLabel = groupLabelOf(group)
+        notify({
+          userId:  group.hostId,
+          type:    'service_info_deadline_passed',
+          title:   `${groupLabel} 服務資訊已逾期，請前往處理`,
+          message: `「${groupLabel}」群組有成員逾期未完成帳號資訊填寫，請前往延長期限或協助處理，尚未完成的成員不會被自動移除。`,
+          meta:    { groupId: group.id },
         })
-
-        if (removed.length > 0) {
-          const groupLabel = groupLabelOf(group)
-          notifyBatch(removed.map(m => ({
-            userId:  m.userId,
-            type:    'member_removed',
-            title:   `${groupLabel} 已被移出群組`,
-            message: `「${groupLabel}」群組因你逾期未完成帳號資訊填寫，已被自動移出，代管費用已退還至你的PM幣餘額，可以重新申請或選擇其他群組。`,
-            meta:    { groupId: group.id },
-          })))
-          notify({
-            userId:  group.hostId,
-            type:    'service_info_deadline_passed',
-            title:   `${groupLabel} 成員逾期未完成，已自動移出`,
-            message: `「${groupLabel}」群組有 ${removed.length} 位成員逾期未完成帳號資訊填寫，已自動移出並退款，群組已重新開放招募補位。`,
-            meta:    { groupId: group.id },
-          })
-          const fresh = await prisma.group.findUnique({
-            where: { id: group.id },
-            include: {
-              host:    HOST_PUBLIC_SELECT,
-              service: true,
-              members: { include: { user: { select: { id: true, name: true, avatarColor: true, avatarInitial: true, showAvatar: true, presenceStatus: true, bio: true } } } },
-            },
-          })
-          return res.json(await resolveGroupMemberEvidenceUrls(maskGroupDetailSensitiveFields(maskGroupAvatars(fresh), req.user?.id)))
-        }
+        const fresh = await prisma.group.findUnique({
+          where: { id: group.id },
+          include: {
+            host:    HOST_PUBLIC_SELECT,
+            service: true,
+            members: { include: { user: { select: { id: true, name: true, avatarColor: true, avatarInitial: true, showAvatar: true, presenceStatus: true, bio: true } } } },
+          },
+        })
+        return res.json(await resolveGroupMemberEvidenceUrls(maskGroupDetailSensitiveFields(maskGroupAvatars(fresh), req.user?.id)))
       }
     }
 
     if (group.status === 'pending_activation' && group.activateDeadline && new Date(group.activateDeadline) <= new Date()) {
       const claimed = await prisma.group.updateMany({
         where: { id: group.id, status: 'pending_activation', activateDeadline: { lte: new Date() } },
-        data:  { activateDeadline: null },
+        data:  { status: 'activation_overdue' },
       });
       if (claimed.count > 0) {
-        await prisma.$transaction(async (tx) => {
-          await tx.group.update({ where: { id: group.id }, data: { status: 'full' } })
-          await adjustCreditScore(tx, { userId: group.hostId, delta: -5, reason: '逾期未啟用服務', groupId: group.id })
-        })
         notify({
           userId:  group.hostId,
           type:    'group_activation_expired',
           title:   `${groupLabelOf(group)} 逾時未啟用服務`,
-          message: `「${groupLabelOf(group)}」逾期未手動啟用，已退回額滿狀態並扣除 5 點信用分數，請重新鎖定群組。`,
+          message: `「${groupLabelOf(group)}」逾期未手動啟用，請盡快點擊啟用服務，成員也可以確認服務是否已可使用或回報問題。`,
           meta:    { groupId: group.id },
         })
         const fresh = await prisma.group.findUnique({

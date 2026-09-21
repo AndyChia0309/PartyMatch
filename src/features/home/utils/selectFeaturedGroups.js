@@ -1,5 +1,7 @@
+import { isRecruitingLike } from '../../../common/utils/groupStatus'
+
 export function selectFeaturedGroups(groups, excludeHostId, limit = 8) {
-  const recruiting = groups.filter(g => g.status === 'recruiting' && g.openSeats > 0 && g.hostId !== excludeHostId)
+  const recruiting = groups.filter(g => isRecruitingLike(g.status) && g.openSeats > 0 && g.hostId !== excludeHostId)
   return [...recruiting]
     .sort((a, b) => {
       const filledA = (a.maxMembers ?? 0) - (a.openSeats ?? 0)

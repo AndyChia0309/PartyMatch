@@ -13,6 +13,7 @@ import { useNotificationStore } from '../../common/stores/useNotificationStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import { finalizeLeaveGroup } from './utils/leaveGroupFlow'
 import { isHistoryGroup } from '../../common/utils/groupStatusDisplay'
+import { isRecruitingLike } from '../../common/utils/groupStatus'
 import { getMemberJoinedBadgeVariant } from '../../common/utils/memberGroupDisplay'
 import { calcDisplayPrice } from '../../common/utils/pricingUtils'
 import { byNewest } from '../../common/utils/date'
@@ -253,7 +254,7 @@ export default function GroupDetailModal() {
   const picks = useMemo(() => {
     if (!group) return []
     const recruiting = groups.filter(g =>
-      ((g.status === 'recruiting' && g.openSeats > 0) || g.status === 'full') && g.id !== group.id && g.hostId !== activeUserId
+      ((isRecruitingLike(g.status) && g.openSeats > 0) || g.status === 'full') && g.id !== group.id && g.hostId !== activeUserId
     ).sort(byNewest)
     return [
       ...recruiting.filter(g => g.serviceId === group.serviceId),
@@ -266,7 +267,7 @@ export default function GroupDetailModal() {
   }, [picks]);
 
   const viewerBlocked = useMemo(() => {
-    if (!isOpen || !group || groupDataPending || membershipRefreshing || leaving || group.status === 'recruiting') return false
+    if (!isOpen || !group || groupDataPending || membershipRefreshing || leaving || isRecruitingLike(group.status)) return false
     const viewerIsHost = group.hostId === activeUserId
     const viewerIsMember = activeUserId ? members.some(m => m.userId === activeUserId && m.groupId === group.id) : false
     const viewerApp = activeUserId ? useApplicationStore.getState().getByUserAndGroup(activeUserId, group.id) : null
@@ -308,9 +309,9 @@ export default function GroupDetailModal() {
 
   const isHost           = group.hostId === activeUserId
   const isMember         = activeUserId ? members.some(m => m.userId === activeUserId && m.groupId === group.id) : false
-  const isPaymentPhase      = ['pending_confirmation', 'pending_activation', 'active'].includes(group.status)
+  const isPaymentPhase      = ['pending_confirmation', 'info_overdue', 'pending_activation', 'activation_overdue', 'active'].includes(group.status)
   const needsFillInfo       = isMember && isPaymentPhase && !hasServiceInfo
-  const isWaitingMembers = isMember && ['recruiting', 'full'].includes(group.status)
+  const isWaitingMembers = isMember && (isRecruitingLike(group.status) || group.status === 'full')
   const isFull           = (group.openSeats ?? 0) <= 0
 
   const app          = activeUserId ? useApplicationStore.getState().getByUserAndGroup(activeUserId, group.id) : null;
@@ -318,7 +319,7 @@ export default function GroupDetailModal() {
   const hasActiveApp = !!app && appStatus !== 'rejected' && appStatus !== 'removed' && appStatus !== 'left' && appStatus !== 'cancelled' && !(appStatus === 'approved' && !isMember)
   const isPendingApp = appStatus === 'pending'
 
-  const canApply = !isHost && !isMember && !hasActiveApp && !isFull && !!activeUserId && group.status === 'recruiting'
+  const canApply = !isHost && !isMember && !hasActiveApp && !isFull && !!activeUserId && isRecruitingLike(group.status)
 
   function handleClose() {
     const params = new URLSearchParams(location.search);
@@ -329,7 +330,7 @@ export default function GroupDetailModal() {
   }
 
   function handleApplyClick() {
-    if (group.status !== 'recruiting') {
+    if (!isRecruitingLike(group.status)) {
       toast('此群組已不開放申請', 'error')
       return
     }
@@ -506,7 +507,7 @@ export default function GroupDetailModal() {
   )
 
   const showDesktopAside = isDesktop && !showMembers;
-  const hideRecruitBarBase = isHost || group.status !== 'recruiting'
+  const hideRecruitBarBase = isHost || !isRecruitingLike(group.status)
   const footerCta = buildMobileFooter({
     group, activeUserId, navigate, handleClose,
     isHost, isWaitingMembers, needsFillInfo, hasServiceInfoIssue,

@@ -44,6 +44,14 @@ export async function withdrawServiceInfoIssueApi(id, memberId) {
   return client.post(`/groups/${id}/service-info-issue/withdraw`, { memberId })
 }
 
+export async function extendServiceInfoDeadlineApi(id) {
+  return client.post(`/groups/${id}/service-info-issue/extend`)
+}
+
+export async function remindActivationApi(id) {
+  return client.post(`/groups/${id}/remind-activation`)
+}
+
 export async function disputeGroupApi(id, { reason, evidenceUrl }) {
   return client.post(`/groups/${id}/dispute`, { reason, evidenceUrl })
 }

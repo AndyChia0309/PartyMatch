@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
-  AlertTriangle, Banknote, CheckCircle2, Clock, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, ShieldAlert, Undo2,
+  Banknote, Headset, Info, LogOut, MessageCircle, Users, ClipboardEdit, KeyRound, ShieldAlert, Undo2,
 } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
@@ -30,10 +30,12 @@ import { useNotificationStore } from '../../../common/stores/useNotificationStor
 import { useReviewStore } from '../../../common/stores/useReviewStore'
 import { fetchGroupTokenTransactions } from '../../../common/api/tokensApi'
 import { createPlatformReport } from '../../../common/api/platformReportsApi'
+import { remindActivationApi } from '../../../common/api/groupsApi'
 import { toast } from '../../../common/utils/toast'
 import { suppressNextToast } from '../../../common/utils/notificationToast'
 import { isHistoryGroup } from '../../../common/utils/groupStatusDisplay'
 import { getMemberGroupFlags, getMemberGroupBadges, DISPUTED_BANNER_TEXT, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
+import { isRecruitingLike } from '../../../common/utils/groupStatus'
 
 const DISPUTE_COOLDOWN_MINUTES = 1
 
@@ -120,6 +122,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
   const {
     isPaymentRelevant, showMessagesButton, needsFillInfo, waitingForOthers, waitingForActivation,
     canConfirm, isDisputeRaiser, isDisputeEscalated, canLeaveGroup, showReviewHostButton,
+    isInfoOverdue, isActivationOverdue,
   } = memberFlags
   const canViewCredentials  = isPaymentRelevant;
 
@@ -242,7 +245,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         className="rounded-lg border border-danger/60 text-danger-text hover:bg-danger-subtle"
       >
         <ShieldAlert strokeWidth={1.5} size={15} />
-        不實回報
+        回報不實
       </Button>
     </div>
   ) : needsFillInfo && (
@@ -297,30 +300,73 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
     </div>
   )
 
-  const hideRecruitBarLive = group.status !== 'recruiting'
+  const [remindingActivation, setRemindingActivation] = useState(false)
+  async function handleRemindActivation() {
+    setRemindingActivation(true)
+    try {
+      await remindActivationApi(group.id)
+      toast('已提醒團主盡快啟用服務', 'success')
+    } catch (err) {
+      toast(err?.message ?? '送出失敗，請稍後再試', 'error')
+    } finally {
+      setRemindingActivation(false)
+    }
+  }
+
+  const activationOverdueCta = isActivationOverdue && (
+    <div className="grid grid-cols-2 gap-2 p-2">
+      <Button
+        onClick={handleRemindActivation}
+        disabled={remindingActivation}
+        className="rounded-lg shadow-button"
+      >
+        {remindingActivation ? '送出中…' : '服務已可使用'}
+      </Button>
+      <Button
+        variant="destructive"
+        onClick={dispute.open}
+        disabled={disputeOnCooldown}
+        className="rounded-lg shadow-button"
+      >
+        {disputeOnCooldown ? disputeCooldownLabel : '回報問題'}
+      </Button>
+    </div>
+  )
+
+  const hideRecruitBarLive = !isRecruitingLike(group.status)
 
   const headerBannerLive = (
     hasServiceInfoIssue ? (
-      <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
-        <AlertTriangle size={15} strokeWidth={1.5} />
-        帳號資訊有問題，請修正或提出不實回報
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        帳號資訊有問題，請修正或提出回報不實
       </div>
     ) : needsFillInfo ? (
       <div className="flex items-center justify-center gap-2 bg-brand-subtle px-6 py-3 text-sm font-extrabold text-brand">
-        <Clock size={15} strokeWidth={1.5} />
-        {isSharedCredentials ? '請提取帳號資訊' : '請填寫帳號資訊'}
-        {group.serviceInfoDeadline && (
-          <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
-        )}
+        {isInfoOverdue
+          ? '帳號資訊填寫已逾期，請盡快處理'
+          : (
+            <>
+              {isSharedCredentials ? '請提取帳號資訊' : '請填寫帳號資訊'}
+              {group.serviceInfoDeadline && (
+                <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
+              )}
+            </>
+          )}
+      </div>
+    ) : isInfoOverdue ? (
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        帳號資訊已逾期，團主正在處理中
+      </div>
+    ) : isActivationOverdue ? (
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        團主逾期未啟用，可確認服務已可使用或回報問題
       </div>
     ) : waitingForOthers ? (
-      <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
-        <CheckCircle2 size={15} strokeWidth={1.5} />
+      <div className="flex items-center justify-center bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
         {isSharedCredentials ? '已提取帳號資訊，請等候其他成員' : '已填寫帳號資訊，請等候其他成員'}
       </div>
     ) : waitingForActivation ? (
       <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
-        <Clock size={15} strokeWidth={1.5} />
         請等候團主啟用服務
         {group.activateDeadline && (
           <>，剩餘 <CountdownText deadline={group.activateDeadline} /></>
@@ -328,7 +374,6 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       </div>
     ) : canConfirm ? (
       <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
-        <Clock size={15} strokeWidth={1.5} />
         {group.billingDateAdjustedAt
           ? '扣款日期已調整，請確認服務'
           : '服務已啟用，請確認是否正常'}
@@ -338,21 +383,19 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       </div>
     ) : isDisputeEscalated ? (
       <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
-        <Clock size={15} strokeWidth={1.5} />
         {DISPUTE_ESCALATED_BANNER_TEXT}
         {myMember?.disputeDeadline && (
           <>，剩餘 <CountdownText deadline={myMember.disputeDeadline} /></>
         )}
       </div>
     ) : isDisputeRaiser ? (
-      <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
-        <Clock size={15} strokeWidth={1.5} />
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
         {DISPUTED_BANNER_TEXT}
       </div>
     ) : undefined
   )
 
-  const centeredCtaLive = fillInfoCta || confirmCta || withdrawCta || undefined
+  const centeredCtaLive = fillInfoCta || confirmCta || withdrawCta || activationOverdueCta || undefined
 
   const {
     statusBadgeOverride: statusBadgeOverrideLive,
@@ -607,8 +650,8 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       )}
       {withdrawConfirm && (
         <ConfirmActionDialog
-          title="撤銷問題回報"
-          message="確定要撤銷這次的問題回報嗎？撤銷後會回到確認期，需要重新確認服務。"
+          title="撤銷回報問題"
+          message="確定要撤銷這次的回報問題嗎？撤銷後會回到確認期，需要重新確認服務。"
           confirmLabel="撤銷"
           danger
           onConfirm={() => { setWithdrawConfirm(false); dispute.withdraw() }}

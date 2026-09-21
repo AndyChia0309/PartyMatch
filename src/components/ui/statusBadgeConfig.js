@@ -2,11 +2,14 @@ import { badgeVariantClasses } from './badge'
 
 export const STATUS_CONFIG = {
   recruiting:           { variant: 'success',     label: '招募中' },
+  replacement_recruiting: { variant: 'success',   label: '補位中' },
   pending_activation:   { variant: 'warning',     label: '待啟用' },
+  activation_overdue:   { variant: 'destructive', label: '啟用逾期' },
   active:               { variant: 'success',     label: '服務中' },
   cancelled:            { variant: 'destructive', label: '已解散' },
   full:                 { variant: 'secondary',   label: '已滿員' },
   pending_confirmation: { variant: 'warning',     label: '成員填寫中' },
+  info_overdue:         { variant: 'destructive', label: '帳號處理中' },
   confirming:           { variant: 'info',        label: '確認期中' },
   disputed:             { variant: 'destructive', label: '問題處理中' },
   ended:                { variant: 'neutral',     label: '已結束' },

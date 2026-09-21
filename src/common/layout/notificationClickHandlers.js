@@ -12,6 +12,7 @@ import { useSubscriptionStore } from '../stores/useSubscriptionStore'
 import { useModalStackStore } from '../stores/useModalStackStore'
 import { toast, dismissToast } from '../utils/toast'
 import { getNotificationToastId } from '../utils/notificationToast'
+import { isRecruitingLike } from '../utils/groupStatus'
 
 const getGroupById = (id) => useGroupStore.getState().getById(id)
 const getCurrentUser = () => useAuthStore.getState().user
@@ -24,7 +25,7 @@ function openHostGroup(groupId, extra) {
 async function openGroupOrRedirect(groupId) {
   await useGroupStore.getState().init({ all: true })
   const grp = getGroupById(groupId)
-  if (!grp || grp.status !== 'recruiting') {
+  if (!grp || !isRecruitingLike(grp.status)) {
     toast('此群組已額滿或不再招募', 'info')
     return
   }
@@ -178,7 +179,7 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
     ]).finally(() => {
       const hasSub = user ? !!getSubscriptionByUserAndGroup(user.id, gId) : false
       const grp = getGroupById(gId);
-      if (hasSub || (grp && grp.status === 'recruiting')) {
+      if (hasSub || (grp && isRecruitingLike(grp.status))) {
         window.dispatchEvent(new CustomEvent('pm:open-group', { detail: { groupId: gId } }))
       } else {
         toast('此群組已額滿或不再招募', 'info')

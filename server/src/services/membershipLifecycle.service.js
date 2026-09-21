@@ -15,7 +15,7 @@ export async function admitMemberIntoGroup(tx, { groupId, userId, seatCost, maxM
   }
 
   const capacity = await tx.group.updateMany({
-    where: { id: groupId, status: 'recruiting', currentMembers: { lt: maxMembers - 1 } },
+    where: { id: groupId, status: { in: ['recruiting', 'replacement_recruiting'] }, currentMembers: { lt: maxMembers - 1 } },
     data:  { currentMembers: { increment: 1 }, escrowTokens: { increment: seatCost } },
   });
   if (capacity.count === 0) {
@@ -47,7 +47,7 @@ export async function admitMemberIntoGroup(tx, { groupId, userId, seatCost, maxM
 
 export async function finalizeApprovedApplication(tx, { groupId, userId, maxMembers }) {
   const capacity = await tx.group.updateMany({
-    where: { id: groupId, status: 'recruiting', currentMembers: { lt: maxMembers - 1 } },
+    where: { id: groupId, status: { in: ['recruiting', 'replacement_recruiting'] }, currentMembers: { lt: maxMembers - 1 } },
     data:  { currentMembers: { increment: 1 } },
   });
   if (capacity.count === 0) {

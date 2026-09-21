@@ -18,7 +18,7 @@ export async function submitApplication({ groupId, message, userId }) {
     prisma.application.findFirst({ where: { groupId, userId }, orderBy: { createdAt: 'desc' } }),
   ])
   if (!group) throw httpError(404, '群組不存在')
-  if (group.status !== 'recruiting') throw httpError(400, '此群組目前不開放申請')
+  if (!['recruiting', 'replacement_recruiting'].includes(group.status)) throw httpError(400, '此群組目前不開放申請')
   if (group.hostId === userId) throw httpError(400, '團主不能申請自己的群組')
 
   if (lastDeparture) {
@@ -68,7 +68,7 @@ export async function submitApplication({ groupId, message, userId }) {
       }
 
       await claimGroupStatus(tx, groupId, {
-        fromStatus:   'recruiting',
+        fromStatus:   ['recruiting', 'replacement_recruiting'],
         data:         { escrowTokens: { increment: seatCost } },
         message:      '此群組剛好被團主解散或已額滿，無法申請',
         responseCode: 'GROUP_NOT_RECRUITING',

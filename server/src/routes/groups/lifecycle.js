@@ -107,6 +107,23 @@ router.post('/:id/service-info-issue/withdraw', requireAuth, validate(withdrawSe
   } catch (err) { next(err) }
 });
 
+router.post('/:id/service-info-issue/extend', requireAuth, async (req, res, next) => {
+  try {
+    const updated = await groupLifecycleService.extendServiceInfoDeadline({
+      groupId: req.params.id,
+      hostId:  req.user.id,
+    })
+    res.json(maskGroupHost(updated))
+  } catch (err) { next(err) }
+});
+
+router.post('/:id/remind-activation', requireAuth, async (req, res, next) => {
+  try {
+    const result = await groupLifecycleService.remindActivation({ groupId: req.params.id, userId: req.user.id })
+    res.json(result)
+  } catch (err) { next(err) }
+});
+
 router.post('/:id/dispute', requireAuth, validate(disputeSchema), async (req, res, next) => {
   try {
     const updated = await groupLifecycleService.raiseDispute({

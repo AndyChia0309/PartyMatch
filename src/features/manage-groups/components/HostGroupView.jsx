@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { AlertTriangle, Banknote, CheckCircle2, ClipboardList, Clock, Headset, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, Users } from 'lucide-react'
+import { Banknote, ClipboardList, Headset, Info, KeyRound, LockKeyhole, MessageCircle, PlayCircle, RefreshCw, Trash2, Users } from 'lucide-react'
 import { Button } from '../../../components/ui/button'
 import ConfirmActionDialog from '../../../components/ui/ConfirmActionDialog'
 import CountdownText from '../../../components/ui/primitives/CountdownText'
@@ -9,7 +9,7 @@ import ReviewUserModal from '../../subscriptions/components/ReviewUserModal'
 import BatchReviewModal from './host-group-view/BatchReviewModal'
 import { getServiceById } from '../../../common/utils/serviceUtils'
 import { isSharedCredentialsMethod } from '../../../common/utils/serviceInfoFields'
-import { canReportServiceIssue } from '../../../common/utils/groupStatus'
+import { canReportServiceIssue, isRecruitingLike } from '../../../common/utils/groupStatus'
 import { getHostGroupFlags, getHostStatusBadge, getHostPendingBadge } from '../../../common/utils/hostGroupDisplay'
 import { DISPUTE_ESCALATED_BANNER_TEXT } from '../../../common/utils/memberGroupDisplay'
 import { useAuthStore } from '../../../common/stores/useAuthStore'
@@ -189,7 +189,7 @@ export default function HostGroupView(
   const pendingApps   = applications.filter(a => a.status === 'pending')
   const groupFull     = group.openSeats <= 0
   const { isRecruiting, isCancelled, hasBeenActive, showRenewal } = getHostGroupFlags(group.status, group.nextBillingDate);
-  const canActivateNow = headerStatus === 'pending_activation';
+  const canActivateNow = headerStatus === 'pending_activation' || headerStatus === 'activation_overdue';
 
   const currentUserId = useAuthStore(s => s.user?.id);
   const submitReview  = useReviewStore(s => s.submit)
@@ -341,15 +341,45 @@ export default function HostGroupView(
     </div>
   )
 
+  const [extendingDeadline, setExtendingDeadline] = useState(false)
+  async function handleExtendServiceInfoDeadline() {
+    setExtendingDeadline(true)
+    try {
+      await useGroupStore.getState().extendServiceInfoDeadline(group.id)
+      setDataSyncTick(t => t + 1)
+      toast('已延長帳號資訊填寫期限', 'success')
+    } catch (err) {
+      toast(err?.message ?? '延長失敗，請稍後再試', 'error')
+    } finally {
+      setExtendingDeadline(false)
+    }
+  }
+
+  const infoOverdueBanner = headerStatus === 'info_overdue' && (
+    <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+      帳號資訊填寫期限已到，請延長期限或聯絡客服
+    </div>
+  )
+
+  const infoOverdueCta = headerStatus === 'info_overdue' && (
+    <div className="py-2">
+      <Button
+        onClick={handleExtendServiceInfoDeadline}
+        disabled={extendingDeadline}
+        className="w-full rounded-lg shadow-button"
+      >
+        {extendingDeadline ? '延長中…' : '延長期限 24 小時'}
+      </Button>
+    </div>
+  )
+
   const pendingConfirmationBanner = headerStatus === 'pending_confirmation' && (
     headerHasServiceIssue ? (
-      <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
-        <AlertTriangle size={15} strokeWidth={1.5} />
-        請至帳號資訊查看問題回報內容
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        請至帳號資訊查看回報問題內容
       </div>
     ) : (
-      <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
-        <Clock size={15} strokeWidth={1.5} />
+      <div className="flex items-center justify-center bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
         {needsCredentialsOnLock ? '等待成員提取帳號資訊' : '等待成員填寫帳號資訊'}
         {group.serviceInfoDeadline && (
           <>，剩餘 <CountdownText deadline={group.serviceInfoDeadline} /></>
@@ -360,7 +390,7 @@ export default function HostGroupView(
 
   const confirmingBanner = headerStatus === 'confirming' && (
     <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
-      <Clock size={15} strokeWidth={1.5} />確認期進行中
+      確認期進行中
 
       {!group.billingDateAdjustedAt && (
         <button
@@ -376,8 +406,7 @@ export default function HostGroupView(
   const escalatedDisputeMember = members.find(m => !!m.disputeEscalatedAt)
   const disputedBanner = headerStatus === 'disputed' && (
     <div className="flex items-center justify-center gap-2 bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
-      <Clock size={15} strokeWidth={1.5} />
-      {escalatedDisputeMember ? DISPUTE_ESCALATED_BANNER_TEXT : '請至帳號資訊查看問題回報內容'}
+      {escalatedDisputeMember ? DISPUTE_ESCALATED_BANNER_TEXT : '請至帳號資訊查看回報問題內容'}
       {escalatedDisputeMember?.disputeDeadline && (
         <>，剩餘 <CountdownText deadline={escalatedDisputeMember.disputeDeadline} /></>
       )}
@@ -385,13 +414,18 @@ export default function HostGroupView(
   )
 
   const activateBanner = canActivateNow && (
-    <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
-      <CheckCircle2 strokeWidth={1.5} size={15} />
-      請點擊啟用服務
-      {group.activateDeadline && (
-        <>，剩餘 <CountdownText deadline={group.activateDeadline} /></>
-      )}
-    </div>
+    headerStatus === 'activation_overdue' ? (
+      <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
+        逾期未啟用，請盡快點擊啟用服務
+      </div>
+    ) : (
+      <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
+        請點擊啟用服務
+        {group.activateDeadline && (
+          <>，剩餘 <CountdownText deadline={group.activateDeadline} /></>
+        )}
+      </div>
+    )
   )
 
   const activateCta = canActivateNow && (
@@ -563,9 +597,9 @@ export default function HostGroupView(
         group={group}
         service={serviceDef}
         plan={planDef}
-        hideRecruitBar={headerStatus !== 'recruiting'}
-        headerBanner={lockGroupBanner || activateBanner || pendingConfirmationBanner || confirmingBanner || disputedBanner || undefined}
-        centeredCta={lockGroupCta || activateCta || renewalCta || undefined}
+        hideRecruitBar={!isRecruitingLike(headerStatus)}
+        headerBanner={lockGroupBanner || activateBanner || pendingConfirmationBanner || infoOverdueBanner || confirmingBanner || disputedBanner || undefined}
+        centeredCta={lockGroupCta || activateCta || infoOverdueCta || renewalCta || undefined}
         extraInfoRows={[]}
         statusBadgeOverride={getHostStatusBadge(headerStatus, needsCredentialsOnLock, headerHasServiceIssue)}
         pendingBadge={pendingBadge?.text}

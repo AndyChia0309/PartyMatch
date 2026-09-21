@@ -11,10 +11,13 @@ enum GroupStatus {
   recruiting
   full
   pending_confirmation
+  info_overdue
   pending_activation
+  activation_overdue
   confirming
   disputed
   active
+  replacement_recruiting
   cancelled
   ended
 }
