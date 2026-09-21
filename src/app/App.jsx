@@ -310,6 +310,19 @@ export default function App() {
         window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openMemberInfo: true, expandMemberId: meta.memberId } }));
       },
     };
+    const openMemberInfoWithRefreshAction = {
+      label: '前往查看',
+      run:   (meta) => {
+        if (!meta?.groupId)
+          return;
+        Promise.all([
+          useGroupStore.getState().init({ all: true }),
+          useMemberStore.getState().init(),
+        ]).finally(() => {
+          window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: meta.groupId, openMemberInfo: true, expandMemberId: meta.memberId } }));
+        })
+      },
+    };
     const openGroupAction = {
       label: '前往查看',
       run:   (meta) => {
@@ -384,9 +397,9 @@ export default function App() {
     const INSTANT_TOAST_ACTIONS = {
       credential_extraction_started: openMemberInfoAction,
       member_confirmed_service:      openMemberInfoAction,
-      dispute_raised:                openMemberInfoAction,
+      dispute_raised:                openMemberInfoWithRefreshAction,
       dispute_resolved_by_host:      openGroupAction,
-      dispute_withdrawn:             openMemberInfoAction,
+      dispute_withdrawn:             openMemberInfoWithRefreshAction,
       group_chat_opened:             openGroupOrHostGroupAction,
       credential_comment:            openCredentialsOrMemberInfoAction,
       fill_service_info:             openGroupAction,
