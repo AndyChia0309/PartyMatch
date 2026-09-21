@@ -14,12 +14,12 @@ export function buildMembersSubPanel({ group, groupId, members, activeUserId, se
           <div className="flex items-center gap-3">
             <AvatarWithPresence initial={group.hostAvatarInitial} color={group.hostAvatarColor} size="sm" presenceStatus={group.hostPresenceStatus} dotClassName="h-2.5 w-2.5" />
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-ink">{group.hostName}</p>
-                <span className="shrink-0 rounded-full bg-brand-subtle px-2.5 py-0.5 text-xs font-semibold text-brand">
+              <p className="min-w-0 truncate text-sm font-semibold leading-5 text-ink">
+                <span>{group.hostName}</span>
+                <span className="ml-1.5 inline-flex h-4 align-[0.05em] items-center rounded-full bg-brand-subtle px-1.5 text-[11px] font-semibold leading-none text-brand">
                   團主
                 </span>
-              </div>
+              </p>
               <p className="text-xs text-ink-3">{toISODate(group.createdAt)} 建立</p>
             </div>
             <Button

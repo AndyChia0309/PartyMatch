@@ -4,7 +4,7 @@ import { useApplicationStore } from '../../../common/stores/useApplicationStore'
 import { useMemberStore } from '../../../common/stores/useMemberStore'
 import { useSubscriptionStore } from '../../../common/stores/useSubscriptionStore'
 import { createGroupConversation, removeParticipantFromConversation, sendSystemMessage } from '../../../common/api/messagesApi'
-import { toast } from '../../../common/utils/toast'
+import { dismissToast, toast } from '../../../common/utils/toast'
 import { suppressNextToast, BACKGROUND_NOTIFICATION_TOAST_DURATION } from '../../../common/utils/notificationToast'
 import { useConversationStore } from '../../../common/stores/useConversationStore'
 import { useNotificationStore } from '../../../common/stores/useNotificationStore'
@@ -175,9 +175,12 @@ async function handleLockGroup(sharedCredentials) {
     const group = getGroupById(viewGroupId)
     if (!group) return
     const groupMembers = getMembersByGroupId(viewGroupId)
+    const memberLeftToastId = `pm-member_left-${viewGroupId}`
 
     let lockSucceeded = false
     try {
+      suppressNextToast('member_left', viewGroupId);
+      dismissToast(memberLeftToastId)
       await lockGroup(viewGroupId, sharedCredentials)
       lockSucceeded = true
       const conv = await createGroupConversation({ groupId: viewGroupId });
@@ -208,8 +211,18 @@ async function handleLockGroup(sharedCredentials) {
         label: '前往查看',
         onClick: () => window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: viewGroupId } })),
       }
-      if (!lockSucceeded && err?.response?.status === 400) {
-        await useMemberStore.getState().init().catch(console.error);
+      const lockErrorMessage = err?.response?.data?.message ?? err?.message ?? ''
+      const isGroupNotFullLockError = err?.response?.data?.code === 'GROUP_NOT_FULL'
+        || (err?.response?.status === 400 && lockErrorMessage.includes('名額已變動'))
+      if (!lockSucceeded && isGroupNotFullLockError) {
+        setAutoOpenLockGroup(false)
+        suppressNextToast('member_left', viewGroupId);
+        dismissToast(memberLeftToastId)
+        useGroupStore.getState().setGroupStatus(viewGroupId, 'recruiting')
+        await Promise.all([
+          useMemberStore.getState().init().catch(console.error),
+          useGroupStore.getState().refreshGroup(viewGroupId).catch(console.error),
+        ])
         const freshMemberIds = new Set(getMembersByGroupId(viewGroupId).map(m => m.userId))
         let leftNames = groupMembers.filter(m => !freshMemberIds.has(m.userId)).map(m => m.userName).filter(Boolean)
         if (leftNames.length === 0) {
@@ -220,13 +233,12 @@ async function handleLockGroup(sharedCredentials) {
           if (parsedName) leftNames = [parsedName]
         }
         const namePart = leftNames.length > 0 ? leftNames.join('、') : '有成員';
-        suppressNextToast('member_left', viewGroupId);
+        window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: viewGroupId, openMembers: true, suppressLockGroup: true } }))
         toast(`鎖定失敗，${namePart}已退出`, 'info', {
-          id: `pm-member_left-${viewGroupId}`,
+          id: memberLeftToastId,
           duration: BACKGROUND_NOTIFICATION_TOAST_DURATION,
         })
-        window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId: viewGroupId, openMembers: true } }))
-        useGroupStore.getState().refreshGroup(viewGroupId).catch(console.error)
+        refreshGroups()
         return true
       }
       if (lockSucceeded) {
@@ -339,6 +351,12 @@ async function handleActivate(nextBillingDate) {
       toast('解散失敗，請稍後再試', 'error')
       return
     }
+
+    suppressNextToast('group_cancelled', viewGroupId, BACKGROUND_NOTIFICATION_TOAST_DURATION + 10000)
+    toast('群組已解散', 'success', {
+      id: `pm-group_cancelled-${viewGroupId}`,
+      icon: <ServiceLogo serviceId={group.serviceId} size={20} />,
+    })
 
     warnIfCredentialsExposed(group, '所有成員都已看過帳號密碼，建議盡快更改密碼避免帳號被繼續使用')
 

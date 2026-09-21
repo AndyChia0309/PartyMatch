@@ -1,5 +1,4 @@
 import { daysUntil } from './date'
-import { isHistoryGroup } from './groupStatusDisplay'
 
 export function getHostGroupFlags(status, nextBillingDate) {
   return {
@@ -26,7 +25,7 @@ export function hostGroupNeedsAttention(group, { pendingAppCount = 0, hasUnseenS
 
 export function getHostStatusBadge(status, needsCredentialsOnLock, hasServiceIssue) {
   if (hasServiceIssue && status === 'pending_confirmation') return { variant: 'disputed', label: '問題處理中' }
-  if (status === 'full') return { variant: 'full', label: '等待鎖定' }
+  if (status === 'full') return { variant: 'full', label: '尚未鎖定' }
   if (status === 'pending_confirmation' && needsCredentialsOnLock) return { variant: 'pending_confirmation', label: '成員提取中' }
   if (status === 'info_overdue') return { variant: 'info_overdue', label: '帳號處理中' }
   if (status === 'activation_overdue') return { variant: 'activation_overdue', label: '啟用逾期' }
@@ -43,17 +42,18 @@ export function getHostPendingBadge(status, needsCredentialsOnLock, hasServiceIs
 }
 
 export function getHostGroupStatusLabel(status, hasServiceIssue) {
-  if (isHistoryGroup({ status })) return '已結束'
+  if (status === 'cancelled') return '已解散'
+  if (status === 'ended') return '已結束服務'
   if (status === 'recruiting') return '招募中'
-  if (status === 'replacement_recruiting') return '補位中'
-  if (status === 'full') return '已滿員'
+  if (status === 'replacement_recruiting') return '補位進行中'
+  if (status === 'full') return '尚未鎖定'
   if (hasServiceIssue && status === 'pending_confirmation') return '問題處理中'
   if (status === 'pending_confirmation') return '成員填寫中'
   if (status === 'info_overdue') return '帳號處理中'
   if (status === 'pending_activation') return '待啟用服務'
   if (status === 'activation_overdue') return '啟用逾期'
-  if (status === 'confirming') return '確認期中'
+  if (status === 'confirming') return '確認進行中'
   if (status === 'disputed') return '問題處理中'
-  if (status === 'active') return '服務中'
+  if (status === 'active') return '服務進行中'
   return '正常'
 }

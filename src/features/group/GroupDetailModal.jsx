@@ -557,20 +557,20 @@ export default function GroupDetailModal() {
           extraInfoRows={[]}
           statusBadgeOverride={
             getMemberJoinedBadgeVariant(group.status, isMember) ??
-            (isPendingApp ? { variant: 'pending', label: '審核中' } : undefined)
+            (isPendingApp ? 'approval' : undefined)
           }
           subPanel={showMembers ? buildMembersSubPanel({ group, groupId, members, activeUserId, setShowMembers, openDm }) : null}
           onSubPanelBack={() => { setShowMembers(false); resetApply() }}
           panelKey={showMembers ? 'members' : `overview-${groupId}`}
           headerBanner={
             isWaitingMembers ? (
-              <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-medium text-success-text">
+              <div className="flex items-center justify-center gap-2 bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
                 <CheckCircle2 strokeWidth={1.5} size={15} />
-                {group.status === 'full' ? '招募完成，等待團主鎖定群組' : '已通過申請，需等待其他人加入'}
+                {group.status === 'full' ? '請等待團主確認名單並鎖定群組' : '已通過申請，需等待其他人加入'}
               </div>
             ) : isPendingApp ? (
-              <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-medium text-warning-text">
-                <CheckCircle2 strokeWidth={1.5} size={15} />已送出申請，等待團主審核
+              <div className="flex items-center justify-center gap-2 bg-info-subtle px-6 py-3 text-sm font-extrabold text-info-text">
+                <CheckCircle2 strokeWidth={1.5} size={15} />申請已送出，審核進行中
               </div>
             ) : undefined
           }

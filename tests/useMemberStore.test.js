@@ -58,7 +58,7 @@ describe('useMemberStore', () => {
 
   it('fillServiceInfo() 成功且全員填完時，通知 useGroupStore 推進狀態', async () => {
     useMemberStore.setState({ members: [MEMBER] })
-    patchMember.mockResolvedValue({ _groupAdvanced: 'pending_activation' })
+    patchMember.mockResolvedValue({ ...MEMBER, serviceInfo: { account: 'a@b.com' }, _groupAdvanced: 'pending_activation' })
 
     await useMemberStore.getState().fillServiceInfo('m1', 'g1', { account: 'a@b.com' })
     expect(useMemberStore.getState().getByUserAndGroup('u1', 'g1').serviceInfo).toEqual({ account: 'a@b.com' })

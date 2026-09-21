@@ -19,7 +19,7 @@ export default function GroupHistoryModal({ isOpen, onClose, items, renderItem, 
             {items.length === 0 ? (
               <EmptyState
                 icon={Archive}
-                title="還沒有已結束的群組"
+                title="還沒有已結束服務的群組"
                 description={emptyDescription}
               />
             ) : (

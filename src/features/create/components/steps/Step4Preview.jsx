@@ -28,10 +28,14 @@ export default function Step4Preview({ form, agreedToTerms, onAgreedToTermsChang
   const today = toISODate().replace(/-/g, '/')
 
   return (
-    <div className="flex h-full min-h-0 flex-col lg:flex-row lg:items-stretch lg:gap-6">
-      <div className="flex min-h-0 flex-1 flex-col justify-between gap-4">
-        <div className="flex min-h-0 flex-1 flex-col bg-surface border border-line rounded-2xl p-4">
-          <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="flex min-h-full flex-col gap-4 lg:h-full lg:min-h-0 lg:flex-row-reverse lg:items-stretch lg:gap-6">
+      <div className="flex flex-col gap-4 lg:min-h-0 lg:flex-1 lg:justify-between">
+        <div className="lg:hidden">
+          <LivePreviewPanel form={form} />
+        </div>
+
+        <div className="bg-surface border border-line rounded-2xl p-4 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col">
+          <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 lg:[scrollbar-width:none] lg:[&::-webkit-scrollbar]:hidden">
             <div className="space-y-4 lg:grid lg:grid-cols-2 lg:gap-x-8 lg:gap-y-4 lg:space-y-0">
               <InfoField icon={User}    label="團主"     value={activeUser?.displayName ?? '使用者'} />
               <InfoField icon={Package} label="服務／方案" value={`${service?.name ?? ''} · ${form.planName}`} />
@@ -65,26 +69,26 @@ export default function Step4Preview({ form, agreedToTerms, onAgreedToTermsChang
               </div>
             </div>
           </div>
-        </div>
 
-        <label className="flex w-full cursor-pointer items-start gap-3 px-1">
-          <input
-            type="checkbox"
-            checked={agreedToTerms}
-            onChange={e => onAgreedToTermsChange(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
-          />
-          <span className="text-xs leading-relaxed text-ink-2">
-            我已閱讀並同意 PartyMatch 的{' '}
-            <Link to="/terms" target="_blank" className="font-semibold text-brand underline-offset-2 hover:underline">服務條款</Link>
-            {' '}與{' '}
-            <Link to="/privacy" target="_blank" className="font-semibold text-brand underline-offset-2 hover:underline">隱私政策</Link>
-            ，並確認以上群組資訊正確。
-          </span>
-        </label>
+          <label className="mt-4 flex w-full shrink-0 cursor-pointer items-start gap-3 border-t border-line pt-4">
+            <input
+              type="checkbox"
+              checked={agreedToTerms}
+              onChange={e => onAgreedToTermsChange(e.target.checked)}
+              className="mt-0.5 h-4 w-4 shrink-0 accent-brand"
+            />
+            <span className="text-xs leading-relaxed text-ink-2">
+              已閱讀並同意 PartyMatch {' '}
+              <Link to="/terms" target="_blank" className="font-semibold text-brand underline-offset-2 hover:underline">服務條款</Link>
+              {' '}與{' '}
+              <Link to="/privacy" target="_blank" className="font-semibold text-brand underline-offset-2 hover:underline">隱私政策</Link>
+              。
+            </span>
+          </label>
+        </div>
       </div>
 
-      <div className="mt-4 hidden shrink-0 lg:mt-0 lg:block lg:w-72">
+      <div className="hidden shrink-0 lg:flex lg:w-72 lg:flex-col lg:justify-end">
         <LivePreviewPanel form={form} />
       </div>
     </div>

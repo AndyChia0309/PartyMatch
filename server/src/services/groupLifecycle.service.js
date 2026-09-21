@@ -851,13 +851,22 @@ export async function cancelGroup({ groupId, hostId }) {
     return currentMembers
   })
 
-  notifyBatch(currentMembers.map(m => ({
-    userId:  m.userId,
-    type:    'group_cancelled',
-    title:   `${groupLabelForCancel} 群組已解散`,
-    message: `「${groupLabelForCancel}」群組已被團主解散，代管費用已退還至你的PM幣餘額。`,
-    meta:    { groupId },
-  })))
+  await notifyBatch([
+    {
+      userId:  group.hostId,
+      type:    'group_cancelled',
+      title:   `${groupLabelForCancel} 群組已解散`,
+      message: `「${groupLabelForCancel}」群組已解散，已通知成員並退還代管費用。`,
+      meta:    { groupId },
+    },
+    ...currentMembers.map(m => ({
+      userId:  m.userId,
+      type:    'group_cancelled',
+      title:   `${groupLabelForCancel} 群組已解散`,
+      message: `「${groupLabelForCancel}」群組已被團主解散，代管費用已退還至你的PM幣餘額。`,
+      meta:    { groupId },
+    })),
+  ])
 
   return { status: 'cancelled' }
 }
@@ -869,8 +878,12 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
-  if (group.status !== 'full')
+  if (group.status !== 'full') {
+    if (group.status === 'recruiting') {
+      throw httpError(400, '名額已變動，群組已退回招募中，請補齊名額後再鎖定', { responsePayload: { code: 'GROUP_NOT_FULL' } })
+    }
     throw httpError(400, `群組狀態為 ${group.status}，無法鎖定（需為 full）`);
+  }
 
   const serviceInfoDeadline = new Date();
   serviceInfoDeadline.setHours(serviceInfoDeadline.getHours() + 24)
@@ -879,9 +892,40 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     ? encryptCredential(sharedCredentialsRaw.trim())
     : undefined;
 
-  const [updated] = await prisma.$transaction([
-    prisma.group.update({
-      where: { id: groupId },
+  const lockResult = await prisma.$transaction(async (tx) => {
+    const fresh = await tx.group.findUnique({
+      where:   { id: groupId },
+      include: { members: { select: { userId: true } }, service: true },
+    })
+    if (!fresh) throw httpError(404, '群組不存在')
+    if (fresh.hostId !== hostId) throw httpError(403, '僅團主可操作')
+    if (fresh.status !== 'full') {
+      if (fresh.status === 'recruiting') {
+        return { stale: true, memberUserIds: fresh.members.map(m => m.userId) }
+      }
+      throw httpError(400, `群組狀態為 ${fresh.status}，無法鎖定（需為 full）`)
+    }
+
+    const requiredMembers = Math.max(0, fresh.maxMembers - 1)
+    if (fresh.members.length < requiredMembers || fresh.currentMembers < requiredMembers) {
+      await tx.group.updateMany({
+        where: { id: groupId, status: 'full' },
+        data:  {
+          status:            'recruiting',
+          currentMembers:    fresh.members.length,
+          serviceInfoDeadline: null,
+          activateDeadline:    null,
+        },
+      })
+      return { stale: true, memberUserIds: fresh.members.map(m => m.userId) }
+    }
+
+    const claimed = await tx.group.updateMany({
+      where: {
+        id:             groupId,
+        status:         'full',
+        currentMembers: { gte: requiredMembers },
+      },
       data: {
         status: 'pending_confirmation',
         serviceInfoDeadline,
@@ -889,15 +933,25 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
         billingDateAdjustmentNote: null,
         ...(sharedCredentials !== undefined && { sharedCredentials }),
       },
-      include: HOST_GROUP_INCLUDE,
-    }),
-  ])
+    })
+
+    if (claimed.count === 0) {
+      return { stale: true, memberUserIds: fresh.members.map(m => m.userId) }
+    }
+
+    const updated = await tx.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
+    return { stale: false, updated, memberUserIds: fresh.members.map(m => m.userId) }
+  })
+
+  if (lockResult.stale) {
+    throw httpError(400, '名額已變動，群組已退回招募中，請補齊名額後再鎖定', { responsePayload: { code: 'GROUP_NOT_FULL' } })
+  }
 
   const groupLabel = groupLabelOf(group);
   const existingConversation = await prisma.conversation.findFirst({ where: { type: 'group', groupId } })
   if (!existingConversation) {
     await prisma.conversation.create({
-      data: { type: 'group', groupId, participants: [group.hostId, ...group.members.map(m => m.userId)] },
+      data: { type: 'group', groupId, participants: [group.hostId, ...lockResult.memberUserIds] },
     })
   }
   notifyGroupConversation(groupId, group.hostId, `「${groupLabel}」聊天室已啟用。`).catch(console.error)
@@ -910,16 +964,16 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
     meta:    { groupId },
   })
-  notifyBatch(group.members.flatMap(m => [
+  notifyBatch(lockResult.memberUserIds.flatMap(userId => [
     {
-      userId:  m.userId,
+      userId,
       type:    'group_chat_opened',
       title:   `${groupLabel}服務已鎖定`,
       message: `「${groupLabel}」群組已鎖定，聊天室已建立。`,
       meta:    { groupId },
     },
     {
-      userId:  m.userId,
+      userId,
       type:    'fill_service_info',
       title:   isSharedCredentials ? `請提取${groupLabel}帳號資訊` : '請填寫帳號資訊',
       message: isSharedCredentials
@@ -929,7 +983,7 @@ export async function lockGroup({ groupId, hostId, sharedCredentials: sharedCred
     },
   ]))
 
-  return updated
+  return lockResult.updated
 }
 
 export async function adjudicateDispute({ groupId, adminId, memberId, winner, reason }) {

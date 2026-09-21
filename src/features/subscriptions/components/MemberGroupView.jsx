@@ -87,9 +87,6 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
   const currentUser = useAuthStore(s => s.user)
 
   const notifications = useNotificationStore(s => s.notifications)
-  const unreadForGroup = notifications.filter(
-    n => n.userId === currentUser?.id && !n.isRead && n.meta?.groupId === group.id && n.type !== 'credential_comment'
-  ).length
   useEffect(() => {
     if (!currentUser?.id) return
     notifications
@@ -114,11 +111,12 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
 
   const isSharedCredentials = isSharedCredentialsMethod(serviceDef?.sharingMethod);
   const showsProfileName    = isSharedCredentials && serviceHasProfileField(serviceDef?.id)
-  const hasServiceInfoIssue = !!myMember?.serviceInfoIssueNote && group.status !== 'disputed' && !isHistoryGroup(group);
+  const hasServiceInfoIssue = (!!myMember?.serviceInfoIssueNote || !!myMember?.hasServiceInfoIssue) && group.status !== 'disputed' && !isHistoryGroup(group);
+  const hasGroupServiceInfoIssue = members.some(m => !!m.serviceInfoIssueNote || !!m.hasServiceInfoIssue) && group.status !== 'disputed' && !isHistoryGroup(group);
   const sharingMethodConfig = getSharingMethodConfig(serviceDef?.sharingMethod, serviceDef?.id, { hasServiceInfoIssue })
   const hasServiceInfo      = hasFilledServiceInfo(myMember?.serviceInfo, serviceDef?.sharingMethod, serviceDef?.id) && !hasServiceInfoIssue
 
-  const memberFlags = getMemberGroupFlags({ status: group.status, sub, myMember, hasServiceInfo, hasServiceInfoIssue })
+  const memberFlags = getMemberGroupFlags({ status: group.status, sub, myMember, hasServiceInfo, hasServiceInfoIssue, hasGroupServiceInfoIssue })
   const {
     isPaymentRelevant, showMessagesButton, needsFillInfo, waitingForOthers, waitingForActivation,
     canConfirm, isDisputeRaiser, isDisputeEscalated, canLeaveGroup, showReviewHostButton,
@@ -201,6 +199,11 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
         sharingMethodConfig.fields.map(({ key, type }) => [key, type === 'checkbox' ? true : fillValues[key].trim()])
       )
       await fillServiceInfo(myMember.id, group.id, serviceInfo)
+      await Promise.all([
+        useGroupStore.getState().refreshGroup(group.id).catch(console.error),
+        useMemberStore.getState().init().catch(console.error),
+        useSubscriptionStore.getState().init().catch(console.error),
+      ])
       setShowFillInfo(false)
       toast('帳號資訊已送出', 'success')
       setHeaderTick(t => t + 1)
@@ -361,11 +364,11 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       <div className="flex items-center justify-center bg-danger-subtle px-6 py-3 text-sm font-extrabold text-danger-text">
         團主逾期未啟用，可確認服務已可使用或回報問題
       </div>
-    ) : waitingForOthers ? (
+    ) : waitingForOthers && !hasGroupServiceInfoIssue ? (
       <div className="flex items-center justify-center bg-success-subtle px-6 py-3 text-sm font-extrabold text-success-text">
         {isSharedCredentials ? '已提取帳號資訊，請等候其他成員' : '已填寫帳號資訊，請等候其他成員'}
       </div>
-    ) : waitingForActivation ? (
+    ) : waitingForActivation || (waitingForOthers && hasGroupServiceInfoIssue) ? (
       <div className="flex items-center justify-center gap-2 bg-warning-subtle px-6 py-3 text-sm font-extrabold text-warning-text">
         請等候團主啟用服務
         {group.activateDeadline && (
@@ -447,46 +450,39 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
       return buildCredentialsPanel({
         group,
         viewerName: myMember?.userName,
-        viewerAvatarInitial: myMember?.userAvatarInitial,
-        viewerAvatarColor: myMember?.userAvatarColor,
-        viewerPresenceStatus: myMember?.userPresenceStatus,
         showPassword,
         onTogglePassword: () => setShowPassword(v => !v),
-        issueNote: myMember?.serviceInfoIssueNote,
-        evidenceUrl: myMember?.disputeEvidenceUrl ?? myMember?.serviceInfoIssueEvidenceUrl,
-        issueDeadline: myMember?.serviceInfoIssueDeadline,
-        disputeDeadline: myMember?.disputeDeadline,
-        isDisputeEscalated,
         isSharedCredentials,
         hasExtracted: hasServiceInfo || hasServiceInfoIssue,
         autoScrollToComments,
         onAutoScrollToCommentsDone,
         memberServiceInfo: myMember?.serviceInfo,
         memberServiceFields: sharingMethodConfig.fields,
-        memberProfiles: showsProfileName
-          ? members.map(m => ({
-            id: m.id,
-            userName: m.userName,
-            userAvatarInitial: m.userAvatarInitial,
-            userAvatarColor: m.userAvatarColor,
-            userPresenceStatus: m.userPresenceStatus,
-            profileName: m.serviceInfo?.memberProfileName ?? null,
-            extractionStartedAt: m.extractionStartedAt,
-            isSelf: m.userId === currentUser?.id,
-          }))
-          : [],
-        otherMembersStatus: members
-          .filter(m => m.userId !== currentUser?.id)
-          .map(m => ({
-            id: m.id,
-            userName: m.userName,
-            userAvatarInitial: m.userAvatarInitial,
-            userAvatarColor: m.userAvatarColor,
-            userPresenceStatus: m.userPresenceStatus,
-            hasServiceInfo: m.hasServiceInfo ?? (m.serviceInfo != null),
-            hasServiceInfoIssue: m.hasServiceInfoIssue ?? !!m.serviceInfoIssueNote,
-            serviceInfoIssueDeadline: m.serviceInfoIssueDeadline,
-          })),
+        memberStatuses: members
+          .map(m => {
+            const isSelf = m.userId === currentUser?.id
+            const memberHasServiceInfo = m.hasServiceInfo ?? hasFilledServiceInfo(m.serviceInfo, serviceDef?.sharingMethod, serviceDef?.id)
+            return {
+              id: m.id,
+              userName: m.userName,
+              userAvatarInitial: m.userAvatarInitial,
+              userAvatarColor: m.userAvatarColor,
+              userPresenceStatus: m.userPresenceStatus,
+              isSelf,
+              profileName: showsProfileName ? m.serviceInfo?.memberProfileName ?? null : null,
+              extractionStartedAt: m.extractionStartedAt,
+              hasServiceInfo: memberHasServiceInfo,
+              hasServiceInfoIssue: !!m.serviceInfoIssueNote || !!m.hasServiceInfoIssue,
+              issueNote: isSelf ? m.serviceInfoIssueNote : null,
+              serviceInfoIssueEvidenceUrl: isSelf ? m.serviceInfoIssueEvidenceUrl : null,
+              serviceInfoIssueDeadline: m.serviceInfoIssueDeadline,
+              disputeEvidenceUrl: isSelf ? m.disputeEvidenceUrl : null,
+              disputeDeadline: m.disputeDeadline,
+              disputeEscalatedAt: m.disputeEscalatedAt,
+              confirmedAt: m.confirmedAt,
+              confirmDeadline: m.confirmDeadline,
+            }
+          }),
       })
     }
 

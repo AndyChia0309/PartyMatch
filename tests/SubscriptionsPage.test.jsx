@@ -52,7 +52,7 @@ describe('SubscriptionsPage', () => {
     expect(screen.getByText('Netflix')).toBeInTheDocument()
   })
 
-  it('processing／服務中的訂閱與還沒被審核的申請都會同時顯示在同一份列表', () => {
+  it('processing／服務進行中的訂閱與還沒被審核的申請都會同時顯示在同一份列表', () => {
     useGroupStore.setState({
       groups: [
         group({ id: 'g1', serviceId: 'netflix', serviceName: 'Netflix', planName: '標準（月繳）', status: 'recruiting' }),
@@ -76,7 +76,7 @@ describe('SubscriptionsPage', () => {
 
     expect(screen.getByText('Netflix')).toBeInTheDocument()
     expect(screen.getByText('Spotify')).toBeInTheDocument()
-    expect(screen.getByText('審核中')).toBeInTheDocument();
+    expect(screen.getByText('審核進行中')).toBeInTheDocument();
   })
 
   it('active 狀態、以及自己已確認的 confirming 訂閱都會顯示', () => {
@@ -102,7 +102,7 @@ describe('SubscriptionsPage', () => {
     expect(screen.getByText('Spotify')).toBeInTheDocument();
   })
 
-  it('已解散/已結束（history 狀態）的訂閱不會出現在列表', () => {
+  it('已解散/已結束服務（history 狀態）的訂閱不會出現在列表', () => {
     useGroupStore.setState({
       groups: [
         group({ id: 'g1', serviceId: 'netflix', serviceName: 'Netflix', planName: '標準（月繳）', status: 'recruiting' }),

@@ -465,9 +465,21 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
   }
 
   if (notification.type === 'group_cancelled') {
+    const gId = notification.meta?.groupId
     useAuthStore.getState().refreshTokenBalance().catch(console.error);
-    navigate('/explore')
-    useGroupStore.getState().init({ all: true })
+    if (!gId) {
+      navigate('/my-subscriptions')
+      return
+    }
+    withReservedModal(() => Promise.all([
+      useGroupStore.getState().init({ all: true }),
+      useMemberStore.getState().init(),
+      useSubscriptionStore.getState().init(),
+      useApplicationStore.getState().init(),
+    ]).finally(() => {
+      const grp = getGroupById(gId)
+      navigate(grp?.hostId === userId ? '/manage-groups' : '/my-subscriptions')
+    }))
     return
   }
 

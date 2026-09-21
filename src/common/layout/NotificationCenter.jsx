@@ -38,6 +38,7 @@ const BILLING_TYPES  = ['fill_service_info', 'service_info_filled', 'all_service
 const ISSUE_TYPES    = ['dispute_raised', 'dispute_resolved', 'dispute_resolved_by_host', 'dispute_withdrawn', 'dispute_escalated', 'service_info_issue', 'service_info_issue_resolved'];
 
 const CLOSED_GROUP_STATUSES = ['cancelled', 'ended'];
+const UNREAD_CLOSED_GROUP_NOTICE_TYPES = new Set(['group_cancelled']);
 const HISTORY_RETENTION_MS = 30 * 24 * 60 * 60 * 1000;
 
 function isWithinHistoryRetention(createdAt) {
@@ -211,6 +212,7 @@ export default function NotificationCenter() {
       if (!groupId || !userId) return false
       const group = groupsState.find(g => g.id === groupId)
       if (!group) return true
+      if (CLOSED_GROUP_STATUSES.includes(group.status) && !n.isRead && UNREAD_CLOSED_GROUP_NOTICE_TYPES.has(n.type)) return false
       if (group.hostId === userId) return CLOSED_GROUP_STATUSES.includes(group.status)
       if (CLOSED_GROUP_STATUSES.includes(group.status)) return true
       const member = myMemberByGroupId.get(groupId)

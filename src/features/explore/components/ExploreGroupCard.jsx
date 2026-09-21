@@ -67,8 +67,7 @@ function ExploreGroupCard({ group, onFavChange, onBeforeNavigate, hideActions = 
         )}
         badge={(isMember || isApplied) && (
           <StatusBadge
-            status={isMember ? (getMemberJoinedBadgeVariant(group.status, isMember) ?? 'full') : 'pending'}
-            label={isMember ? undefined : '審核中'}
+            status={isMember ? (getMemberJoinedBadgeVariant(group.status, isMember) ?? 'full') : 'approval'}
           />
         )}
         serviceId={group.serviceId}

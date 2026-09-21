@@ -40,9 +40,9 @@ describe('StatCell / StatCellGrid', () => {
   it('highlight 會套用到 value 那個 span，沒傳的話預設是 text-ink', () => {
     render(
       <StatCellGrid>
-        <StatCell label="狀態" highlight="text-warning-text">審核中</StatCell>
+        <StatCell label="狀態" highlight="text-info-text">審核進行中</StatCell>
       </StatCellGrid>
     )
-    expect(screen.getByText('審核中').className).toContain('text-warning-text')
+    expect(screen.getByText('審核進行中').className).toContain('text-info-text')
   })
 })

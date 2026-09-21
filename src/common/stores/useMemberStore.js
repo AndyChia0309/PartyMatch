@@ -53,15 +53,28 @@ export const useMemberStore = create((set, get) => ({
 
   fillServiceInfo: async (memberId, groupId, serviceInfo) => {
     const prior = get().members.find(m => m.id === memberId) ?? null
+    const clearedIssuePatch = {
+      serviceInfo,
+      serviceInfoIssueNote: null,
+      serviceInfoIssueEvidenceUrl: null,
+      serviceInfoIssueDeadline: null,
+      hasServiceInfoIssue: false,
+    }
     set(s => ({
       members: s.members.map(m => m.id === memberId
-        ? { ...m, serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null, serviceInfoIssueDeadline: null }
+        ? { ...m, ...clearedIssuePatch }
         : m),
     }));
     try {
       const res = await patchMember(memberId, { serviceInfo, serviceInfoIssueNote: null, serviceInfoIssueEvidenceUrl: null, serviceInfoIssueDeadline: null })
-      if (res?._groupAdvanced) {
-        useGroupStore.getState().setGroupStatus(groupId, res._groupAdvanced);
+      const { _groupAdvanced, ...updatedMember } = res ?? {}
+      set(s => ({
+        members: s.members.map(m => m.id === memberId
+          ? { ...m, ...normalizeMember(updatedMember), hasServiceInfoIssue: false }
+          : m),
+      }))
+      if (_groupAdvanced) {
+        useGroupStore.getState().setGroupStatus(groupId, _groupAdvanced);
       }
     } catch (err) {
       set(s => ({

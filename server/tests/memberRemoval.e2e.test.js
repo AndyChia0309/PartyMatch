@@ -71,6 +71,53 @@ describe('成員移除／自行退出', () => {
     expect(application.status).toBe('left')
   })
 
+  it('團主解散群組：團主與成員都收到群組已解散通知', async () => {
+    const { host, member, group } = await setupApprovedMember({ maxMembers: 2 })
+
+    const res = await request(app)
+      .post(`/api/groups/${group.id}/cancel`)
+      .set('Authorization', authHeader(host))
+
+    expect(res.status).toBe(200)
+    expect(res.body.status).toBe('cancelled')
+
+    const notifications = (await prisma.notification.findMany({ where: { type: 'group_cancelled' } }))
+      .filter(n => n.meta?.groupId === group.id)
+    expect(notifications.map(n => n.userId).sort()).toEqual([host.id, member.id].sort())
+    expect(notifications.every(n => n.title.includes('群組已解散'))).toBe(true)
+  })
+
+  it('鎖定當下成員已退出：鎖定失敗並退回 recruiting', async () => {
+    const { host, group, memberRecord } = await setupApprovedMember({ maxMembers: 2 })
+    expect((await prisma.group.findUnique({ where: { id: group.id } })).status).toBe('full')
+
+    await prisma.member.delete({ where: { id: memberRecord.id } })
+    await prisma.group.update({
+      where: { id: group.id },
+      data:  {
+        status:              'full',
+        currentMembers:      1,
+        serviceInfoDeadline: new Date(),
+        activateDeadline:    new Date(),
+      },
+    })
+
+    const res = await request(app)
+      .post(`/api/groups/${group.id}/lock`)
+      .set('Authorization', authHeader(host))
+      .send({})
+
+    expect(res.status).toBe(400)
+    expect(res.body.code).toBe('GROUP_NOT_FULL')
+
+    const groupState = await prisma.group.findUnique({ where: { id: group.id } })
+    expect(groupState.status).toBe('recruiting')
+    expect(groupState.currentMembers).toBe(0)
+    expect(groupState.serviceInfoDeadline).toBeNull()
+    expect(groupState.activateDeadline).toBeNull()
+    expect(await prisma.conversation.findFirst({ where: { groupId: group.id } })).toBeNull()
+  })
+
   it('群組鎖定後無法再變動成員名單', async () => {
     const { host, group, memberRecord } = await setupApprovedMember({ maxMembers: 2 })
 

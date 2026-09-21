@@ -22,16 +22,27 @@ import { useDeferWhileModalOpen } from '../../common/utils/hooks'
 import { UpdateDot } from '../../common/layout/components/navShared'
 import { getServiceById } from '../../common/utils/serviceUtils'
 import { hasFilledServiceInfo } from '../../common/utils/serviceInfoFields'
+import { getStatusLabel, getStatusTextColor } from '../../components/ui/statusBadgeConfig'
 
 const getGroupById = (id) => useGroupStore.getState().getById(id)
 
 function enrichSubs(rawSubs, userId) {
+  const allMembers = useMemberStore.getState().members
   const myMemberByGroupId = new Map(
-    useMemberStore.getState().members.filter(m => m.userId === userId).map(m => [m.groupId, m])
+    allMembers.filter(m => m.userId === userId).map(m => [m.groupId, m])
+  )
+  const groupHasServiceInfoIssue = new Set(
+    allMembers
+      .filter(m => !!m.serviceInfoIssueNote || !!m.hasServiceInfoIssue)
+      .map(m => m.groupId)
   )
   return rawSubs.map(s => {
     const group = getGroupById(s.groupId)
     const member = myMemberByGroupId.get(s.groupId)
+    const serviceId = group?.serviceId ?? s.serviceId
+    const sharingMethod = getServiceById(serviceId)?.sharingMethod
+    const hasServiceInfoIssue = member?.hasServiceInfoIssue ?? !!member?.serviceInfoIssueNote
+    const hasServiceInfo = hasFilledServiceInfo(member?.serviceInfo, sharingMethod, serviceId) && !hasServiceInfoIssue
     if (!group) {
       return {
         ...s,
@@ -39,6 +50,9 @@ function enrichSubs(rawSubs, userId) {
         confirmedAt:          member?.confirmedAt ?? null,
         serviceInfo:          member?.serviceInfo ?? null,
         serviceInfoIssueNote: member?.serviceInfoIssueNote ?? null,
+        hasServiceInfo,
+        hasServiceInfoIssue,
+        hasGroupServiceInfoIssue: groupHasServiceInfoIssue.has(s.groupId),
       }
     }
     return {
@@ -47,6 +61,9 @@ function enrichSubs(rawSubs, userId) {
       confirmedAt:       member?.confirmedAt ?? null,
       serviceInfo:          member?.serviceInfo ?? null,
       serviceInfoIssueNote: member?.serviceInfoIssueNote ?? null,
+      hasServiceInfo,
+      hasServiceInfoIssue,
+      hasGroupServiceInfoIssue: groupHasServiceInfoIssue.has(s.groupId),
       serviceName:       s.serviceName  || group.serviceName,
       serviceId:         s.serviceId    || group.serviceId,
       planName:          s.planName     || group.planName,
@@ -228,7 +245,7 @@ export default function SubscriptionsPage() {
         onClose={closeHistory}
         items={historySubs}
         title="訂閱紀錄"
-        emptyDescription="已結束或已取消的訂閱會顯示在這裡"
+        emptyDescription="已結束服務或已取消的訂閱會顯示在這裡"
         renderItem={(sub, i) => (
           <RevealSection key={sub.id} delay={i * 60}>
             <SubscriptionCard
@@ -263,7 +280,7 @@ function ApplicationCard({ app, group, hasPendingUpdate, onViewGroup }) {
       />
 
       <StatCellGrid>
-        <StatCell label="團主">{app.hostName ?? '—'}</StatCell>
+        <StatCell label="群組狀態" highlight={getStatusTextColor('approval')}>{getStatusLabel('approval')}</StatCell>
         <StatCell label="群組人數">{(group.currentMembers ?? 0) + 1} 人</StatCell>
         <StatCell label="申請日期">{toISODate(app.createdAt)}</StatCell>
       </StatCellGrid>

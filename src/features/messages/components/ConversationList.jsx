@@ -22,8 +22,8 @@ const ROLE_OPTIONS = [
 const STATUS_OPTIONS = [
   { id: 'all',        label: '全部狀態' },
   { id: 'processing', label: '進行中' },
-  { id: 'active',     label: '服務中' },
-  { id: 'history',    label: '已結束' },
+  { id: 'active',     label: '服務進行中' },
+  { id: 'history',    label: '已結束服務' },
 ]
 
 const SORT_OPTIONS = [

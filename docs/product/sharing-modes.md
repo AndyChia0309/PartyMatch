@@ -2,7 +2,7 @@
 
 ## 概念
 
-PartyMatch 的群組狀態機不會因為 Netflix、Spotify、YouTube 或 Apple 服務不同而拆成多套流程；主流程仍維持「招募、額滿、服務設定、待啟用、確認期、服務中」。真正會變化的是 `pending_confirmation` 這一段要收集什麼資料、誰能看到資料、誰要在外部服務完成操作，以及後續問題回報要檢查什麼。
+PartyMatch 的群組狀態機不會因為 Netflix、Spotify、YouTube 或 Apple 服務不同而拆成多套流程；主流程仍維持「招募、等待鎖定、服務設定、待啟用服務、確認進行中、服務進行中」。真正會變化的是 `pending_confirmation` 這一段要收集什麼資料、誰能看到資料、誰要在外部服務完成操作，以及後續問題回報要檢查什麼。
 
 目前程式以 `sharingMethod` 定義服務共享方式。服務資料來源在 `src/common/data/serviceCatalog.js`，欄位與提示文字主要由 `src/common/utils/serviceInfoFields.js` 控制；若服務沒有指定模式，會以 `email_invite` 作為預設模式。共用帳密服務另由 `src/common/utils/hostCredentialFields.js` 定義團主需要提供的帳號欄位。
 

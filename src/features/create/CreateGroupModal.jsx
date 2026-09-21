@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { AlertCircle, ChevronLeft, ChevronRight, Eye, Info, PlusCircle } from 'lucide-react'
+import { AlertCircle, ChevronLeft, ChevronRight, Info, PlusCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogCloseButton } from '../../components/ui/dialog'
 import ConfirmActionDialog from '../../components/ui/ConfirmActionDialog'
 import Step1Service from './components/steps/Step1Service'
@@ -9,7 +9,6 @@ import Step3Settings from './components/steps/Step3Settings'
 import Step4Preview from './components/steps/Step4Preview'
 import { Button } from '../../components/ui/button'
 import ServiceLogo from '../../components/ui/ServiceLogo'
-import LivePreviewPanel from './components/LivePreviewPanel'
 import { useGroupStore } from '../../common/stores/useGroupStore'
 import { getServiceById } from '../../common/utils/serviceUtils'
 import { calcPricePerSeat } from '../../common/utils/pricingUtils'
@@ -94,7 +93,6 @@ export default function CreateGroupModal() {
   const [form, setForm] = useState(INITIAL_FORM)
   const [serviceCategory, setServiceCategory] = useState('all')
   const [agreedToTerms, setAgreedToTerms] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const bodyRef = useRef(null)
@@ -105,7 +103,6 @@ export default function CreateGroupModal() {
       setForm(INITIAL_FORM)
       setServiceCategory('all')
       setAgreedToTerms(false)
-      setShowPreview(false)
       setIsSubmitting(false)
       setOpen(true)
       broadcastPanelOpened('create-group')
@@ -243,7 +240,7 @@ export default function CreateGroupModal() {
       if (visibleStepErrors.length > 0) return { Icon: AlertCircle, text: visibleStepErrors[0] }
       return { Icon: Info, text: '請設定群組資訊' }
     }
-    if (step === 4) return { Icon: Info, text: '請確認以下資訊正確無誤，並詳閱服務條款' }
+    if (step === 4) return { Icon: Info, text: '請確認以下資訊並詳閱服務條款' }
     return null
   })()
 
@@ -279,7 +276,7 @@ export default function CreateGroupModal() {
               key={step}
               className={`animate-step-slide-up ${
                 step === 2 || step === 3 ? 'flex min-h-full flex-col justify-center'
-                : step === 4 ? 'flex h-full flex-col'
+                : step === 4 ? 'flex flex-col lg:h-full'
                 : ''
               }`}
             >
@@ -314,17 +311,6 @@ export default function CreateGroupModal() {
                 ))}
               </div>
             </div>
-            {step === 4 && (
-              <Button
-                variant="ghost"
-                size="md"
-                className="w-full rounded-full border border-line lg:hidden"
-                onClick={() => setShowPreview(true)}
-              >
-                <Eye strokeWidth={1.5} size={15} />
-                查看預覽
-              </Button>
-            )}
             <div className="flex justify-between gap-3">
               <Button variant="secondary" size="md" className="w-36" onClick={handleBack}>
                 <ChevronLeft size={15} strokeWidth={1.5} />
@@ -342,14 +328,6 @@ export default function CreateGroupModal() {
               )}
             </div>
           </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPreview} onOpenChange={setShowPreview}>
-        <DialogContent variant="panel" maxWidth="max-w-xs" className="border-none bg-transparent p-0 shadow-none">
-          <DialogTitle className="sr-only">群組預覽</DialogTitle>
-          <DialogDescription>群組預覽</DialogDescription>
-          <LivePreviewPanel form={form} />
         </DialogContent>
       </Dialog>
 

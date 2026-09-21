@@ -51,7 +51,7 @@ describe('ManageGroupsPage', () => {
     expect(screen.getByText('Spotify')).toBeInTheDocument()
   })
 
-  it('已解散/已結束的群組不會出現在列表（要透過群組紀錄查看）', () => {
+  it('已解散/已結束服務的群組不會出現在列表（要透過群組紀錄查看）', () => {
     useGroupStore.setState({
       groups: [
         hostedGroup({ id: 'g1', serviceId: 'netflix', serviceName: 'Netflix', status: 'recruiting' }),

@@ -21,7 +21,7 @@ const NOTIFICATION_REFRESH_STORES = {
   member_removed:          ['group', 'member', 'subscription'],
   member_left:              ['group', 'member'],
   member_left_self:         ['group', 'member', 'subscription'],
-  group_cancelled:          ['group'],
+  group_cancelled:          ['group', 'member', 'subscription', 'application'],
   application_approved:     ['group', 'member', 'subscription', 'application'],
   application_rejected:     ['application'],
   service_info_filled:      ['group', 'member'],

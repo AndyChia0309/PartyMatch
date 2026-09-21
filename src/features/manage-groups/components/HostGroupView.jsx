@@ -34,13 +34,22 @@ import { buildReviewHistoryPanel } from './host-group-view/buildReviewHistoryPan
 import { buildBillingPanel } from './host-group-view/buildBillingPanel'
 import { buildMemberInfoPanel } from './host-group-view/buildMemberInfoPanel'
 
+function getInitialActivePanel({ autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers }) {
+  if (autoOpenMembers) return 'members'
+  if (autoOpenApplications) return 'applications'
+  if (autoOpenBilling) return 'billing'
+  if (autoOpenMemberInfo) return 'memberInfo'
+  return null
+}
+
 export default function HostGroupView(
   { group, members, applications, onReportServiceInfoIssue, onWithdrawServiceInfoIssue, onResolveDispute, onEscalateDispute, onRemoveMember, onActivate, onLockGroup, onCancelGroup, onApprove, onReject, onAdjustBillingDate, errors, submittingIds, onClose, autoOpenLockGroup, autoOpenActivate, onAutoOpenActivateDone, autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers, autoOpenReview, autoExpandMemberId, autoScrollToComments, onAutoScrollToCommentsDone, onOpenRenewal, loading = false }
 ) {
   const [showActivate, setShowActivate]                   = useState(false)
   const [activateBillingDate, setActivateBillingDate]      = useState('')
   const [removingMember, setRemovingMember]               = useState(null)
-  const [activePanel, setActivePanel]                     = useState(null);
+  const [activePanel, setActivePanel]                     = useState(() => getInitialActivePanel({ autoOpenApplications, autoOpenBilling, autoOpenMemberInfo, autoOpenMembers }));
+  const [suppressLockGroup, setSuppressLockGroup]          = useState(false)
   const [headerStatus, setHeaderStatus]                    = useState(group.status);
   const [headerHasServiceIssue, setHeaderHasServiceIssue]  = useState(() => members.some(m => m.serviceInfoIssueNote));
   const [panelTick, setPanelTick]                          = useState(0);
@@ -91,12 +100,14 @@ export default function HostGroupView(
     function onOpenHostGroup(e) {
       if ((e.detail?.groupId ?? e.detail?.openGroupId) !== group.id) return
       if (e.detail?.openApplications) {
+        setSuppressLockGroup(false)
         setPanelTick(t => t + 1);
         setActivePanel('applications')
         setShowReviewHistory(false)
         return
       }
       if (e.detail?.openMembers) {
+        setSuppressLockGroup(!!e.detail?.suppressLockGroup)
         setShowCredentialsModal(false);
         setCredentialValues({})
         setShowLockGroupConfirm(false)
@@ -104,6 +115,7 @@ export default function HostGroupView(
         return
       }
       if (e.detail?.openMemberInfo) {
+        setSuppressLockGroup(false)
         setPanelTick(t => t + 1);
         setActivePanel('memberInfo')
         return
@@ -116,6 +128,7 @@ export default function HostGroupView(
       setShowCredentialsModal(false)
       setCredentialValues({})
       setShowLockGroupConfirm(false)
+      setSuppressLockGroup(false)
       setActivePanel(null)
       useGroupStore.getState().refreshGroup(group.id).catch(console.error).finally(() => setPanelTick(t => t + 1))
     }
@@ -145,8 +158,7 @@ export default function HostGroupView(
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setHeaderStatus(useGroupStore.getState().getById(group.id)?.status ?? group.status)
     setHeaderHasServiceIssue(useMemberStore.getState().members.some(m => m.groupId === group.id && m.serviceInfoIssueNote))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePanel, panelTick, dataSyncTick, group.id])
+  }, [activePanel, panelTick, dataSyncTick, group.id, group.status])
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -261,13 +273,14 @@ export default function HostGroupView(
     }
   }
 
-  const lockGroupBanner = headerStatus === 'full' && (
+  const needsCredentialsOnLock = isSharedCredentialsMethod(serviceDef?.sharingMethod);
+  const isGroupLockable = group.status === 'full' && !suppressLockGroup;
+
+  const lockGroupBanner = headerStatus === 'full' && isGroupLockable && (
     <div className="flex items-center justify-center bg-raised px-6 py-3 text-sm font-extrabold text-ink-2">
       招募完成，請點擊鎖定群組
     </div>
   )
-
-  const needsCredentialsOnLock = isSharedCredentialsMethod(serviceDef?.sharingMethod);
 
   async function openLockFlow() {
     if (checkingLock) return
@@ -275,6 +288,9 @@ export default function HostGroupView(
     const fresh = await useGroupStore.getState().refreshGroup(group.id).catch(() => null)
     setCheckingLock(false)
     if (fresh && fresh.status !== 'full') {
+      setShowLockGroupConfirm(false)
+      setShowCredentialsModal(false)
+      setCredentialValues({})
       toast('名額已變動，暫時無法鎖定', 'info')
       return
     }
@@ -313,7 +329,7 @@ export default function HostGroupView(
     }
   }
 
-  const lockGroupCta = headerStatus === 'full' && (
+  const lockGroupCta = headerStatus === 'full' && isGroupLockable && (
     <div className="py-2">
       {showLockGroupConfirm ? (
         <div className="grid grid-cols-2 gap-2">
@@ -585,13 +601,14 @@ export default function HostGroupView(
   }
 
   const pendingBadge = getHostPendingBadge(group.status, needsCredentialsOnLock, members.some(m => m.serviceInfoIssueNote))
+  const isLockCredentialsModalOpen = showCredentialsModal && isGroupLockable
 
   return (
     <>
 
       {loading ? (
         <GroupModalShell loading onClose={onClose} group={group} service={serviceDef} plan={planDef} />
-      ) : !showActivate && !serviceIssueMember && !showCredentialsModal && !showPlatformReport && !showAdjustBillingDate && !showBatchReview && (
+      ) : !showActivate && !serviceIssueMember && !isLockCredentialsModalOpen && !showPlatformReport && !showAdjustBillingDate && !showBatchReview && (
       <GroupModalShell
         onClose={onClose}
         group={group}
@@ -626,7 +643,7 @@ export default function HostGroupView(
       />
       )}
       <LockGroupCredentialsModal
-        isOpen={showCredentialsModal}
+        isOpen={isLockCredentialsModalOpen}
         onClose={() => { setShowCredentialsModal(false); setCredentialValues({}) }}
         serviceId={group.serviceId}
         serviceName={group.serviceName}

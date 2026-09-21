@@ -93,7 +93,7 @@ erDiagram
 
 ## 群組狀態機
 
-`recruiting`（招募中）→ `full`（滿額）→ `pending_confirmation`（填寫帳號資訊）→ `pending_activation`（待啟用）→ `confirming`（確認期）→ `active`（服務中）。`recruiting`／`full` 可轉往 `cancelled`；`pending_confirmation`／`pending_activation` 逾期分別轉往 `info_overdue`／`activation_overdue` 這兩個待處理狀態，不會自動移除成員、不會退回上一階段、也不會扣任何人的信用分數，改由團主／成員自行延長期限、修正資料、補按啟用或回報問題解決；`confirming` 可轉往 `disputed`（申訴，可由團主與成員自行協調解決、團主標記回報不實送交仲裁，或由平台管理員裁定，皆回到 `active`／`confirming`）；`active` 續訂時若有成員不續訂會轉往 `replacement_recruiting`（補位招募，只釋出離開者的名額，鎖定後回到 `pending_confirmation`），全員續訂則直接回到 `pending_confirmation`；也可轉往 `ended`。
+`recruiting`（招募中）→ `full`（等待鎖定）→ `pending_confirmation`（填寫帳號資訊）→ `pending_activation`（待啟用服務）→ `confirming`（確認進行中）→ `active`（服務進行中）。`recruiting`／`full` 可轉往 `cancelled`；`pending_confirmation`／`pending_activation` 逾期分別轉往 `info_overdue`／`activation_overdue` 這兩個待處理狀態，不會自動移除成員、不會退回上一階段、也不會扣任何人的信用分數，改由團主／成員自行延長期限、修正資料、補按啟用或回報問題解決；`confirming` 可轉往 `disputed`（申訴，可由團主與成員自行協調解決、團主標記回報不實送交仲裁，或由平台管理員裁定，皆回到 `active`／`confirming`）；`active` 續訂時若有成員不續訂會轉往 `replacement_recruiting`（補位進行中，只釋出離開者的名額，鎖定後回到 `pending_confirmation`），全員續訂則直接回到 `pending_confirmation`；也可轉往 `ended`。
 
 ## PM 幣與代管機制
 

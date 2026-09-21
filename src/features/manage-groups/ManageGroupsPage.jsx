@@ -129,7 +129,7 @@ export default function ManageGroupsPage() {
         onClose={closeHistory}
         items={historyGroups}
         title="管理紀錄"
-        emptyDescription="已解散或已結束的群組會顯示在這裡"
+        emptyDescription="已解散或已結束服務的群組會顯示在這裡"
         renderItem={(g, i) => (
           <RevealSection key={g.id} delay={i * 60}>
             <HostedGroupCard
