@@ -420,14 +420,15 @@ model Review {
 }
 
 model CredentialComment {
-  id            String   @id @default(cuid())
-  groupId       String
-  group         Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  authorId      String
-  author        User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  content       String   @db.VarChar(500)
-  attachmentUrl String?  @db.VarChar(500)
-  createdAt     DateTime @default(now())
+  id               String   @id @default(cuid())
+  groupId          String
+  group            Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  authorId         String
+  author           User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content          String   @db.VarChar(500)
+  attachmentUrl    String?  @db.VarChar(500)
+  visibleToUserIds Json?
+  createdAt        DateTime @default(now())
 
   @@index([groupId])
   @@map("credential_comments")

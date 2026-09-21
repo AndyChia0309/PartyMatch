@@ -4,6 +4,7 @@ import { notify, notifyBatch, notifyGroupConversation, claimGroupStatus } from '
 import { rejectPendingApplications } from './membershipLifecycle.service.js'
 import { encryptCredential } from '../lib/credentialEncryption.js'
 import { HOST_PUBLIC_SELECT } from '../lib/groupPrivacy.js'
+import { getSystemUserId } from '../lib/systemUser.js'
 
 const HOST_GROUP_INCLUDE = {
   host:    HOST_PUBLIC_SELECT,
@@ -277,8 +278,22 @@ function notifyEscrowReleased(group, hostId) {
   notify({
     userId:  hostId,
     type:    'escrow_released',
-    title:   `${groupLabel} 已確認，代管金額將存入您的PM幣帳戶，請前往查收`,
-    message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額。`,
+    title:   `${groupLabel} 確認期結束，服務正式啟用`,
+    message: `「${groupLabel}」確認期已結束，服務已正式啟用。`,
+    meta:    { groupId: group.id },
+  })
+  notify({
+    userId:  hostId,
+    type:    'escrow_released',
+    title:   `${groupLabel} 代管金額已存入您的PM幣帳戶`,
+    message: `「${groupLabel}」群組確認期結束，代管款項已撥入你的PM幣餘額，請前往查收。`,
+    meta:    { groupId: group.id },
+  })
+  notify({
+    userId:  hostId,
+    type:    'service_review_reminder',
+    title:   `${groupLabel} 服務已正式啟用，快給彼此一個評價吧`,
+    message: `「${groupLabel}」確認期已結束，歡迎為這次的合購夥伴留下評價。`,
     meta:    { groupId: group.id },
   })
   const memberUserIds = (group.members ?? []).map(m => m.userId)
@@ -292,7 +307,7 @@ function notifyEscrowReleased(group, hostId) {
     })))
   }
 
-  notifyBatch([hostId, ...memberUserIds].map(userId => ({
+  notifyBatch(memberUserIds.map(userId => ({
     userId,
     type:    'service_review_reminder',
     title:   `${groupLabel} 服務已正式啟用，快給彼此一個評價吧`,
@@ -992,7 +1007,7 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
 
   const group = await prisma.group.findUnique({
     where:   { id: groupId },
-    include: { members: { include: { user: { select: { id: true } } } }, service: { select: { name: true } } },
+    include: { members: { include: { user: { select: { id: true, name: true } } } }, service: { select: { name: true } } },
   })
   if (!group) throw httpError(404, '群組不存在')
   if (group.status !== 'disputed') throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
@@ -1048,8 +1063,8 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
         disputeEvidenceUrl:   null,
         disputeDeadline:      null,
         disputeEscalatedAt:   null,
-        confirmedAt:          winner === 'member' ? new Date() : null,
-        confirmDeadline:      winner === 'host' ? confirmDeadline : null,
+        confirmedAt:          null,
+        confirmDeadline,
       },
     });
 
@@ -1064,14 +1079,12 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
     return tryReleaseEscrow(tx, groupId, group.hostId)
   });
 
-  if (releasedAmount != null) notifyEscrowReleased(group, group.hostId)
-
   const memberMessage = winner === 'member'
-    ? `你對「${groupLabel}」回報的問題已確認，本期費用已退還至你的PM幣餘額。`
-    : `你對「${groupLabel}」回報的問題經確認後不成立，你仍可留在群組內，請記得確認服務正常，確認後費用才會撥款給團主。`
+    ? `你對「${groupLabel}」回報的問題已確認，本期費用已退還至你的PM幣餘額，請於 48 小時內確認服務是否正常。`
+    : `你對「${groupLabel}」回報的問題經確認後不成立，請於 48 小時內確認服務是否正常。`
   const hostMessage = winner === 'member'
-    ? `「${groupLabel}」的問題處理結果為成員獲勝，該成員本期費用已退還。`
-    : `問題處理結果：「${groupLabel}」該名成員的申訴不成立，費用仍在代管中，待該成員完成確認服務後才會撥款給你。`
+    ? `「${groupLabel}」的問題處理結果為成員獲勝，該成員本期費用已退還，成員須於 48 小時內確認服務。`
+    : `問題處理結果：「${groupLabel}」該名成員的申訴不成立，費用仍在代管中，成員須於 48 小時內確認服務，逾期將自動撥款給你。`
 
   notify({
     userId:  disputeMember.userId,
@@ -1087,6 +1100,22 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
     message: hostMessage,
     meta:    { groupId: group.id },
   });
+
+  if (releasedAmount != null) notifyEscrowReleased(group, group.hostId)
+
+  const commentContent = winner === 'member'
+    ? `客服裁定結果：${disputeMember.user.name}獲勝，本期費用已退還。理由：${trimmedReason}`
+    : `客服裁定結果：${disputeMember.user.name}的申訴不成立，費用仍在代管中。理由：${trimmedReason}`
+  getSystemUserId()
+    .then(authorId => prisma.credentialComment.create({
+      data: {
+        groupId,
+        authorId,
+        content:          commentContent.slice(0, 500),
+        visibleToUserIds: [group.hostId, disputeMember.userId],
+      },
+    }))
+    .catch(console.error)
 
   return { disputeId: dispute.id, resolutionType, memberRefundAmount, hostReleaseAmount: 0 };
 }

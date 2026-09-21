@@ -36,7 +36,8 @@ router.get('/:groupId', requireAuth, async (req, res, next) => {
       include: { author: { select: { id: true, name: true, avatarColor: true, avatarInitial: true, showAvatar: true, presenceStatus: true } } },
       orderBy: { createdAt: 'asc' },
     })
-    const resolved = await Promise.all(comments.map(async c => ({
+    const visibleComments = comments.filter(c => !c.visibleToUserIds || c.visibleToUserIds.includes(req.user.id))
+    const resolved = await Promise.all(visibleComments.map(async c => ({
       ...c,
       author: maskAvatar(c.author),
       ...(c.attachmentUrl && { attachmentUrl: await getSignedDownloadUrl(c.attachmentUrl) }),
