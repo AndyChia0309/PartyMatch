@@ -558,7 +558,7 @@ export async function withdrawServiceInfoIssue({ groupId, hostId, memberId }) {
 
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
-      where: { id: dispute.id, status: 'pending' },
+      where: { groupId, memberId, status: 'pending' },
       data:  { status: 'withdrawn_by_host', resolvedAt: new Date() },
     })
     if (claimed.count === 0) throw httpError(409, '這筆回報問題已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })

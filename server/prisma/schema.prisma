@@ -61,6 +61,7 @@ enum DisputeStatus {
   adjudicated
   withdrawn_by_member
   withdrawn_by_host
+  resolved_by_resubmit
 }
 
 enum DisputeResolutionType {

@@ -132,6 +132,12 @@ router.patch('/:id', requireAuth, validate(patchMemberSchema), async (req, res, 
       const allMembers = await prisma.member.findMany({ where: { groupId: existing.groupId } })
       const allFilled  = allMembers.every(m => m.serviceInfo != null && !m.serviceInfoIssueNote);
       const hadIssue = !!existing.serviceInfoIssueNote
+      if (hadIssue) {
+        await prisma.dispute.updateMany({
+          where: { groupId: existing.groupId, memberId: existing.id, status: 'pending' },
+          data:  { status: 'resolved_by_resubmit', resolvedAt: new Date() },
+        })
+      }
       const isReturnToAllFilled = hadIssue &&
         allMembers.filter(m => m.id !== existing.id).every(m => m.serviceInfo != null && !m.serviceInfoIssueNote)
 

@@ -14,7 +14,7 @@ router.get('/', requireAdmin, async (req, res, next) => {
     const { status = 'pending', overdue, skip = '0', take = '20' } = req.query
     const where = {}
     if (status === 'pending') where.status = 'pending'
-    else if (status === 'resolved') where.status = { in: ['resolved_by_host', 'adjudicated'] }
+    else if (status === 'resolved') where.status = { in: ['resolved_by_host', 'adjudicated', 'resolved_by_resubmit'] }
     if (overdue === 'true') {
       where.status = 'pending'
       where.deadline = { lte: new Date() }
@@ -54,7 +54,7 @@ router.get('/history', requireAdmin, async (req, res, next) => {
   try {
     const { groupId, raisedByUserId, resolutionType, skip = '0', take = '20' } = req.query
     const where = {
-      status: { in: ['resolved_by_host', 'adjudicated'] },
+      status: { in: ['resolved_by_host', 'adjudicated', 'resolved_by_resubmit'] },
       ...(groupId &&         { groupId }),
       ...(raisedByUserId &&  { raisedByUserId }),
       ...(resolutionType &&  { resolutionType }),
