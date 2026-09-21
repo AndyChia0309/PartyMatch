@@ -613,12 +613,12 @@ export async function extendServiceInfoDeadline({ groupId, hostId }) {
   return prisma.group.findUnique({ where: { id: groupId }, include: HOST_GROUP_INCLUDE })
 }
 
-async function applyDisputeWithdrawal({ group, member, dispute }) {
+async function applyDisputeWithdrawal({ group, member }) {
   const groupLabel = groupLabelOf(group)
 
   const { updated, releasedAmount } = await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
-      where: { id: dispute.id, status: 'pending' },
+      where: { groupId: group.id, memberId: member.id, status: 'pending' },
       data:  { status: 'withdrawn_by_member', resolvedAt: new Date() },
     })
     if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
@@ -678,7 +678,7 @@ export async function withdrawDispute({ groupId, userId }) {
   const dispute = await prisma.dispute.findFirst({ where: { groupId, memberId: member.id, status: 'pending' } })
   if (!dispute) throw httpError(400, '找不到進行中的申訴')
 
-  return applyDisputeWithdrawal({ group, member, dispute })
+  return applyDisputeWithdrawal({ group, member })
 }
 
 export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) {
@@ -701,7 +701,7 @@ export async function resolveDisputeByHost({ groupId, hostId, memberId, note }) 
 
   const { updated, releasedAmount } = await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
-      where: { id: dispute.id, status: 'pending' },
+      where: { groupId, memberId, status: 'pending' },
       data:  {
         status:           'resolved_by_host',
         resolutionType:   'host_private_resolved',
@@ -773,7 +773,7 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   const disputeEscalatedAt = new Date()
   await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
-      where: { id: dispute.id, status: 'pending' },
+      where: { groupId, memberId, status: 'pending' },
       data:  { hostDisputed: true, hostResponseNote: trimmedNote, hostRespondedAt: disputeEscalatedAt },
     })
     if (claimed.count === 0) throw httpError(409, '這筆申訴已經被處理過了，請重新整理頁面', { responsePayload: { code: 'DISPUTE_ALREADY_CLAIMED' } })
@@ -1014,7 +1014,7 @@ export async function adjudicateDispute({ groupId, adminId, memberId, winner, re
 
   const releasedAmount = await prisma.$transaction(async (tx) => {
     const claimed = await tx.dispute.updateMany({
-      where: { id: dispute.id, status: 'pending' },
+      where: { groupId, memberId, status: 'pending' },
       data:  {
         status:             'adjudicated',
         resolutionType,
