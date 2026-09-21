@@ -452,7 +452,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
     data: {
       groupId,
       authorId: member.userId,
-      content:  `已提出回報問題：${reason.trim()}`.slice(0, 500),
+      content:  '已回報問題',
     },
   }).catch(console.error);
 
@@ -470,7 +470,7 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
   if (!group) throw httpError(404, '群組不存在')
   if (group.hostId !== hostId) throw httpError(403, '僅團主可操作')
   if (!['pending_confirmation', 'pending_activation', 'info_overdue'].includes(group.status))
-    throw httpError(400, `群組狀態為 ${group.status}，無法提出回報問題`)
+    throw httpError(400, `群組狀態為 ${group.status}，無法回報問題`)
 
   const member = group.members.find(m => m.id === memberId)
   if (!member) throw httpError(404, '找不到成員')
@@ -531,7 +531,7 @@ export async function reportServiceInfoIssue({ groupId, hostId, memberId, note, 
   })
 
   prisma.credentialComment.create({
-    data: { groupId, authorId: hostId, content: `已對 ${member.user.name} 提出回報問題，請協助處理！` },
+    data: { groupId, authorId: hostId, content: `已回報 ${member.user.name} 的帳號資訊問題，請協助處理！` },
   }).catch(console.error)
 
   return updated
