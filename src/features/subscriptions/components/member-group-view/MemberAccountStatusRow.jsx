@@ -5,7 +5,7 @@ import { PresenceDot } from '../../../../common/layout/components/navShared'
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '../../../../components/ui/collapsible'
 import CountdownText from '../../../../components/ui/primitives/CountdownText'
 import EvidenceLink from '../../../../components/ui/EvidenceLink'
-import { formatDisputeReason } from '../../../../common/utils/memberGroupDisplay'
+import { formatDisputeReason, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../../common/utils/memberGroupDisplay'
 
 export default function MemberAccountStatusRow({ member, isSharedCredentials }) {
   const [expanded, setExpanded] = useState(false)
@@ -37,7 +37,7 @@ export default function MemberAccountStatusRow({ member, isSharedCredentials }) 
 
       return (
         <>
-          {member.disputeEscalatedAt ? '平台介入處理中' : '回報問題待處理'}
+          {member.disputeEscalatedAt ? DISPUTE_ESCALATED_BANNER_TEXT : '回報問題待處理'}
           {member.disputeDeadline && (
             <>，剩餘 <CountdownText deadline={member.disputeDeadline} /></>
           )}

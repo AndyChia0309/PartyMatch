@@ -55,7 +55,7 @@ export function getMemberGroupFlags({ status, sub, myMember, hasServiceInfo, has
 }
 
 export const DISPUTED_BANNER_TEXT = '回報問題處理中'
-export const DISPUTE_ESCALATED_BANNER_TEXT = '平台介入處理中'
+export const DISPUTE_ESCALATED_BANNER_TEXT = '客服處理中'
 
 export function formatDisputeReason(issueNote) {
   if (!issueNote) return { types: '', detail: '' }

@@ -225,7 +225,7 @@ export default function MemberGroupView({ group, onLeaveGroup, onClose, autoOpen
   async function handleReportFalseIssue(note) {
     try {
       await createPlatformReport({ groupId: group.id, description: `團主回報的問題：${myMember?.serviceInfoIssueNote ?? ''}\n\n我認為這筆回報不實，說明：${note}` })
-      toast('已送出，平台客服會盡快協助處理', 'success')
+      toast('已送出，客服會盡快協助處理', 'success')
       setShowReportFalseIssue(false)
     } catch (err) {
       toast(err?.message ?? '送出失敗，請稍後再試', 'error')

@@ -49,7 +49,7 @@ export const HOME_HOST_JOURNEY = [
     id: 'manage',
     title: '群組管理',
     badge: 'MANAGE',
-    desc: '審核申請、額滿鎖定共用帳密，成員確認可用後正式啟用；有問題可一鍵回報，平台介入處理。',
+    desc: '審核申請、額滿鎖定共用帳密，成員確認可用後正式啟用；有問題可一鍵回報，客服介入處理。',
   },
   {
     id: 'renew',

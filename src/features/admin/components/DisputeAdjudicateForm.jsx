@@ -56,7 +56,7 @@ export default function DisputeAdjudicateForm({ dispute, onResolved }) {
         <p className="mb-3 text-xs text-ink-4">將退款 {dispute.seatCost} PM 給成員；此裁定只結算這名成員的席位金額，群組其餘成員的代管進度不受影響</p>
       )}
       {winner === 'host' && (
-        <p className="mb-3 text-xs text-ink-4">申訴成員本期費用不予退還，將撥款 {hostReleaseAmount} PM 給團主；此裁定只結算這名成員的席位金額，群組其餘成員的代管進度不受影響</p>
+        <p className="mb-3 text-xs text-ink-4">申訴成員本期費用不予退還，{hostReleaseAmount} PM 不會馬上撥款給團主；此裁定只結算這名成員的席位金額，群組其餘成員的代管進度不受影響</p>
       )}
 
       <div className="mb-3">
@@ -84,7 +84,7 @@ export default function DisputeAdjudicateForm({ dispute, onResolved }) {
           message={
             winner === 'member'
               ? `成員獲勝：退款 ${dispute.seatCost} PM 給成員，此操作無法復原。`
-              : `團主獲勝：申訴成員本期費用不予退還，撥款 ${hostReleaseAmount} PM 給團主，此操作無法復原。`
+              : `團主獲勝：申訴成員本期費用不予退還，${hostReleaseAmount} PM 不會馬上撥款給團主，此操作無法復原。`
           }
           confirmLabel="確認裁定"
           danger

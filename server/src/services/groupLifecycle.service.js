@@ -459,7 +459,7 @@ export async function raiseDispute({ groupId, userId, reason, evidenceUrl }) {
   notify({
     userId:  group.hostId,
     type:    'dispute_raised',
-    title:   `${groupLabel} ${member.user.name}回報問題`,
+    title:   `${groupLabel} 成員已回報問題`,
     message: `${member.user.name} 針對「${groupLabel}」服務回報問題，請於 48 小時內處理完成。`,
     meta:    { groupId, memberId: member.id },
   })
@@ -660,7 +660,7 @@ async function applyDisputeWithdrawal({ group, member }) {
   notify({
     userId:  group.hostId,
     type:    'dispute_withdrawn',
-    title:   `${groupLabel} ${member.user.name}已撤銷回報問題`,
+    title:   `${groupLabel} 成員已撤銷回報問題`,
     message: `${member.user.name} 已撤銷針對「${groupLabel}」的回報問題。`,
     meta:    { groupId: group.id },
   });
@@ -804,8 +804,8 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
   notifyBatch([group.hostId, disputeMember.userId].map(userId => ({
     userId,
     type:    'dispute_escalated',
-    title:   `${groupLabel} 回報問題已由平台接管`,
-    message: `「${groupLabel}」的回報問題已由平台客服接管處理，請耐心等候。`,
+    title:   `${groupLabel} 回報問題已由客服接管`,
+    message: `「${groupLabel}」的回報問題已由客服接管處理，請耐心等候。`,
     meta:    { groupId },
   })))
 
@@ -813,7 +813,7 @@ export async function escalateDisputeToAdmin({ groupId, hostId, memberId, note }
     data: {
       groupId,
       authorId: hostId,
-      content:  `${disputeMember.user.name}的回報問題將由平台介入處理，理由：${trimmedNote}`.slice(0, 500),
+      content:  `${disputeMember.user.name}的回報問題將由客服介入處理，理由：${trimmedNote}`.slice(0, 500),
     },
   }).catch(console.error)
 

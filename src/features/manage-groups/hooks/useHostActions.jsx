@@ -329,7 +329,7 @@ async function handleActivate(nextBillingDate) {
   async function handleEscalateDispute(groupId, memberId, note) {
     try {
       await useGroupStore.getState().escalateDispute(groupId, { memberId, note })
-      toast('回報問題將由平台介入處理', 'success', {
+      toast('回報問題將由客服介入處理', 'success', {
         action: {
           label: '前往查看',
           onClick: () => window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId, openMemberInfo: true } })),

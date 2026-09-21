@@ -17,8 +17,8 @@ const MODE_CONFIG = {
   escalate: {
     icon: ShieldAlert,
     title: '標記回報不實',
-    description: '這筆回報問題將交由平台客服介入了解實際狀況並裁定，請說明你認為不實的理由。',
-    placeholder: '請說明理由（必填），將提供給平台客服參考',
+    description: '這筆回報問題將交由客服介入了解實際狀況並裁定，請說明你認為不實的理由。',
+    placeholder: '請說明理由（必填），將提供給客服參考',
     required: true,
     submitLabel: '送出並進入仲裁',
   },

@@ -7,7 +7,7 @@ import CountdownText from '../../../../components/ui/primitives/CountdownText'
 import EvidenceLink from '../../../../components/ui/EvidenceLink'
 import DisputeResponseModal from './DisputeResponseModal'
 import { getTextFields } from '../../../../common/utils/serviceInfoFields'
-import { formatDisputeReason } from '../../../../common/utils/memberGroupDisplay'
+import { formatDisputeReason, DISPUTE_ESCALATED_BANNER_TEXT } from '../../../../common/utils/memberGroupDisplay'
 import { useClickOutside } from '../../../../common/utils/hooks'
 
 function renderFilledInfoDetail(serviceInfo, sharingMethod, serviceId) {
@@ -111,7 +111,7 @@ export default function MemberIssueCard(
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink">{m.userName}</p>
                   <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
-                    <span>{m.disputeEscalatedAt ? '平台介入處理中' : '回報問題待處理'}</span>
+                    <span>{m.disputeEscalatedAt ? DISPUTE_ESCALATED_BANNER_TEXT : '回報問題待處理'}</span>
                     <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
                   </p>
                 </div>
