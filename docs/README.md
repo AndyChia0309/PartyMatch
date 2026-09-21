@@ -2,9 +2,10 @@
 
 ### 產品
 
-- [專案簡介](product/product-overview.md) — 專案定位、解決的問題、角色設計、MVP 範圍
+- [專案詳情](product/product-overview.md) — 專案定位、解決的問題、角色設計、MVP 範圍
 - [頁面地圖](product/page-map.md) — 每個網址對應到哪個畫面
 - [功能地圖](product/feature-map.md) — 目前做了哪些功能的完整清單
+- [共享模式](product/sharing-modes.md) — 不同服務類型需要哪些帳號、邀請或共用帳密資訊
 
 ### UI/UX 前期製作
 
