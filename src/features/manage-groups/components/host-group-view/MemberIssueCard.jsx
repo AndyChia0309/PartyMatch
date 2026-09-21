@@ -76,7 +76,7 @@ export default function MemberIssueCard(
           onClick={() => onOpenServiceIssue(m)}
           className="absolute right-3 top-3 h-auto rounded-lg border border-danger/60 px-2.5 py-1 text-xs text-danger-text hover:bg-danger-subtle"
         >
-          <AlertTriangle strokeWidth={1.5} size={11} /> 問題回報
+          <AlertTriangle strokeWidth={1.5} size={11} /> 回報問題
         </Button>
       )}
       {canWithdrawServiceInfoIssue && (
@@ -95,7 +95,7 @@ export default function MemberIssueCard(
           <div className="min-w-0 flex-1">
             <p className="text-sm font-semibold text-ink">{m.userName}</p>
             <p className="text-xs text-danger-text">
-              問題回報處理中
+              回報問題處理中
               {m.serviceInfoIssueDeadline && (
                 <>，剩餘 <CountdownText deadline={m.serviceInfoIssueDeadline} /></>
               )}
@@ -111,7 +111,7 @@ export default function MemberIssueCard(
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink">{m.userName}</p>
                   <p className="flex flex-wrap items-baseline gap-x-1 text-xs text-danger-text">
-                    <span>{m.disputeEscalatedAt ? '平台介入處理中' : '問題回報待處理'}</span>
+                    <span>{m.disputeEscalatedAt ? '平台介入處理中' : '回報問題待處理'}</span>
                     <span>剩餘 <CountdownText deadline={m.disputeDeadline} /></span>
                   </p>
                 </div>
@@ -197,7 +197,7 @@ export default function MemberIssueCard(
             onClick={() => setResponseModal('escalate')}
             className="rounded-lg text-xs"
           >
-            不實回報
+            回報不實
           </Button>
         </div>
       )}

@@ -20,7 +20,7 @@ export default function DisputeSummaryCard({ dispute }) {
       </p>
       {dispute.hostDisputed && (
         <div className="mt-2 rounded-lg border border-danger/40 bg-danger-subtle px-3 py-2">
-          <p className="mb-1 text-xs font-semibold text-danger-text">團主標記為不實回報</p>
+          <p className="mb-1 text-xs font-semibold text-danger-text">團主標記為回報不實</p>
           <p className="whitespace-pre-wrap break-words text-xs text-danger-text">{dispute.hostResponseNote}</p>
         </div>
       )}

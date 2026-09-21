@@ -57,7 +57,7 @@ export function useDisputeForm(groupId) {
     setWithdrawing(true)
     try {
       await withdrawDisputeAction(groupId)
-      toast('已撤銷問題回報')
+      toast('已撤銷回報問題')
     } catch (err) {
       toast(err?.message ?? '撤銷失敗，請稍後再試', 'error')
     } finally {

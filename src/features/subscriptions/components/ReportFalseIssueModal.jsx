@@ -25,14 +25,14 @@ export default function ReportFalseIssueModal({ isOpen, issueNote, onClose, onSu
         <DialogHeader>
           <div className="flex min-w-0 items-center gap-2.5">
             <ShieldAlert strokeWidth={1.5} size={18} className="shrink-0 text-brand" />
-            <DialogTitle className="truncate text-base">標記不實回報</DialogTitle>
+            <DialogTitle className="truncate text-base">標記回報不實</DialogTitle>
           </div>
           <DialogCloseButton />
         </DialogHeader>
-        <DialogDescription>標記不實回報</DialogDescription>
+        <DialogDescription>標記回報不實</DialogDescription>
         <DialogBody>
           <div className="animate-step-slide-up space-y-3 p-5">
-            <p className="text-sm text-ink-3">這筆問題回報將交由平台客服介入了解實際狀況並裁定，請說明你認為不實的理由。</p>
+            <p className="text-sm text-ink-3">這筆回報問題將交由平台客服介入了解實際狀況並裁定，請說明你認為不實的理由。</p>
             {issueNote && (
               <div className="space-y-1.5 rounded-lg border border-line bg-surface px-3 py-2 text-xs text-ink-2">
                 <p className="whitespace-pre-line"><span className="font-semibold text-ink-3">團主回報內容：</span>{issueNote}</p>

@@ -71,7 +71,7 @@ export function buildCredentialsPanel(
                 <p className="text-sm font-semibold text-ink">{userName}</p>
                 <p className={`text-xs ${hasServiceInfoIssue ? 'text-danger-text' : hasServiceInfo ? 'text-success-text' : 'text-ink-4'}`}>
                   {hasServiceInfoIssue
-                    ? (<>問題回報處理中{serviceInfoIssueDeadline && (<>，剩餘 <CountdownText deadline={serviceInfoIssueDeadline} /></>)}</>)
+                    ? (<>回報問題處理中{serviceInfoIssueDeadline && (<>，剩餘 <CountdownText deadline={serviceInfoIssueDeadline} /></>)}</>)
                     : hasServiceInfo
                       ? (isSharedCredentials ? '已成功提取帳號' : '已填寫帳號資訊')
                       : (isSharedCredentials ? '尚未提取帳號' : '尚未填寫帳號')}

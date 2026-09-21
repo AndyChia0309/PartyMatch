@@ -146,7 +146,7 @@ export default function ActivateServiceModal({
                                 <div className="min-w-0 flex-1">
                                   <p className="text-sm font-semibold text-ink">{m.userName}</p>
                                   {m.serviceInfoIssueNote ? (
-                                    <p className="text-xs text-warning-text">問題回報中，等待修正</p>
+                                    <p className="text-xs text-warning-text">回報問題中，等待修正</p>
                                   ) : hasFilledServiceInfo(m.serviceInfo, sharingMethod, service?.id) ? (
                                     <p className="text-xs text-ink-3">{getServiceInfoSummary(m.serviceInfo, sharingMethod, service?.id)}</p>
                                   ) : (

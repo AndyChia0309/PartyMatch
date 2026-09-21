@@ -317,7 +317,7 @@ async function handleActivate(nextBillingDate) {
   async function handleEscalateDispute(groupId, memberId, note) {
     try {
       await useGroupStore.getState().escalateDispute(groupId, { memberId, note })
-      toast('問題回報將由平台介入處理', 'success', {
+      toast('回報問題將由平台介入處理', 'success', {
         action: {
           label: '前往查看',
           onClick: () => window.dispatchEvent(new CustomEvent('pm:open-host-group', { detail: { groupId, openMemberInfo: true } })),
@@ -442,7 +442,7 @@ async function handleApprove(appId) {
       toast(
         <span className="flex min-w-0 items-baseline gap-1 overflow-hidden whitespace-nowrap">
           <span className="min-w-0 truncate">{groupLabel}</span>
-          <span className="shrink-0">已撤銷問題回報</span>
+          <span className="shrink-0">已撤銷回報問題</span>
         </span>,
         'success',
         { icon: group?.serviceId ? <ServiceLogo serviceId={group.serviceId} size={20} /> : undefined }
