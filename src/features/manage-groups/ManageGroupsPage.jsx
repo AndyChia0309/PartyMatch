@@ -116,8 +116,6 @@ export default function ManageGroupsPage() {
                 <HostedGroupCard
                   group={g}
                   members={membersMap[g.id] ?? []}
-                  pendingAppCount={applicationCounts[g.id] ?? 0}
-                  paymentCount={0}
                   hasPendingUpdate={hasPendingUpdate(g)}
                   {...groupHandlersMap[g.id]}
                 />
@@ -137,8 +135,6 @@ export default function ManageGroupsPage() {
             <HostedGroupCard
               group={g}
               members={membersMap[g.id] ?? []}
-              pendingAppCount={applicationCounts[g.id] ?? 0}
-              paymentCount={0}
               hasPendingUpdate={hasPendingUpdate(g)}
               onViewGroup={() => {
                 historyReopenRef.current = { groupId: g.id, opened: false }

@@ -10,8 +10,6 @@ import { useNotificationStore } from '../../common/stores/useNotificationStore'
 import { usePendingRefreshStore } from '../../common/stores/usePendingRefreshStore'
 import SubscriptionCard from './components/SubscriptionCard'
 import EmptyState from '../../components/ui/primitives/EmptyState'
-import { StatusBadge } from '../../components/ui/StatusBadge'
-import { getStatusLabel } from '../../components/ui/statusBadgeConfig'
 import { StatCell, StatCellGrid } from '../../components/ui/group/StatCellGrid'
 import GroupCardHeader from '../../components/ui/group/GroupCardHeader'
 import { Button } from '../../components/ui/button'
@@ -250,7 +248,6 @@ export default function SubscriptionsPage() {
 }
 
 function ApplicationCard({ app, group, hasPendingUpdate, onViewGroup }) {
-  const isLastSeat = group.openSeats === 1
   return (
     <Card
       as="article"
@@ -258,7 +255,6 @@ function ApplicationCard({ app, group, hasPendingUpdate, onViewGroup }) {
       onClick={onViewGroup}
     >
       <GroupCardHeader
-        badge={<StatusBadge status="pending" label="審核中" />}
         serviceId={app.serviceId}
         serviceName={app.serviceName ?? app.groupName}
         planName={app.planName}
@@ -268,18 +264,7 @@ function ApplicationCard({ app, group, hasPendingUpdate, onViewGroup }) {
 
       <StatCellGrid>
         <StatCell label="團主">{app.hostName ?? '—'}</StatCell>
-        <StatCell label="剩餘名額">
-          {group.totalSeats == null ? (
-            '—'
-          ) : group.openSeats <= 0 ? (
-            <span className="text-ink-3">{getStatusLabel('full')}</span>
-          ) : (
-            <>
-              <span className={isLastSeat ? 'text-warning-text' : 'text-success'}>{group.openSeats}</span>
-              <span className="text-ink-4"> / {group.totalSeats}</span>
-            </>
-          )}
-        </StatCell>
+        <StatCell label="群組人數">{(group.currentMembers ?? 0) + 1} 人</StatCell>
         <StatCell label="申請日期">{toISODate(app.createdAt)}</StatCell>
       </StatCellGrid>
 
