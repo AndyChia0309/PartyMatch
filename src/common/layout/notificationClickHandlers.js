@@ -420,10 +420,10 @@ export function handleNotificationClick(notification, { userId, navigate, setOpe
         useGroupStore.getState().init({ all: true }),
         useMemberStore.getState().init(),
       ]).finally(() => {
-        openHostGroup(gId)
+        openHostGroup(gId, { openMemberInfo: true })
       }))
     } else {
-      withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, gId));
+      withReservedModal(() => navigateToMemberGroupOrExplore(navigate, userId, gId, { openCredentials: true }));
     }
     return
   }

@@ -400,6 +400,7 @@ export default function App() {
       dispute_raised:                openMemberInfoWithRefreshAction,
       dispute_resolved_by_host:      openGroupAction,
       dispute_withdrawn:             openMemberInfoWithRefreshAction,
+      dispute_resolved:              openServiceInfoIssueAction,
       group_chat_opened:             openGroupOrHostGroupAction,
       credential_comment:            openCredentialsOrMemberInfoAction,
       fill_service_info:             openGroupAction,
